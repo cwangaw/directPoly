@@ -1,0 +1,663 @@
+POLYMESH
+num_vertices = 8
+num_edges    = 12
+num_elements = 5
+mesh_is_good = 1
+num_boundary_vertices = 5
+num_boundary_edges    = 5
+max_edges_of_element  = 5
+[min_x, max_x]x[min_y, max_y] = [0,10]x[0,10]
+
+polymesh vertices:
+  0,0
+  10,0
+  10,5
+  6,5
+  5,8
+  0,10
+  5,3
+  10,10
+
+polymesh edges 0:
+    EDGE
+    vertex 0:
+      VERTEX (0,0)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 0
+    vertex 1:
+      VERTEX (10,0)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 1
+    normal_vector: (0,-1)
+    tangent_vector: (1,0)
+    edge_length   = 10
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 0
+
+
+polymesh edges 1:
+    EDGE
+    vertex 0:
+      VERTEX (0,0)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 0
+    vertex 1:
+      VERTEX (0,10)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 5
+    normal_vector: (1,-0)
+    tangent_vector: (0,1)
+    edge_length   = 10
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 1
+
+
+polymesh edges 2:
+    EDGE
+    vertex 0:
+      VERTEX (0,0)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 0
+    vertex 1:
+      VERTEX (5,3)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 6
+    normal_vector: (0.514496,-0.857493)
+    tangent_vector: (0.857493,0.514496)
+    edge_length   = 5.83095
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 2
+
+
+polymesh edges 3:
+    EDGE
+    vertex 0:
+      VERTEX (10,0)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 1
+    vertex 1:
+      VERTEX (10,5)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 2
+    normal_vector: (1,-0)
+    tangent_vector: (0,1)
+    edge_length   = 5
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 3
+
+
+polymesh edges 4:
+    EDGE
+    vertex 0:
+      VERTEX (10,0)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 1
+    vertex 1:
+      VERTEX (5,3)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 6
+    normal_vector: (0.514496,0.857493)
+    tangent_vector: (-0.857493,0.514496)
+    edge_length   = 5.83095
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 4
+
+
+polymesh edges 5:
+    EDGE
+    vertex 0:
+      VERTEX (10,5)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 2
+    vertex 1:
+      VERTEX (6,5)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 3
+    normal_vector: (0,1)
+    tangent_vector: (-1,0)
+    edge_length   = 4
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 5
+
+
+polymesh edges 6:
+    EDGE
+    vertex 0:
+      VERTEX (10,5)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 2
+    vertex 1:
+      VERTEX (10,10)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 7
+    normal_vector: (1,-0)
+    tangent_vector: (0,1)
+    edge_length   = 5
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 6
+
+
+polymesh edges 7:
+    EDGE
+    vertex 0:
+      VERTEX (6,5)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 3
+    vertex 1:
+      VERTEX (5,8)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 4
+    normal_vector: (0.948683,0.316228)
+    tangent_vector: (-0.316228,0.948683)
+    edge_length   = 3.16228
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 7
+
+
+polymesh edges 8:
+    EDGE
+    vertex 0:
+      VERTEX (6,5)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 3
+    vertex 1:
+      VERTEX (5,3)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 6
+    normal_vector: (-0.894427,0.447214)
+    tangent_vector: (-0.447214,-0.894427)
+    edge_length   = 2.23607
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 8
+
+
+polymesh edges 9:
+    EDGE
+    vertex 0:
+      VERTEX (5,8)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 4
+    vertex 1:
+      VERTEX (0,10)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 5
+    normal_vector: (0.371391,0.928477)
+    tangent_vector: (-0.928477,0.371391)
+    edge_length   = 5.38516
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 9
+
+
+polymesh edges 10:
+    EDGE
+    vertex 0:
+      VERTEX (5,8)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 4
+    vertex 1:
+      VERTEX (10,10)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 7
+    normal_vector: (0.371391,-0.928477)
+    tangent_vector: (0.928477,0.371391)
+    edge_length   = 5.38516
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 10
+
+
+polymesh edges 11:
+    EDGE
+    vertex 0:
+      VERTEX (0,10)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 5
+    vertex 1:
+      VERTEX (10,10)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 7
+    normal_vector: (0,-1)
+    tangent_vector: (1,0)
+    edge_length   = 10
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 11
+
+
+polymesh elements 0:
+  POLYELEMENT
+  num_vertices  = 3
+  good_element  = 1
+  the_area      = 15
+  my_center     = 5,1.38492
+  my_centroid   = 5,1
+  my_mesh       = 0x7fff566a9590
+  my_mesh_index = 0
+  the_oriented_edge 0:
+    ORIENTEDEDGE
+    orientation = 1
+    EDGE
+    vertex 0:
+      VERTEX (0,0)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 0
+    vertex 1:
+      VERTEX (10,0)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 1
+    normal_vector: (0,-1)
+    tangent_vector: (1,0)
+    edge_length   = 10
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 0
+
+  the_oriented_edge 1:
+    ORIENTEDEDGE
+    orientation = 1
+    EDGE
+    vertex 0:
+      VERTEX (10,0)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 1
+    vertex 1:
+      VERTEX (5,3)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 6
+    normal_vector: (0.514496,0.857493)
+    tangent_vector: (-0.857493,0.514496)
+    edge_length   = 5.83095
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 4
+
+  the_oriented_edge 2:
+    ORIENTEDEDGE
+    orientation = -1
+    EDGE
+    vertex 0:
+      VERTEX (0,0)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 0
+    vertex 1:
+      VERTEX (5,3)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 6
+    normal_vector: (0.514496,-0.857493)
+    tangent_vector: (0.857493,0.514496)
+    edge_length   = 5.83095
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 2
+
+
+
+polymesh elements 1:
+  POLYELEMENT
+  num_vertices  = 4
+  good_element  = 1
+  the_area      = 16.5
+  my_center     = 8.19246,3.19246
+  my_centroid   = 8.0101,3.07071
+  my_mesh       = 0x7fff566a9590
+  my_mesh_index = 1
+  the_oriented_edge 0:
+    ORIENTEDEDGE
+    orientation = 1
+    EDGE
+    vertex 0:
+      VERTEX (10,5)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 2
+    vertex 1:
+      VERTEX (6,5)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 3
+    normal_vector: (0,1)
+    tangent_vector: (-1,0)
+    edge_length   = 4
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 5
+
+  the_oriented_edge 1:
+    ORIENTEDEDGE
+    orientation = 1
+    EDGE
+    vertex 0:
+      VERTEX (6,5)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 3
+    vertex 1:
+      VERTEX (5,3)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 6
+    normal_vector: (-0.894427,0.447214)
+    tangent_vector: (-0.447214,-0.894427)
+    edge_length   = 2.23607
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 8
+
+  the_oriented_edge 2:
+    ORIENTEDEDGE
+    orientation = -1
+    EDGE
+    vertex 0:
+      VERTEX (10,0)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 1
+    vertex 1:
+      VERTEX (5,3)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 6
+    normal_vector: (0.514496,0.857493)
+    tangent_vector: (-0.857493,0.514496)
+    edge_length   = 5.83095
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 4
+
+  the_oriented_edge 3:
+    ORIENTEDEDGE
+    orientation = 1
+    EDGE
+    vertex 0:
+      VERTEX (10,0)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 1
+    vertex 1:
+      VERTEX (10,5)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 2
+    normal_vector: (1,-0)
+    tangent_vector: (0,1)
+    edge_length   = 5
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 3
+
+
+
+polymesh elements 2:
+  POLYELEMENT
+  num_vertices  = 3
+  good_element  = 1
+  the_area      = 10
+  my_center     = 5,9.03709
+  my_centroid   = 5,9.33333
+  my_mesh       = 0x7fff566a9590
+  my_mesh_index = 2
+  the_oriented_edge 0:
+    ORIENTEDEDGE
+    orientation = 1
+    EDGE
+    vertex 0:
+      VERTEX (5,8)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 4
+    vertex 1:
+      VERTEX (10,10)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 7
+    normal_vector: (0.371391,-0.928477)
+    tangent_vector: (0.928477,0.371391)
+    edge_length   = 5.38516
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 10
+
+  the_oriented_edge 1:
+    ORIENTEDEDGE
+    orientation = -1
+    EDGE
+    vertex 0:
+      VERTEX (0,10)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 5
+    vertex 1:
+      VERTEX (10,10)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 7
+    normal_vector: (0,-1)
+    tangent_vector: (1,0)
+    edge_length   = 10
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 11
+
+  the_oriented_edge 2:
+    ORIENTEDEDGE
+    orientation = -1
+    EDGE
+    vertex 0:
+      VERTEX (5,8)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 4
+    vertex 1:
+      VERTEX (0,10)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 5
+    normal_vector: (0.371391,0.928477)
+    tangent_vector: (-0.928477,0.371391)
+    edge_length   = 5.38516
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 9
+
+
+
+polymesh elements 3:
+  POLYELEMENT
+  num_vertices  = 5
+  good_element  = 1
+  the_area      = 40
+  my_center     = 2.88507,5.22137
+  my_centroid   = 2.41667,5.22917
+  my_mesh       = 0x7fff566a9590
+  my_mesh_index = 3
+  the_oriented_edge 0:
+    ORIENTEDEDGE
+    orientation = 1
+    EDGE
+    vertex 0:
+      VERTEX (5,8)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 4
+    vertex 1:
+      VERTEX (0,10)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 5
+    normal_vector: (0.371391,0.928477)
+    tangent_vector: (-0.928477,0.371391)
+    edge_length   = 5.38516
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 9
+
+  the_oriented_edge 1:
+    ORIENTEDEDGE
+    orientation = -1
+    EDGE
+    vertex 0:
+      VERTEX (0,0)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 0
+    vertex 1:
+      VERTEX (0,10)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 5
+    normal_vector: (1,-0)
+    tangent_vector: (0,1)
+    edge_length   = 10
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 1
+
+  the_oriented_edge 2:
+    ORIENTEDEDGE
+    orientation = 1
+    EDGE
+    vertex 0:
+      VERTEX (0,0)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 0
+    vertex 1:
+      VERTEX (5,3)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 6
+    normal_vector: (0.514496,-0.857493)
+    tangent_vector: (0.857493,0.514496)
+    edge_length   = 5.83095
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 2
+
+  the_oriented_edge 3:
+    ORIENTEDEDGE
+    orientation = -1
+    EDGE
+    vertex 0:
+      VERTEX (6,5)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 3
+    vertex 1:
+      VERTEX (5,3)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 6
+    normal_vector: (-0.894427,0.447214)
+    tangent_vector: (-0.447214,-0.894427)
+    edge_length   = 2.23607
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 8
+
+  the_oriented_edge 4:
+    ORIENTEDEDGE
+    orientation = 1
+    EDGE
+    vertex 0:
+      VERTEX (6,5)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 3
+    vertex 1:
+      VERTEX (5,8)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 4
+    normal_vector: (0.948683,0.316228)
+    tangent_vector: (-0.316228,0.948683)
+    edge_length   = 3.16228
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 7
+
+
+
+polymesh elements 4:
+  POLYELEMENT
+  num_vertices  = 4
+  good_element  = 1
+  the_area      = 18.5
+  my_center     = 7.98146,7.01854
+  my_centroid   = 7.9009,7.12613
+  my_mesh       = 0x7fff566a9590
+  my_mesh_index = 4
+  the_oriented_edge 0:
+    ORIENTEDEDGE
+    orientation = -1
+    EDGE
+    vertex 0:
+      VERTEX (5,8)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 4
+    vertex 1:
+      VERTEX (10,10)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 7
+    normal_vector: (0.371391,-0.928477)
+    tangent_vector: (0.928477,0.371391)
+    edge_length   = 5.38516
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 10
+
+  the_oriented_edge 1:
+    ORIENTEDEDGE
+    orientation = -1
+    EDGE
+    vertex 0:
+      VERTEX (6,5)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 3
+    vertex 1:
+      VERTEX (5,8)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 4
+    normal_vector: (0.948683,0.316228)
+    tangent_vector: (-0.316228,0.948683)
+    edge_length   = 3.16228
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 7
+
+  the_oriented_edge 2:
+    ORIENTEDEDGE
+    orientation = -1
+    EDGE
+    vertex 0:
+      VERTEX (10,5)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 2
+    vertex 1:
+      VERTEX (6,5)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 3
+    normal_vector: (0,1)
+    tangent_vector: (-1,0)
+    edge_length   = 4
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 5
+
+  the_oriented_edge 3:
+    ORIENTEDEDGE
+    orientation = 1
+    EDGE
+    vertex 0:
+      VERTEX (10,5)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 2
+    vertex 1:
+      VERTEX (10,10)
+      my_mesh       = 0x7fff566a9590
+      my_mesh_index = 7
+    normal_vector: (1,-0)
+    tangent_vector: (0,1)
+    edge_length   = 5
+    my_mesh       = 0x7fff566a9590
+    my_mesh_index = 6
+
+
+
+num_vertices_of_element: 3 4 3 5 4 
+
+element_by_vertex_index:
+0 1 6 
+2 3 6 1 
+4 7 5 
+4 5 0 6 3 
+7 4 3 2 
+
+nbr_edges_of_vertex:
+ vertex 0:  0  1  2
+ vertex 1:  0  3  4
+ vertex 2:  3  5  6
+ vertex 3:  5  7  8
+ vertex 4:  7  9  10
+ vertex 5:  1  9  11
+ vertex 6:  2  4  8
+ vertex 7:  6  10  11
+
+nbr_elements_of_vertex:
+ vertex 0:  0  3
+ vertex 1:  0  1
+ vertex 2:  1  4
+ vertex 3:  1  3  4
+ vertex 4:  2  3  4
+ vertex 5:  2  3
+ vertex 6:  0  1  3
+ vertex 7:  2  4
+
+nbr_elements_of_edge:
+ edge 0: 0  -1
+ edge 1: -1  3
+ edge 2: 3  0
+ edge 3: 1  -1
+ edge 4: 0  1
+ edge 5: 1  4
+ edge 6: 4  -1
+ edge 7: 3  4
+ edge 8: 1  3
+ edge 9: 3  2
+ edge 10: 2  4
+ edge 11: -1  2
