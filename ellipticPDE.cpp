@@ -18,6 +18,42 @@
 using namespace directserendipity;
 using namespace polymesh;
 using namespace polyquadrature;
+
+int infNorm(double *A, int n) 
+{ 
+    // Initialize maximum element
+    double max = 0;
+
+    // Traverse array elements  
+    // from second and compare 
+    // every element with current max  
+    for (int row = 0; row < n; row++) {
+      double norm = 0;
+      for (int col = 0; col < n; col++) {
+        norm += fabs(A[row*n+col]);
+      }
+      max = (norm > max)? norm : max;
+    }
+    return max;
+} 
+
+lapack_int matInv(double *A, unsigned n)
+{
+  // inplace inverse n x n matrix A.
+  // matrix A is Column Major (i.e. firts line, second line ... *not* C[][] order)
+  // returns:
+  //   ret = 0 on success
+  //   ret < 0 illegal argument value
+  //   ret > 0 singular matrix
+    int ipiv[n+1];
+    lapack_int ret;
+
+    ret =  LAPACKE_dgetrf(LAPACK_COL_MAJOR, n,n,A,n,ipiv);
+
+    if (ret !=0) return ret;
+    ret = LAPACKE_dgetri(LAPACK_COL_MAJOR,n,A,n,ipiv);
+    return ret;
+}
   
 int EllipticPDE::solve(Monitor& monitor) {
   monitor(0,"Polynomial Degree = ", parameterDataPtr()->dsSpace.degPolyn());
@@ -42,7 +78,7 @@ int EllipticPDE::solve(Monitor& monitor) {
   
   // TEST BASIS FUNCTIONS //////////////////////////////////////////////////
 
-  if(false) {
+  if(true) {
     monitor(0,"\nTest basis functions for element 0\n");
 
     DirectSerendipityArray u(&(parameterDataPtr()->dsSpace));
@@ -52,11 +88,11 @@ int EllipticPDE::solve(Monitor& monitor) {
     for(int i=0; i<u.size(); i++) {
       double x = parameterDataPtr()->dsSpace.nodePtr(i)->val(0);
       double y = parameterDataPtr()->dsSpace.nodePtr(i)->val(1);
-      u[i] = sin(PI*x)*sin(PI*y); //x*x+y*y;
-      //u[i]=0;
+      //u[i] = sin(PI*x)*sin(PI*y); //x*x+y*y;
+      u[i]=0;
       //if (fabs(x-5)<1e-6&&fabs(y-6)<1e-6) {u[i]=1;}
     }
-
+    u[21]=1;
     monitor(1,"Write Array");
 
     std::string fileName = parameterDataPtr()->directory_name;
@@ -64,7 +100,7 @@ int EllipticPDE::solve(Monitor& monitor) {
     std::string fileName_grad = parameterDataPtr()->directory_name;
     fileName_grad += "basis_grad_mesh";
     //u.write_matlab_mesh_by_pt(fileName,fileName_grad,3,3);
-    u.write_matlab_mesh(fileName,fileName_grad,301,301);
+    u.write_matlab_mesh(fileName,fileName_grad,301,301,1);
   }
 
   // TEST QUADRATURE ///////////////////////////////////////////////////////
@@ -228,6 +264,32 @@ int EllipticPDE::solve(Monitor& monitor) {
   if(ierr) { // ?? what should we do ???
     std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
   }
+
+  //Calculate inf condition number
+  double K = infNorm(mat,nn);
+  std::cout << "Norm of mat (in inf norm): " << K << std::endl;
+  matInv(mat,nn);
+  K *= infNorm(mat,nn);
+  std::cout << "Condition number (in inf norm): " << K << std::endl;
+
+  double test[] = {1,2,3,4};
+  std::cout << "\nTest if matInv is working:\n";
+  std::cout << "\nOriginal matrix:\n";
+  for(int r=0; r<2; r++) {
+    for (int c=0; c<2; c++) {
+      std::cout << test[2*r+c] << " ";
+    }
+    std::cout << std::endl;
+  }
+  matInv(test,2);
+  std::cout << "\nInversed matrix:\n";
+  for(int r=0; r<2; r++) {
+    for (int c=0; c<2; c++) {
+      std::cout << test[2*r+c] << " ";
+    }
+    std::cout << std::endl;
+  }
+  std::cout << "\n";
   
 /*
   std::cout << "\nResult:\n";
@@ -249,7 +311,6 @@ int EllipticPDE::solve(Monitor& monitor) {
 
   if(param.output_soln_format) {
   
-    //Results not convincing. If we need to visualize, we would write write_raw_SF and write_matlab_mesh_SF as new functions
 
     monitor(1,"Write Solution"); //////////////////////////////////////////////////
 
@@ -266,7 +327,7 @@ int EllipticPDE::solve(Monitor& monitor) {
       std::string fileNameGrad(param.directory_name);
       fileNameGrad += "solution_grad_mesh";
       solution.write_matlab_mesh(fileName,fileNameGrad,
-				 param.output_mesh_numPts_x,param.output_mesh_numPts_y);
+				 param.output_mesh_numPts_x,param.output_mesh_numPts_y,1);
       break;
     }
     }

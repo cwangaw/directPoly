@@ -128,15 +128,15 @@ namespace directserendipity {
       double null1,null2; l2normError(l2Norm,l2GradNorm,null1,null2); };
 
     void write_matlab_mesh(std::ofstream* fout, std::ofstream* fout_grad,
-			   int num_pts_x, int num_pts_y) const;
+			   int num_pts_x, int num_pts_y, int mode = 0) const;
     void write_matlab_mesh(std::ofstream& fout, std::ofstream& fout_grad,
-			   int num_pts_x, int num_pts_y) const {
-      write_matlab_mesh(&fout, &fout_grad, num_pts_x, num_pts_y); };
-    void write_matlab_mesh(std::ofstream& fout, int num_pts_x, int num_pts_y) const {
-      write_matlab_mesh(&fout, nullptr, num_pts_x, num_pts_y); };
+			   int num_pts_x, int num_pts_y, int mode = 0) const {
+      write_matlab_mesh(&fout, &fout_grad, num_pts_x, num_pts_y, mode); };
+    void write_matlab_mesh(std::ofstream& fout, int num_pts_x, int num_pts_y, int mode = 0) const {
+      write_matlab_mesh(&fout, nullptr, num_pts_x, num_pts_y, mode); };
     int write_matlab_mesh(std::string& filename, std::string& filename_grad,
-			  int num_pts_x, int num_pts_y) const;
-    int write_matlab_mesh(std::string& filename, int num_pts_x, int num_pts_y) const;
+			  int num_pts_x, int num_pts_y, int mode = 0) const;
+    int write_matlab_mesh(std::string& filename, int num_pts_x, int num_pts_y, int mode = 0) const;
 
     void write_matlab_mesh_by_pt(std::ofstream& fout, std::ofstream& fout_grad,
 				 int num_pts_x, int num_pts_y) const;

@@ -981,9 +981,10 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
             if (pt_index == 0) {  phi = phi_alpha_part + phi_beta_part; }
 
             //Store shape functions
+            if (polynomial_degree >= num_vertices && num_vertices > 3) {
             value_n[global_index_shape_function] = phi_pt / phi;
             gradvalue_n[global_index_shape_function] = gradresult / phi;
-
+            }
             //Deduct value at interior nodes
             for (int k=0; k<nCellNodes(); k++) {
                 phi_pt -= phi_e_at_c[k] * value_n[k + num_vertices*polynomial_degree + pt_index*num_nodes];
@@ -1055,10 +1056,11 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
       }
 
       //Store shape functions
+      if (polynomial_degree >= num_vertices && num_vertices > 3) {
       int global_index_shape_function = num_pts * num_nodes + pt_index * (polynomial_degree * num_vertices) + i;
       value_n[global_index_shape_function] = phi_pt / phi;
       gradvalue_n[global_index_shape_function] = gradresult / phi;
-
+      }
       
       //Deduct value at interior nodes
       for (int k=0; k<nCellNodes(); k++) {
@@ -1082,7 +1084,6 @@ void DirectSerendipityFE::eval(const Point* pt, double* result, Tensor1* gradRes
   initBasis(pt,num_pts);
   //double gradInnerProduct = 0, b = 0;
   //double h = 0.05;
-
   for(int n=0; n<num_pts; n++) {
     result[n] = 0;
     gradResult[n].set(0,0);
