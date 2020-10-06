@@ -28,14 +28,14 @@ void coefD(double x, double y, Tensor2& d) {
 
 // Source f
 double sourceVal(double x, double y) {
-  return 2*pow(PI,2)*sin(PI*x)*sin(PI*y); 
-  //return -4;
+  //return 2*pow(PI,2)*sin(PI*x)*sin(PI*y); 
+  return -4;
 }
 
 // BC values g
 double bcVal(double x, double y) {
-  return 0; 
-  //return pow(x,2)+pow(y,2);
+  //return 0; 
+  return pow(x,2)+pow(y,2);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -45,11 +45,11 @@ bool trueSolnKnown() { return true; }
 
 // Real solution
 double trueSoln(double x, double y) {
-  return sin(PI*x)*sin(PI*y); 
-  //return pow(x,2)+pow(y,2);
+  //return sin(PI*x)*sin(PI*y); 
+  return pow(x,2)+pow(y,2);
 }
 
 Tensor1 trueGradSoln(double x, double y) {
-  return Tensor1(PI*cos(PI*x)*sin(PI*y),PI*sin(PI*x)*cos(PI*y));
-  //return Tensor1(2*x,2*y);
+  //return Tensor1(PI*cos(PI*x)*sin(PI*y),PI*sin(PI*x)*cos(PI*y));
+  return Tensor1(2*x,2*y);
 }

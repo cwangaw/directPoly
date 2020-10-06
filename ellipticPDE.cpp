@@ -109,6 +109,7 @@ int EllipticPDE::solve(Monitor& monitor) {
     DirectSerendipityFE* fePtr = param.dsSpace.finiteElementPtr(iElement);
     
     quadRule.setElement(fePtr->elementPtr());
+
     fePtr->initBasis(quadRule.pts(), quadRule.num());
 
     // Local matrix and rhs
@@ -141,12 +142,18 @@ int EllipticPDE::solve(Monitor& monitor) {
       // Local interactions	      
       for(int jNode=0; jNode<nn_loc; jNode++) {
         if (node_loc_to_gbl[jNode] == -1) continue;
-	      double valj = fePtr->basis(jNode, iPt);
-        Tensor1 gradValj = fePtr->basisGrad(jNode, iPt);
+	      double valj = fePtr->basisSF(jNode, iPt, quadRule.num());
+        Tensor1 gradValj = fePtr->basisGradSF(jNode, iPt, quadRule.num());
 
         for(int iNode=0; iNode<nn_loc; iNode++) {
-	        double vali = fePtr->basis(iNode, iPt);
-          Tensor1 gradVali = fePtr->basisGrad(iNode, iPt);
+          //In case "shape functions" are not delta_{i,j} for BC nodes one day
+          //if on BC, we use nodal basis function, otherwise we use shape functions
+	        //double vali = (node_loc_to_gbl[jNode] == -1)? fePtr->basis(iNode, iPt) : fePtr->basisSF(iNode, iPt, quadRule.num());
+          //Tensor1 gradVali = (node_loc_to_gbl[jNode] == -1)? fePtr->basisGrad(iNode, iPt) : fePtr->basisGradSF(iNode, iPt, quadRule.num());
+
+          double vali = fePtr->basisSF(iNode, iPt, quadRule.num());
+          Tensor1 gradVali = fePtr->basisGradSF(iNode, iPt, quadRule.num());
+
           if (node_loc_to_gbl[iNode] != -1) {
             // +(a N_i,N_j);
 	          mat_loc[iNode + nn_loc*jNode] += valA*vali*valj*quadRule.wt(iPt);
@@ -241,6 +248,9 @@ int EllipticPDE::solve(Monitor& monitor) {
   }
 
   if(param.output_soln_format) {
+  
+    //Results not convincing. If we need to visualize, we would write write_raw_SF and write_matlab_mesh_SF as new functions
+
     monitor(1,"Write Solution"); //////////////////////////////////////////////////
 
     switch(param.output_soln_format) {
@@ -260,8 +270,7 @@ int EllipticPDE::solve(Monitor& monitor) {
       break;
     }
     }
-  }
-  
+
   if(trueSolnKnown()) {
     monitor(0,"\nError estimate\n"); ///////////////////////////////////////////////
   
@@ -271,6 +280,9 @@ int EllipticPDE::solve(Monitor& monitor) {
     solution.l2normError(l2Error, l2GradError, l2Norm, l2GradNorm, trueSoln, trueGradSoln);
     
     std::cout << "  Max Element Diameter h:  " << h << std::endl;
+    std::cout << "  L_2 Error:      " << l2Error << std::endl;
+    std::cout << "  L_2 Grad Error: " << l2GradError << std::endl;
+    std::cout << std::endl;
     std::cout << "  Relative L_2 Error:      " << l2Error/l2Norm << std::endl;
     std::cout << "  Relative L_2 Grad Error: " << l2GradError/l2GradNorm << std::endl;
     std::cout << std::endl;
@@ -281,30 +293,30 @@ int EllipticPDE::solve(Monitor& monitor) {
       DirectSerendipityArray u(&(param.dsSpace));
 
       for(int i=0; i<u.size(); i++) {
-	double x = param.dsSpace.nodePtr(i)->val(0);
-	double y = param.dsSpace.nodePtr(i)->val(1);
-	u[i] = trueSoln(x,y);
+        double x = param.dsSpace.nodePtr(i)->val(0);
+        double y = param.dsSpace.nodePtr(i)->val(1);
+        u[i] = trueSoln(x,y);
       }
 
       switch(param.output_soln_format) {
       case 1: {
-	std::string fileName(param.directory_name);
-	fileName += "true_solution_raw";
-	u.write_raw(fileName);
-	break;
+        std::string fileName(param.directory_name);
+        fileName += "true_solution_raw";
+        u.write_raw(fileName);
+        break;
       }
       case 2: {
-	std::string fileName(param.directory_name);
-	fileName += "true_solution_mesh";
-	std::string fileNameGrad(param.directory_name);
-	fileNameGrad += "true_solution_grad_mesh";
-	u.write_matlab_mesh(fileName,fileNameGrad,
-			    param.output_mesh_numPts_x,param.output_mesh_numPts_y);
-	break;
+        std::string fileName(param.directory_name);
+        fileName += "true_solution_mesh";
+        std::string fileNameGrad(param.directory_name);
+        fileNameGrad += "true_solution_grad_mesh";
+        u.write_matlab_mesh(fileName,fileNameGrad,
+        param.output_mesh_numPts_x,param.output_mesh_numPts_y);
+        break;
       }
       }
     }
   }
   
   return 0;
-}  
+} }

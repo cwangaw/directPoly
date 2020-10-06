@@ -527,12 +527,17 @@ double DirectSerendipityFE::varphi_vertex_nodes_A_Po(int n, const Point& pt) con
 void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
   if(num_pts <= 0) return;
   num_eval_pts = num_pts;
-  
+
+
   // Allocate space for the resulting values
+  int sizeOfArray = num_pts * num_nodes;
+  if (polynomial_degree >= num_vertices && num_vertices > 3) {
+    sizeOfArray += num_pts * num_vertices * polynomial_degree;
+  }
   if(value_n) delete[] value_n;
-  value_n = new double[num_pts*num_nodes];
+  value_n = new double[sizeOfArray];
   if (gradvalue_n) delete[] gradvalue_n;
-  gradvalue_n = new Tensor1[num_pts*num_nodes];
+  gradvalue_n = new Tensor1[sizeOfArray];
 
   if (polynomial_degree < num_vertices - 2) {
     high_order_ds_space->finiteElementPtr(0)->initBasis(pt, num_pts);
@@ -925,6 +930,7 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
             //Evaluate phi_{e,nEdge,jNode} at each point in the pt array
             for (int pt_index = 0; pt_index < num_pts; pt_index++) {
               int global_index = pt_index * num_nodes + num_vertices + nEdge * (polynomial_degree-1) + jNode;
+              int global_index_shape_function = num_pts * num_nodes + pt_index * (polynomial_degree * num_vertices) + num_vertices + nEdge * (polynomial_degree-1) + jNode;
               double phi_pt = 0, phi_pt_alpha_part = 1, phi_pt_beta_part = 0, p_pt = 0;
 
               int num_term_alpha_part = num_vertices+1;
@@ -973,6 +979,10 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
     
             phi_pt = phi_pt_alpha_part + phi_pt_beta_part;
             if (pt_index == 0) {  phi = phi_alpha_part + phi_beta_part; }
+
+            //Store shape functions
+            value_n[global_index_shape_function] = phi_pt / phi;
+            gradvalue_n[global_index_shape_function] = gradresult / phi;
 
             //Deduct value at interior nodes
             for (int k=0; k<nCellNodes(); k++) {
@@ -1033,6 +1043,7 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
         }
 
         for (int i=0; i<num_term; i++) { gradresult += term_grad_coef_part[i] * term_grad[i]; }
+
       //Deduct value at edge nodes
       for (int k=i; k<i+2; k++){
         for (int l=0; l<polynomial_degree-1; l++){
@@ -1042,6 +1053,11 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
           gradresult -= phi_v_at_e[index_v_at_e] * gradvalue_n[global_index];
         }
       }
+
+      //Store shape functions
+      int global_index_shape_function = num_pts * num_nodes + pt_index * (polynomial_degree * num_vertices) + i;
+      value_n[global_index_shape_function] = phi_pt / phi;
+      gradvalue_n[global_index_shape_function] = gradresult / phi;
 
       
       //Deduct value at interior nodes
@@ -1062,7 +1078,7 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
 // Eval for DirectSerendipityFE
 
 void DirectSerendipityFE::eval(const Point* pt, double* result, Tensor1* gradResult, int num_pts,
-			       double* vertex_dofs, double* edge_dofs, double* cell_dofs) {
+			       double* vertex_dofs, double* edge_dofs, double* cell_dofs, int mode) {
   initBasis(pt,num_pts);
   //double gradInnerProduct = 0, b = 0;
   //double h = 0.05;
@@ -1072,64 +1088,36 @@ void DirectSerendipityFE::eval(const Point* pt, double* result, Tensor1* gradRes
     gradResult[n].set(0,0);
     Point p(pt[n]);
 
-    
-
     for(int i=0; i<num_vertices; i++) {
-      result[n] += vertex_dofs[i]*basis(i,n);
-      gradResult[n] += vertex_dofs[i]*gradVertexBasis(i,n);
+      result[n] += (mode == 0)? vertex_dofs[i]*basis(i,n) : vertex_dofs[i]*basisSF(i,n,num_pts);
+      gradResult[n] += (mode == 0)? vertex_dofs[i]*gradVertexBasis(i,n): vertex_dofs[i]*gradVertexBasisSF(i,n,num_pts);
     } 
 
     for(int k=0; k<num_vertices*(polynomial_degree-1); k++) {
-      result[n] += edge_dofs[k]*edgeBasis(k,n);
-      gradResult[n] += edge_dofs[k]*gradEdgeBasis(k,n);
+      result[n] += (mode == 0)? edge_dofs[k]*edgeBasis(k,n) : edge_dofs[k]*edgeBasisSF(k,n,num_pts) ;
+      gradResult[n] += (mode == 0)? edge_dofs[k]*gradEdgeBasis(k,n) : edge_dofs[k]*gradEdgeBasisSF(k,n,num_pts) ;
     }
 
     for(int k=0; k<nCellNodes(); k++) {
       result[n] += cell_dofs[k]*cellBasis(k,n);
       gradResult[n] += cell_dofs[k]*gradCellBasis(k,n);
     }
-
-
-
-    //gradInnerProduct += (gradResult[n] * gradResult[n]) * h * h;
-    //Integrate (f,v)-(gradi,gradj)
-    //b += -4 * result[n] * h * h;
   }
-/*
-  cout << endl;
-  int j = 0;
-  for (int i = 0; i < nNodes(); i++) {
-    double x = nodePtr(i)->val(0);
-    double y = nodePtr(i)->val(1);
-    if (fabs(x-7.5)<1e-6 && fabs(y-7.5)<1e-6) j=i;
-  }
-  for (int i = 0; i < nNodes(); i++) {
-    if (i == j) continue;
-    double x = nodePtr(i)->val(0);
-    double y = nodePtr(i)->val(1);
-    for (int n=0; n<num_pts; n++) {
-      if (fabs(basisGrad(i,n)*basisGrad(j,n))>100) cout << basisGrad(i,n)*basisGrad(j,n)-basisGrad(i,n+1)*basisGrad(j,n+1) << ' ';
-      b -= basisGrad(i,n)*basisGrad(j,n)*(pow(x,2)+pow(y,2))*h*h;
-    }
-  }
-  cout << "Result of gradInnerProduct: " << gradInnerProduct << endl;
-  cout << "b: " << b <<endl;
-*/
 }
 
 void DirectSerendipityFE::eval(const Point* pt, double* result, int num_pts, 
-				 double* vertex_dofs, double* edge_dofs, double* cell_dofs) {
+				 double* vertex_dofs, double* edge_dofs, double* cell_dofs, int mode) {
   initBasis(pt,num_pts);
 
   for(int n=0; n<num_pts; n++) {
     result[n] = 0;
 
     for(int i=0; i<num_vertices; i++) {
-      result[n] += vertex_dofs[i]*vertexBasis(i,n);
+      result[n] += (mode == 0)? vertex_dofs[i]*vertexBasis(i,n) : vertex_dofs[i]*vertexBasisSF(i,n,num_pts) ;
     } 
 
     for(int k=0; k<num_vertices*(polynomial_degree-1); k++) {
-      result[n] += edge_dofs[k]*edgeBasis(k,n);
+      result[n] += (mode == 0)? edge_dofs[k]*edgeBasis(k,n) : edge_dofs[k]*edgeBasisSF(k,n,num_pts);
     }
 
     for(int k=0; k<nCellNodes(); k++) {

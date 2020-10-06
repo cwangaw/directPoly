@@ -55,7 +55,7 @@ DirectSerendipityArray::~DirectSerendipityArray() {
 }
 
 void DirectSerendipityArray::eval(const Point* pts, double* result,
-				  Tensor1* gradResult, int num_pts) const {
+				  Tensor1* gradResult, int num_pts, int mode) const {
   bool ptEvaluated[num_pts];
   for(int i=0; i<num_pts; i++) ptEvaluated[i] = false;
 
@@ -112,7 +112,7 @@ void DirectSerendipityArray::eval(const Point* pts, double* result,
     double elementResult[elementPts.size()];
     Tensor1* elementGradResult = new Tensor1[elementPts.size()];
     finiteElement->eval(elementPts.data(), elementResult, elementGradResult, elementPts.size(),
-			vertex_dofs, edge_dofs, cell_dofs);
+			vertex_dofs, edge_dofs, cell_dofs, mode);
       
     // Place results in global array
     for(unsigned long int i=0; i<elementPts.size(); i++) {
@@ -132,7 +132,7 @@ void DirectSerendipityArray::eval(const Point* pts, double* result,
   }  
 }
 
-void DirectSerendipityArray::eval(const Point& pt, double& result, Tensor1& gradResult) const {
+void DirectSerendipityArray::eval(const Point& pt, double& result, Tensor1& gradResult, int mode) const {
   int iElement = my_ds_space->my_mesh->elementIndex(pt);
   if(iElement < 0) {
     result = 0;
@@ -170,10 +170,10 @@ void DirectSerendipityArray::eval(const Point& pt, double& result, Tensor1& grad
   }
 
   // Evaluate
-  elem->eval(pt, result, gradResult, vertex_dofs, edge_dofs, cell_dofs);
+  elem->eval(pt, result, gradResult, vertex_dofs, edge_dofs, cell_dofs, mode);
 };
 
-double DirectSerendipityArray::eval(const Point& pt) const {
+double DirectSerendipityArray::eval(const Point& pt, int mode) const {
   int iElement = my_ds_space->my_mesh->elementIndex(pt);
   if(iElement < 0) return 0;
   DirectSerendipityFE* elem = &(my_ds_space->the_ds_elements[iElement]);
@@ -207,7 +207,7 @@ double DirectSerendipityArray::eval(const Point& pt) const {
   }
 
   // Evaluate
-  return elem->eval(pt, vertex_dofs, edge_dofs, cell_dofs);
+  return elem->eval(pt, vertex_dofs, edge_dofs, cell_dofs, mode);
 };
 
 void DirectSerendipityArray::l2normError(double& l2Error, double& l2GradError, double& l2Norm, double& l2GradNorm,
@@ -225,7 +225,7 @@ void DirectSerendipityArray::l2normError(double& l2Error, double& l2GradError, d
       double y = quadRule.pt(iPt).val(1);
       
       double result; Tensor1 gradResult;
-      eval(quadRule.pt(iPt), result, gradResult);
+      eval(quadRule.pt(iPt), result, gradResult, 1);
       
       double diff = (referenceFcn == nullptr) ? result : (result - referenceFcn(x,y));
       Tensor1 diffGrad = (referenceGradFcn == nullptr) ? gradResult : (gradResult - referenceGradFcn(x,y));

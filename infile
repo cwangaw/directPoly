@@ -8,25 +8,25 @@ test/   	# dirName, output directory (preamble)
 #{ 0,0 1,0 1,0.5 0.6,0.5 0.5,0.8 0,1 0.5,0.3 1,1 }	# mesh_vertices
 #{ [ 1 2 7 ] [ 3 4 7 2 ] [ 5 8 6 ] [ 5 6 1 7 4 ] [ 8 5 4 3 ] } 	# mesh_elements
 
-$BEGIN_COMMENT
-g
-200 	   # nVertices;
-100  	   # nElements;
-{ $INCLUDE Polymesher/mesh100/Node.txt }    # mesh_vertices file
-{ $INCLUDE Polymesher/mesh100/Element.txt } # mesh_elements file name
-$END_COMMENT
-
 # $BEGIN_COMMENT
+g
+484 	   # nVertices;
+441  	   # nElements;
+{ $INCLUDE testingMeshes/BadQuad/Quad_441_484/Node.txt }    # mesh_vertices file
+{ $INCLUDE testingMeshes/BadQuad/Quad_441_484/Element.txt } # mesh_elements file name
+# $END_COMMENT
+
+$BEGIN_COMMENT
 d		# meshType (quads, deviated, triangles, or general)
 0,1        	# xMin,xMax
 0,1        	# yMin,yMax 
 10,10      	# nx,ny
 0.2          	# distortion factor
-# $END_COMMENT
+$END_COMMENT
 
 ### FINITE ELEMENTS ###########################################################
 
-6             	        # polynomial degree
+5             	        # polynomial degree
 
 ### ALGORITHM PARAMETERS ######################################################
 

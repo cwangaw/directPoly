@@ -116,9 +116,10 @@ namespace directserendipity {
     double& operator[] (int i)       { return the_array[i]; }
     double  operator[] (int i) const { return the_array[i]; }
 
-    void eval(const Point* pts, double* result, Tensor1* gradResult, int num_pts) const;
-    void eval(const Point& pt, double& result, Tensor1& gradResult) const;
-    double eval(const Point& pt) const;
+    //mode:0,1. If mode = 0, we defaultly use nodal basis functions; if mode = 1, we use shape functions 
+    void eval(const Point* pts, double* result, Tensor1* gradResult, int num_pts, int mode = 0) const;
+    void eval(const Point& pt, double& result, Tensor1& gradResult, int mode = 0) const;
+    double eval(const Point& pt, int mode = 0) const;
 
     void l2normError(double& l2Error, double& l2GradError, double& l2Norm, double& l2GradNorm,
 		     double (*referenceFcn)(double,double) = nullptr, 
@@ -297,32 +298,66 @@ namespace directserendipity {
     double basis(int iNode, int iPt) const { return value_n[iNode + iPt*num_nodes]; };
     Tensor1 basisGrad(int iNode, int iPt) const { return gradvalue_n[iNode + iPt*num_nodes]; };
     
+    double basisSF(int iNode, int iPt, int num_pts) {
+      //For vertex and edge nodes when N>3 and r>=N, we use shape functions
+        int i = num_pts * num_nodes + iPt * (polynomial_degree * num_vertices) + iNode;
+        return (polynomial_degree >= num_vertices && num_vertices > 3 && iNode < num_vertices * polynomial_degree)? value_n[i]:basis(iNode, iPt);
+    }
+    Tensor1 basisGradSF(int iNode, int iPt, int num_pts) {
+      //For vertex and edge nodes when N>3 and r>=N, we use shape functions
+        int i = num_pts * num_nodes + iPt * (polynomial_degree * num_vertices) + iNode;
+        return (polynomial_degree >= num_vertices && num_vertices > 3 && iNode < num_vertices * polynomial_degree)? gradvalue_n[i]:basisGrad(iNode, iPt);
+    }
+
+
     double vertexBasis(int iVNode, int iPt) const { return value_n[iVNode + iPt*num_nodes]; };
     Tensor1 gradVertexBasis(int iVNode, int iPt) const { return gradvalue_n[iVNode + iPt*num_nodes]; };
 
+    double vertexBasisSF(int iVNode, int iPt, int num_pts) const {
+      int i = num_pts * num_nodes + iPt * (polynomial_degree * num_vertices) + iVNode;
+      return (polynomial_degree >= num_vertices && num_vertices > 3)? value_n[i]:vertexBasis(iVNode, iPt); };
+    Tensor1 gradVertexBasisSF(int iVNode, int iPt, int num_pts) const {
+      int i = num_pts * num_nodes + iPt * (polynomial_degree * num_vertices) + iVNode;
+      return (polynomial_degree >= num_vertices && num_vertices > 3)? gradvalue_n[i]:gradVertexBasis(iVNode, iPt); };
+
+
     double edgeBasis(int iENode, int iPt) const {
       return value_n[iENode + num_vertices + iPt*num_nodes]; };
-    Tensor1 gradEdgeBasis(int iENode, int iPt) const { return gradvalue_n[iENode + num_vertices + iPt*num_nodes]; }//basis_eval[]; };
+    Tensor1 gradEdgeBasis(int iENode, int iPt) const { return gradvalue_n[iENode + num_vertices + iPt*num_nodes]; }
     double edgeBasis(int iEdge, int j, int iPt) const  {
       return edgeBasis( iEdge*(polynomial_degree-1) + j, iPt); }
     Tensor1 gradEdgeBasis(int iEdge, int j, int iPt) const  {
       return gradEdgeBasis( iEdge*(polynomial_degree-1) + j, iPt ); }
+    
+    double edgeBasisSF(int iENode, int iPt, int num_pts) const {
+      int i = num_pts * num_nodes + iPt * (polynomial_degree * num_vertices) + num_vertices + iENode;
+      return (polynomial_degree >= num_vertices && num_vertices > 3)? value_n[i]:edgeBasis(iENode,iPt); }
+    Tensor1 gradEdgeBasisSF(int iENode, int iPt, int num_pts) const {
+      int i = num_pts * num_nodes + iPt * (polynomial_degree * num_vertices) + num_vertices + iENode;
+      return (polynomial_degree >= num_vertices && num_vertices > 3)? gradvalue_n[i]:gradEdgeBasis(iENode,iPt); }
+    double edgeBasisSF(int iEdge, int j, int iPt, int num_pts) const {
+      int i = num_pts * num_nodes + iPt * (polynomial_degree * num_vertices) + num_vertices + iEdge * (polynomial_degree-1) + j;
+      return (polynomial_degree >= num_vertices && num_vertices > 3)? value_n[i]:edgeBasis(iEdge, j, iPt); }
+    Tensor1 gradEdgeBasisSF(int iEdge, int j, int iPt, int num_pts) const {
+      int i = num_pts * num_nodes + iPt * (polynomial_degree * num_vertices) + num_vertices + iEdge * (polynomial_degree-1) + j;
+      return (polynomial_degree >= num_vertices && num_vertices > 3)? gradvalue_n[i]:gradEdgeBasis(iEdge, j, iPt); }
 
     double cellBasis(int iCNode, int iPt) const {
       return value_n[iCNode + num_vertices*polynomial_degree + iPt*num_nodes]; };
-    Tensor1 gradCellBasis(int iCNode, int iPt) const { return gradvalue_n[iCNode + num_vertices*polynomial_degree + iPt*num_nodes]; };//basis_eval[]; };  
+    Tensor1 gradCellBasis(int iCNode, int iPt) const { return gradvalue_n[iCNode + num_vertices*polynomial_degree + iPt*num_nodes]; };  
     
+    //mode:0,1. If mode = 0, we defaultly use nodal basis functions; if mode = 1, we use shape functions 
     void eval(const Point* pt, double* result, Tensor1* gradResult, int num_pts,
-	      double* vertex_dofs, double* edge_dofs=nullptr, double* cell_dofs=nullptr);
+	      double* vertex_dofs, double* edge_dofs=nullptr, double* cell_dofs=nullptr, int mode = 0);
     void eval(const Point& pt, double& result, Tensor1& gradResult, double* vertex_dofs,
-              double* edge_dofs=nullptr, double* cell_dofs=nullptr) {
-      eval(&pt, &result, &gradResult, 1, vertex_dofs, edge_dofs, cell_dofs); };
+              double* edge_dofs=nullptr, double* cell_dofs=nullptr, int mode = 0) {
+      eval(&pt, &result, &gradResult, 1, vertex_dofs, edge_dofs, cell_dofs, mode); };
 
     void eval(const Point* pt, double* result, int num_pts, double* vertex_dofs,
-              double* edge_dofs=nullptr, double* cell_dofs=nullptr);
+              double* edge_dofs=nullptr, double* cell_dofs=nullptr, int mode = 0);
     double eval(const Point& pt, double* vertex_dofs,
-		double* edge_dofs=nullptr, double* cell_dofs=nullptr) { double result;
-      eval(&pt, &result, 1, vertex_dofs, edge_dofs, cell_dofs); return result; }
+		double* edge_dofs=nullptr, double* cell_dofs=nullptr, int mode = 0) { double result;
+      eval(&pt, &result, 1, vertex_dofs, edge_dofs, cell_dofs, mode); return result; }
 
     // Output functions
     void write_raw(std::ofstream& fout) const;
