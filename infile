@@ -10,10 +10,10 @@ test/   	# dirName, output directory (preamble)
 
 # $BEGIN_COMMENT
 g
-16 	   # nVertices;
-9  	   # nElements;
-{ $INCLUDE testingMeshes/BadQuad/Quad_9_16/Node.txt }    # mesh_vertices file
-{ $INCLUDE testingMeshes/BadQuad/Quad_9_16/Element.txt } # mesh_elements file name
+36  	   # nVertices;
+25     	   # nElements;
+{ $INCLUDE testingMeshes/BadQuad/Quad_25_36/Node.txt }    # mesh_vertices file
+{ $INCLUDE testingMeshes/BadQuad/Quad_25_36/Element.txt } # mesh_elements file name
 # $END_COMMENT
 
 $BEGIN_COMMENT

@@ -19,7 +19,7 @@ using namespace directserendipity;
 using namespace polymesh;
 using namespace polyquadrature;
 
-int infNorm(double *A, int n) 
+double infNorm(double *A, int n) 
 { 
     // Initialize maximum element
     double max = 0;
@@ -270,6 +270,7 @@ int EllipticPDE::solve(Monitor& monitor) {
   std::cout << "Norm of mat (in inf norm): " << K << std::endl;
   matInv(mat,nn);
   K *= infNorm(mat,nn);
+  std::cout << "Norm of inv mat (in inf norm): " << infNorm(mat,nn) << std::endl;
   std::cout << "Condition number (in inf norm): " << K << std::endl;
 
   double test[] = {1,2,3,4};

@@ -213,7 +213,7 @@ void DirectSerendipityArray::l2normError(double& l2Error, double& l2GradError, d
 					 double (*referenceFcn)(double,double),
 					 Tensor1 (*referenceGradFcn)(double,double)) {
   l2Error = 0, l2GradError = 0, l2Norm = 0, l2GradNorm = 0;
-  PolyQuadrature quadRule(2*my_ds_space->degPolyn()+3);
+  PolyQuadrature quadRule(13); //2*my_ds_space->degPolyn()+3
 
   for(int iElement=0; iElement < my_ds_space->mesh()->nElements(); iElement++) {
     DirectSerendipityFE* fePtr = my_ds_space->finiteElementPtr(iElement);
