@@ -240,20 +240,21 @@ int EllipticPDE::solve(Monitor& monitor) {
     }
   }
 
-/*
-  std::cout << "\nMATRIX:\n";
+  std::ofstream fout("test/matrix.m");
+  fout << "mat = [ ";
   for(int j=0; j<nn; j++) {
     for(int i=0; i<nn; i++) {
-      std::cout << mat[i + nn*j] << " ";
+      fout << mat[i + nn*j] << " ";
     }
-    std::cout << "\n";
+    if (j < nn - 1) fout << "; ";
   }
-  std::cout << "\nRHS:\n";
+  fout << "];\n";
+  fout << "rhs = [";
   for(int i=0; i<nn; i++) {
-    std::cout << rhs[i] << " ";
+    fout << rhs[i];
+    if (i < nn - 1) fout << "; ";
   }
-  std::cout << "\n";
-*/
+  fout << "];";
 
   monitor(1,"Solution of linear system"); ////////////////////////////////////////
   
@@ -272,13 +273,7 @@ int EllipticPDE::solve(Monitor& monitor) {
   //Calculate inf condition number
   std::cout << "Norm of mat (in inf norm): " << anorm << std::endl;
   std::cout << "Condition number (in inf norm): " << rcond << std::endl;
-/*
-  std::cout << "\nResult:\n";
-  for(int i=0; i<nn; i++) {
-    std::cout << rhs[i] << " ";
-  }
-  std::cout << "\n";
-*/
+
 
   for(int i=0; i<solution.size(); i++) {
     if(index_correction[i] == -1) {
