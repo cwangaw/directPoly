@@ -224,7 +224,7 @@ void DirectSerendipityArray::l2normError(double& l2Error, double& l2GradError, d
       double y = quadRule.pt(iPt).val(1);
       
       double result; Tensor1 gradResult;
-      eval(quadRule.pt(iPt), result, gradResult, 1);
+      eval(quadRule.pt(iPt), result, gradResult, 0);
       
       double diff = (referenceFcn == nullptr) ? result : (result - referenceFcn(x,y));
       Tensor1 diffGrad = (referenceGradFcn == nullptr) ? gradResult : (gradResult - referenceGradFcn(x,y));

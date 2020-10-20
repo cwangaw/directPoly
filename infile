@@ -8,21 +8,21 @@ test/   	# dirName, output directory (preamble)
 #{ 0,0 1,0 1,0.5 0.6,0.5 0.5,0.8 0,1 0.5,0.3 1,1 }	# mesh_vertices
 #{ [ 1 2 7 ] [ 3 4 7 2 ] [ 5 8 6 ] [ 5 6 1 7 4 ] [ 8 5 4 3 ] } 	# mesh_elements
 
-# $BEGIN_COMMENT
+$BEGIN_COMMENT
 g
 36  	   # nVertices;
 25     	   # nElements;
 { $INCLUDE testingMeshes/BadQuad/Quad_25_36/Node.txt }    # mesh_vertices file
 { $INCLUDE testingMeshes/BadQuad/Quad_25_36/Element.txt } # mesh_elements file name
-# $END_COMMENT
+$END_COMMENT
 
-$BEGIN_COMMENT
-d		# meshType (quads, deviated, triangles, or general)
+# $BEGIN_COMMENT
+t		# meshType (quads, deviated, triangles, or general)
 0,1        	# xMin,xMax
 0,1        	# yMin,yMax 
-1,1      	# nx,ny
+3,3      	# nx,ny
 0          	# distortion factor
-$END_COMMENT
+# $END_COMMENT
 
 ### FINITE ELEMENTS ###########################################################
 

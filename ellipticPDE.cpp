@@ -178,8 +178,8 @@ int EllipticPDE::solve(Monitor& monitor) {
       // Local interactions	      
       for(int jNode=0; jNode<nn_loc; jNode++) {
         if (node_loc_to_gbl[jNode] == -1) continue;
-	      double valj = fePtr->basisSF(jNode, iPt, quadRule.num());
-        Tensor1 gradValj = fePtr->basisGradSF(jNode, iPt, quadRule.num());
+	      double valj = fePtr->basis(jNode, iPt);
+        Tensor1 gradValj = fePtr->basisGrad(jNode, iPt);
 
         for(int iNode=0; iNode<nn_loc; iNode++) {
           //In case "shape functions" are not delta_{i,j} for BC nodes one day
@@ -187,8 +187,8 @@ int EllipticPDE::solve(Monitor& monitor) {
 	        //double vali = (node_loc_to_gbl[jNode] == -1)? fePtr->basis(iNode, iPt) : fePtr->basisSF(iNode, iPt, quadRule.num());
           //Tensor1 gradVali = (node_loc_to_gbl[jNode] == -1)? fePtr->basisGrad(iNode, iPt) : fePtr->basisGradSF(iNode, iPt, quadRule.num());
 
-          double vali = fePtr->basisSF(iNode, iPt, quadRule.num());
-          Tensor1 gradVali = fePtr->basisGradSF(iNode, iPt, quadRule.num());
+          double vali = fePtr->basis(iNode, iPt);
+          Tensor1 gradVali = fePtr->basisGrad(iNode, iPt);
 
           if (node_loc_to_gbl[iNode] != -1) {
             // +(a N_i,N_j);
@@ -258,40 +258,20 @@ int EllipticPDE::solve(Monitor& monitor) {
   monitor(1,"Solution of linear system"); ////////////////////////////////////////
   
   //Solve the matrix, result would be stored in rhs
-  lapack_int* ipiv;
+  lapack_int* ipiv; char norm = 'I'; 
   ipiv = (lapack_int*)malloc(nn * sizeof(lapack_int));
-  int ierr = LAPACKE_dgesv(LAPACK_ROW_MAJOR, nn, 1, mat, nn, ipiv, rhs, 1);
+  double anorm = LAPACKE_dlange(LAPACK_ROW_MAJOR, norm, nn, nn, mat, nn);
+  int ierr = LAPACKE_dgesv(LAPACK_ROW_MAJOR, nn, 1, mat, nn, ipiv, rhs, 1); //mat updated to be LU
   if(ierr) { // ?? what should we do ???
     std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
   }
+  double rcond = 0;
+  ierr = LAPACKE_dgecon(LAPACK_ROW_MAJOR, norm, nn, mat, nn, anorm, &rcond);
+  rcond = 1/rcond;
 
   //Calculate inf condition number
-  double K = infNorm(mat,nn);
-  std::cout << "Norm of mat (in inf norm): " << K << std::endl;
-  matInv(mat,nn);
-  K *= infNorm(mat,nn);
-  std::cout << "Norm of inv mat (in inf norm): " << infNorm(mat,nn) << std::endl;
-  std::cout << "Condition number (in inf norm): " << K << std::endl;
-
-  double test[] = {1,2,3,4};
-  std::cout << "\nTest if matInv is working:\n";
-  std::cout << "\nOriginal matrix:\n";
-  for(int r=0; r<2; r++) {
-    for (int c=0; c<2; c++) {
-      std::cout << test[2*r+c] << " ";
-    }
-    std::cout << std::endl;
-  }
-  matInv(test,2);
-  std::cout << "\nInversed matrix:\n";
-  for(int r=0; r<2; r++) {
-    for (int c=0; c<2; c++) {
-      std::cout << test[2*r+c] << " ";
-    }
-    std::cout << std::endl;
-  }
-  std::cout << "\n";
-  
+  std::cout << "Norm of mat (in inf norm): " << anorm << std::endl;
+  std::cout << "Condition number (in inf norm): " << rcond << std::endl;
 /*
   std::cout << "\nResult:\n";
   for(int i=0; i<nn; i++) {
