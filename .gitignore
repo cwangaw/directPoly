@@ -283,3 +283,13 @@ testingMeshes/Tri/Tri_98_64/Node.txt
 ._directSerendipity.h
 ._directSerendipity.cpp
 test/matrix.m
+test/matrix.txt
+test/rhs.txt
+test/matrhs.asv
+test/matrhs.m
+problem.txt
+Mesh/mesh_common.a
+directpoly.common
+directpoly_common.a
+directpoly.common
+Mesh/mesh_common.a

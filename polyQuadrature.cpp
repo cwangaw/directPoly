@@ -39,7 +39,7 @@ void PolyQuadrature::set_element(polymesh::PolyElement* element) {
 
   // Triangles from center of polygon
   Point center = my_element->center();
-  
+
   for(int i=0; i<num_triangles; i++) {
     // v0 = (0,0)
     Point v1(*(my_element->vertexPtr(i))); v1 -= center;

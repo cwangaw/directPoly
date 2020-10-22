@@ -178,8 +178,8 @@ int EllipticPDE::solve(Monitor& monitor) {
       // Local interactions	      
       for(int jNode=0; jNode<nn_loc; jNode++) {
         if (node_loc_to_gbl[jNode] == -1) continue;
-	      double valj = fePtr->basis(jNode, iPt);
-        Tensor1 gradValj = fePtr->basisGrad(jNode, iPt);
+	      double valj = fePtr->basis(jNode, iPt); 
+        Tensor1 gradValj = fePtr->basisGrad(jNode, iPt); 
 
         for(int iNode=0; iNode<nn_loc; iNode++) {
           //In case "shape functions" are not delta_{i,j} for BC nodes one day
@@ -239,22 +239,20 @@ int EllipticPDE::solve(Monitor& monitor) {
       }
     }
   }
+  std::cout << "dim of mat:" << nn << std::endl;
 
-  std::ofstream fout("test/matrix.m");
-  fout << "mat = [ ";
+  std::ofstream fout("test/matrix.txt");
   for(int j=0; j<nn; j++) {
     for(int i=0; i<nn; i++) {
-      fout << mat[i + nn*j] << " ";
+      fout << mat[i + nn*j] << "\t";
     }
-    if (j < nn - 1) fout << "; ";
+    if (j < nn - 1) fout << "\n";
   }
-  fout << "];\n";
-  fout << "rhs = [";
+  std::ofstream rout("test/rhs.txt");
   for(int i=0; i<nn; i++) {
-    fout << rhs[i];
-    if (i < nn - 1) fout << "; ";
+    rout << rhs[i];
+    if (i < nn - 1) rout << "\n";
   }
-  fout << "];";
 
   monitor(1,"Solution of linear system"); ////////////////////////////////////////
   
@@ -268,11 +266,15 @@ int EllipticPDE::solve(Monitor& monitor) {
   }
   double rcond = 0;
   ierr = LAPACKE_dgecon(LAPACK_ROW_MAJOR, norm, nn, mat, nn, anorm, &rcond);
+  if(ierr) { // ?? what should we do ???
+    std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
+  }
   rcond = 1/rcond;
 
   //Calculate inf condition number
-  std::cout << "Norm of mat (in inf norm): " << anorm << std::endl;
-  std::cout << "Condition number (in inf norm): " << rcond << std::endl;
+  std::cout << "\tNorm Format:\t" << norm << std::endl;
+  std::cout << "\tNorm of mat:\t" << anorm << std::endl;
+  std::cout << "\tCond number:\t" << rcond << std::endl;
 
 
   for(int i=0; i<solution.size(); i++) {

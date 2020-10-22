@@ -226,7 +226,7 @@ void PolyElement::set_polyelement(int nGon, Edge** theEdges, int myIndex, PolyMe
 	  for(int n=0; n<num_vertices; n++) {
 	    if(n==i || n==j || n==k) continue;
 	    double dist = the_oriented_edge[n].lambda(triangle_center);
-	    if(dist < new_radius) { inside = false; break; }
+	    if(dist + polyelement_eps < new_radius) { inside = false; break; }
 	  }
 
 	  if(inside) {
