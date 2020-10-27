@@ -242,11 +242,15 @@ void PolyElement::set_polyelement(int nGon, Edge** theEdges, int myIndex, PolyMe
       }
     }
 
-    my_center.set(0,0);
-    for(unsigned long int i=0; i<center_candidates.size(); i++) {
-      my_center += center_candidates[i];
+    if(center_candidates.size() == 0) {
+        my_center = my_centroid;
+    } else {
+      my_center.set(0,0);
+      for(unsigned long int i=0; i<center_candidates.size(); i++) {
+	my_center += center_candidates[i];
+      }
+      my_center /= center_candidates.size();	  
     }
-    my_center /= center_candidates.size();	  
   }
 };
 
@@ -378,7 +382,7 @@ void PolyMesh::set_polymesh(int numVertices, double* pts, int numElements,
   num_elements = numElements;
   mesh_is_good = false;
 
-  // Vertices (ordered by input array)
+// Vertices (ordered by input array)
 
   if(the_vertices) delete[] the_vertices;
   the_vertices = new Vertex[num_vertices];
@@ -440,9 +444,10 @@ void PolyMesh::set_polymesh(int numVertices, double* pts, int numElements,
   nbr_edges_of_vertex = new std::vector<int>[num_vertices];
 
   // Determine which edges exist
-  bool pattern[num_vertices][num_vertices];
+  bool* pattern = new bool[num_vertices*num_vertices];
+  if(!pattern) return;
   for(int i=0; i<num_vertices; i++) {
-    for(int j=0; j<num_vertices; j++) pattern[i][j] = false;
+    for(int j=0; j<num_vertices; j++) pattern[j + num_vertices*i] = false;
   }
   for(int i=0; i<num_elements; i++) {
     for(int j=0; j<num_vertices_of_element[i]; j++) {
@@ -454,25 +459,26 @@ void PolyMesh::set_polymesh(int numVertices, double* pts, int numElements,
 	index_ij = index_ijPlusOne;
 	index_ijPlusOne = ihold;
       }
-      pattern[index_ij][index_ijPlusOne] = true;
+      pattern[index_ijPlusOne + num_vertices*index_ij] = true;
     }
   }
   // Edge representation
   num_edges = 0;
   for(int i=0; i<num_vertices; i++) {
-    for(int j=i+1; j<num_vertices; j++) if(pattern[i][j]) num_edges++;
+    for(int j=i+1; j<num_vertices; j++) if(pattern[j + num_vertices*i]) num_edges++;
   }
   int endVerticesOfEdge[num_edges][2];
   int edgeIndex = 0;
   for(int i=0; i<num_vertices; i++) {
     for(int j=i+1; j<num_vertices; j++) {
-      if(pattern[i][j]) {
+      if(pattern[j + num_vertices*i]) {
 	endVerticesOfEdge[edgeIndex][0] = i;
 	endVerticesOfEdge[edgeIndex][1] = j;
 	edgeIndex++;
       }
     }
   }
+  delete[] pattern;
   
   // Create Edges (orient from low to high vertex index)
   if(the_edges) delete[] the_edges;
@@ -659,7 +665,7 @@ int PolyMesh::createMesh(char meshTypeC, int nx, int ny, double xMin, double xMa
 			 double yMin, double yMax, double distortionFactor) {
   int nVertices = (nx+1)*(ny+1);
   int nElements = ( meshTypeC == 't' ) ? 2*nx*ny : nx*ny;
-
+  
   double vertices[2*nVertices];
   int nVerticesPerElement[nElements];
   int* elements[nElements];
