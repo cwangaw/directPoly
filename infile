@@ -10,23 +10,23 @@ test/   	# dirName, output directory (preamble)
 
 $BEGIN_COMMENT
 g
-36  	   # nVertices;
-25     	   # nElements;
-{ $INCLUDE testingMeshes/BadQuad/Quad_25_36/Node.txt }    # mesh_vertices file
-{ $INCLUDE testingMeshes/BadQuad/Quad_25_36/Element.txt } # mesh_elements file name
+484  	   # nVertices;
+441     	   # nElements;
+{ $INCLUDE testingMeshes/BadQuad/Quad_441_484/Node.txt }    # mesh_vertices file
+{ $INCLUDE testingMeshes/BadQuad/Quad_441_484/Element.txt } # mesh_elements file name
 $END_COMMENT
 
 # $BEGIN_COMMENT
-t		# meshType (quads, deviated, triangles, or general)
+d		# meshType (quads, deviated, triangles, or general)
 0,1        	# xMin,xMax
 0,1        	# yMin,yMax 
-3,3      	# nx,ny
-0          	# distortion factor
+3,3     	# nx,ny
+0.1665          	# distortion factor
 # $END_COMMENT
 
 ### FINITE ELEMENTS ###########################################################
 
-2             	        # polynomial degree
+4          	        # polynomial degree
 
 ### ALGORITHM PARAMETERS ######################################################
 

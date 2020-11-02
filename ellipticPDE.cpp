@@ -239,7 +239,7 @@ int EllipticPDE::solve(Monitor& monitor) {
       }
     }
   }
-  std::cout << "dim of mat:" << nn << std::endl;
+
 
   std::ofstream fout("test/matrix.txt");
   for(int j=0; j<nn; j++) {

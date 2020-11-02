@@ -31,7 +31,7 @@ void coefD(double x, double y, Tensor2& d) {
 double sourceVal(double x, double y) {
   return 2*pow(PI,2)*sin(PI*x)*sin(PI*y); 
   //return pow(x,2)+pow(y,2);
-  //return 1;
+  //return 0;
 }
 
 // BC values g
