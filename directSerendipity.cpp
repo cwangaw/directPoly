@@ -55,7 +55,7 @@ DirectSerendipityArray::~DirectSerendipityArray() {
 }
 
 void DirectSerendipityArray::eval(const Point* pts, double* result,
-				  Tensor1* gradResult, int num_pts, int mode) const {
+				  Tensor1* gradResult, int num_pts) const {
   bool ptEvaluated[num_pts];
   for(int i=0; i<num_pts; i++) ptEvaluated[i] = false;
 
@@ -112,7 +112,7 @@ void DirectSerendipityArray::eval(const Point* pts, double* result,
     double elementResult[elementPts.size()];
     Tensor1* elementGradResult = new Tensor1[elementPts.size()];
     finiteElement->eval(elementPts.data(), elementResult, elementGradResult, elementPts.size(),
-			vertex_dofs, edge_dofs, cell_dofs, mode);
+			vertex_dofs, edge_dofs, cell_dofs);
     // Place results in global array
     for(unsigned long int i=0; i<elementPts.size(); i++) {
       result[elementPtsIndex[i]] = elementResult[i];
@@ -131,7 +131,7 @@ void DirectSerendipityArray::eval(const Point* pts, double* result,
   }  
 }
 
-void DirectSerendipityArray::eval(const Point& pt, double& result, Tensor1& gradResult, int mode) const {
+void DirectSerendipityArray::eval(const Point& pt, double& result, Tensor1& gradResult) const {
   int iElement = my_ds_space->my_mesh->elementIndex(pt);
   if(iElement < 0) {
     result = 0;
@@ -169,10 +169,10 @@ void DirectSerendipityArray::eval(const Point& pt, double& result, Tensor1& grad
   }
 
   // Evaluate
-  elem->eval(pt, result, gradResult, vertex_dofs, edge_dofs, cell_dofs, mode);
+  elem->eval(pt, result, gradResult, vertex_dofs, edge_dofs, cell_dofs);
 };
 
-double DirectSerendipityArray::eval(const Point& pt, int mode) const {
+double DirectSerendipityArray::eval(const Point& pt) const {
   int iElement = my_ds_space->my_mesh->elementIndex(pt);
   if(iElement < 0) return 0;
   DirectSerendipityFE* elem = &(my_ds_space->the_ds_elements[iElement]);
@@ -206,7 +206,7 @@ double DirectSerendipityArray::eval(const Point& pt, int mode) const {
   }
 
   // Evaluate
-  return elem->eval(pt, vertex_dofs, edge_dofs, cell_dofs, mode);
+  return elem->eval(pt, vertex_dofs, edge_dofs, cell_dofs);
 };
 
 void DirectSerendipityArray::l2normError(double& l2Error, double& l2GradError, double& l2Norm, double& l2GradNorm,
@@ -224,7 +224,7 @@ void DirectSerendipityArray::l2normError(double& l2Error, double& l2GradError, d
       double y = quadRule.pt(iPt).val(1);
       
       double result; Tensor1 gradResult;
-      eval(quadRule.pt(iPt), result, gradResult, 0);
+      eval(quadRule.pt(iPt), result, gradResult);
       
       double diff = (referenceFcn == nullptr) ? result : (result - referenceFcn(x,y));
       Tensor1 diffGrad = (referenceGradFcn == nullptr) ? gradResult : (gradResult - referenceGradFcn(x,y));
@@ -244,7 +244,7 @@ void DirectSerendipityArray::l2normError(double& l2Error, double& l2GradError, d
 }
 
 void DirectSerendipityArray::write_matlab_mesh(std::ofstream* fout, std::ofstream* fout_grad,
-					       int num_pts_x, int num_pts_y, int mode) const {
+					       int num_pts_x, int num_pts_y) const {
   if(num_pts_x <= 1) num_pts_x = 2;
   if(num_pts_y <= 1) num_pts_y = 2;
 
@@ -269,7 +269,7 @@ void DirectSerendipityArray::write_matlab_mesh(std::ofstream* fout, std::ofstrea
   double result[num_pts_x*num_pts_y];
   Tensor1* gradResult = new Tensor1[num_pts_x*num_pts_y];
 
-  eval(pts, result, gradResult, num_pts_x*num_pts_y, mode);
+  eval(pts, result, gradResult, num_pts_x*num_pts_y);
 
   // Write file  
   *fout << "mesh(" << xMin << ":" << dx << ":" << xMax << ","
@@ -309,20 +309,20 @@ void DirectSerendipityArray::write_matlab_mesh(std::ofstream* fout, std::ofstrea
 };
 
 int DirectSerendipityArray::write_matlab_mesh(std::string& filename, std::string& filename_grad,
-					      int num_pts_x, int num_pts_y, int mode) const {
+					      int num_pts_x, int num_pts_y) const {
   std::ofstream fout(filename+".m");
   if( !fout ) return 1;
   std::ofstream fout_grad(filename_grad+".m");
   if( !fout_grad ) return 1;
-  write_matlab_mesh(&fout, &fout_grad, num_pts_x, num_pts_y, mode);
+  write_matlab_mesh(&fout, &fout_grad, num_pts_x, num_pts_y);
   return 0;
 }
 
 int DirectSerendipityArray::write_matlab_mesh(std::string& filename,
-					      int num_pts_x, int num_pts_y, int mode) const {
+					      int num_pts_x, int num_pts_y) const {
   std::ofstream fout(filename+".m");
   if( !fout ) return 1;
-  write_matlab_mesh(&fout, nullptr, num_pts_x, num_pts_y, mode);
+  write_matlab_mesh(&fout, nullptr, num_pts_x, num_pts_y);
   return 0;
 }
 

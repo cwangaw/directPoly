@@ -531,9 +531,7 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
 
   // Allocate space for the resulting values
   int sizeOfArray = num_pts * num_nodes;
-  if (polynomial_degree >= num_vertices && num_vertices > 3) {
-    sizeOfArray += num_pts * num_vertices * polynomial_degree;
-  }
+
   if(value_n) delete[] value_n;
   value_n = new double[sizeOfArray];
   if (gradvalue_n) delete[] gradvalue_n;
@@ -930,7 +928,6 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
             //Evaluate phi_{e,nEdge,jNode} at each point in the pt array
             for (int pt_index = 0; pt_index < num_pts; pt_index++) {
               int global_index = pt_index * num_nodes + num_vertices + nEdge * (polynomial_degree-1) + jNode;
-              int global_index_shape_function = num_pts * num_nodes + pt_index * (polynomial_degree * num_vertices) + num_vertices + nEdge * (polynomial_degree-1) + jNode;
               double phi_pt = 0, phi_pt_alpha_part = 1, phi_pt_beta_part = 0, p_pt = 0;
 
               int num_term_alpha_part = num_vertices+1;
@@ -980,11 +977,6 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
             phi_pt = phi_pt_alpha_part + phi_pt_beta_part;
             if (pt_index == 0) {  phi = phi_alpha_part + phi_beta_part; }
 
-            //Store shape functions
-            if (polynomial_degree >= num_vertices && num_vertices > 3) {
-            value_n[global_index_shape_function] = phi_pt / phi;
-            gradvalue_n[global_index_shape_function] = gradresult / phi;
-            }
             //Deduct value at interior nodes
             for (int k=0; k<nCellNodes(); k++) {
                 phi_pt -= phi_e_at_c[k] * value_n[k + num_vertices*polynomial_degree + pt_index*num_nodes];
@@ -1054,13 +1046,6 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
           gradresult -= phi_v_at_e[index_v_at_e] * gradvalue_n[global_index];
         }
       }
-
-      //Store shape functions
-      if (polynomial_degree >= num_vertices && num_vertices > 3) {
-      int global_index_shape_function = num_pts * num_nodes + pt_index * (polynomial_degree * num_vertices) + i;
-      value_n[global_index_shape_function] = phi_pt / phi;
-      gradvalue_n[global_index_shape_function] = gradresult / phi;
-      }
       
       //Deduct value at interior nodes
       for (int k=0; k<nCellNodes(); k++) {
@@ -1080,7 +1065,7 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
 // Eval for DirectSerendipityFE
 
 void DirectSerendipityFE::eval(const Point* pt, double* result, Tensor1* gradResult, int num_pts,
-			       double* vertex_dofs, double* edge_dofs, double* cell_dofs, int mode) {
+			       double* vertex_dofs, double* edge_dofs, double* cell_dofs) {
   initBasis(pt,num_pts);
   //double gradInnerProduct = 0, b = 0;
   //double h = 0.05;
@@ -1090,13 +1075,13 @@ void DirectSerendipityFE::eval(const Point* pt, double* result, Tensor1* gradRes
     Point p(pt[n]);
 
     for(int i=0; i<num_vertices; i++) {
-      result[n] += (mode == 0)? vertex_dofs[i]*basis(i,n) : vertex_dofs[i]*basisSF(i,n,num_pts);
-      gradResult[n] += (mode == 0)? vertex_dofs[i]*gradVertexBasis(i,n): vertex_dofs[i]*gradVertexBasisSF(i,n,num_pts);
+      result[n] += vertex_dofs[i]*basis(i,n);
+      gradResult[n] += vertex_dofs[i]*gradVertexBasis(i,n);
     } 
 
     for(int k=0; k<num_vertices*(polynomial_degree-1); k++) {
-      result[n] += (mode == 0)? edge_dofs[k]*edgeBasis(k,n) : edge_dofs[k]*edgeBasisSF(k,n,num_pts) ;
-      gradResult[n] += (mode == 0)? edge_dofs[k]*gradEdgeBasis(k,n) : edge_dofs[k]*gradEdgeBasisSF(k,n,num_pts) ;
+      result[n] += edge_dofs[k]*edgeBasis(k,n);
+      gradResult[n] += edge_dofs[k]*gradEdgeBasis(k,n);
     }
 
     for(int k=0; k<nCellNodes(); k++) {
@@ -1107,18 +1092,18 @@ void DirectSerendipityFE::eval(const Point* pt, double* result, Tensor1* gradRes
 }
 
 void DirectSerendipityFE::eval(const Point* pt, double* result, int num_pts, 
-				 double* vertex_dofs, double* edge_dofs, double* cell_dofs, int mode) {
+				 double* vertex_dofs, double* edge_dofs, double* cell_dofs) {
   initBasis(pt,num_pts);
 
   for(int n=0; n<num_pts; n++) {
     result[n] = 0;
 
     for(int i=0; i<num_vertices; i++) {
-      result[n] += (mode == 0)? vertex_dofs[i]*vertexBasis(i,n) : vertex_dofs[i]*vertexBasisSF(i,n,num_pts) ;
+      result[n] += vertex_dofs[i]*vertexBasis(i,n);
     } 
 
     for(int k=0; k<num_vertices*(polynomial_degree-1); k++) {
-      result[n] += (mode == 0)? edge_dofs[k]*edgeBasis(k,n) : edge_dofs[k]*edgeBasisSF(k,n,num_pts);
+      result[n] += edge_dofs[k]*edgeBasis(k,n);
     }
 
     for(int k=0; k<nCellNodes(); k++) {
