@@ -13,6 +13,8 @@ test/true_solution_grad_mesh.m
 test/true_solution_mesh.m
 test/u_vertices_mesh.m
 test/u_vertices.m
+test/edge_nodal_basis_for_a_square/basis_grad_mesh.m
+test/edge_nodal_basis_for_a_square/basis_mesh.m
 test2/_basis_mesh.m
 test2/dsSpace_e4.m
 test2/dsSpaceOut.m
@@ -288,17 +290,6 @@ test/rhs.txt
 test/matrhs.asv
 test/matrhs.m
 problem.txt
-Mesh/mesh_common.a
-directpoly.common
-directpoly_common.a
-directpoly.common
-Mesh/mesh_common.a
-Mesh/mesh_common.a
-directpoly.common
-Mesh/mesh_common.a
-directpoly.common
-directpoly.common
-Mesh/mesh_common.a
 Mesh/mesh_common.a
 directpoly.common
 directpoly_common.a
