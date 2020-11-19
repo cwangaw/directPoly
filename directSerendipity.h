@@ -116,7 +116,6 @@ namespace directserendipity {
     double& operator[] (int i)       { return the_array[i]; }
     double  operator[] (int i) const { return the_array[i]; }
 
-    //mode:0,1. If mode = 0, we defaultly use nodal basis functions; if mode = 1, we use shape functions 
     void eval(const Point* pts, double* result, Tensor1* gradResult, int num_pts) const;
     void eval(const Point& pt, double& result, Tensor1& gradResult) const;
     double eval(const Point& pt) const;
@@ -163,7 +162,7 @@ namespace directserendipity {
   //                  Phi_3_1 at Point 2,  Phi_3_2 at Point 2).
   ////////////////////////////////////////////////////////////////////////////////
 
-  class DirectSerendipityFE
+  class DirectSerendipityFE 
   {
   private:
     DirectSerendipity* my_ds_space;
@@ -334,18 +333,208 @@ namespace directserendipity {
 
     void write_matlab_vertices(std::ofstream& fout, double* vertex_dofs) const;
     int write_matlab_vertices(std::string& filename, double* vertex_dofs) const;
+
+    friend class DirectMixedFE;
   };
 
   void lambda_for_two_points(const Point& pt0, const Point& pt1, double x, double y, double& result, Tensor1& gradresult);
+
   inline void lambda_for_two_points(const Point& pt0, const Point& pt1, const Point& p, double& result, Tensor1& gradresult) {
     lambda_for_two_points(pt0, pt1, p[0], p[1],result,gradresult);
   };
   double lambda_for_two_points(const Point& pt0, const Point& pt1, double x, double y);
+
   inline double lambda_for_two_points(const Point& pt0, const Point& pt1, const Point& p) {
     return lambda_for_two_points(pt0, pt1, p[0], p[1]);
+
+
   };
 
  
+  ////////////////////////////////////////////////////////////////////////////////
+  // class DirectMixedFE
+  //    Defined on a poly-element (class PolyElement)
+  //    
+  //    Gives basis functions separated into curl(\cDS_{r+1}) part and \x\Po_s(E) part
+  //      First call initBasis to evaluate all basis functions at a given set of points
+  //      Then access the basis functions by function index and pt number
+  //
+  // Store the result in such a way that the evaluations of all basis functions at
+  // one point are put together. The basis functions are stored in the following order:
+  //  curl(\cDS_{r+1}) -> \x\Po_{r-1}(E) -> \x\tilde\Po_r(E) ( polynomials of order r only )
+  ////////////////////////////////////////////////////////////////////////////////
+
+  class DirectMixedFE
+  {
+  private:
+    DirectSerendipity* my_ds_space;
+    polymesh::PolyElement* my_poly_element;
+
+    int dim_v;
+    int dim_curlpart;
+    int dim_v_div;
+
+    int num_vertices; // Redundant with my_poly_element
+    int polynomial_degree; // Redundant with my_ds_space
+
+    // If necessary (degPolyn small), the bigger space within which we construct the basis
+    polymesh::PolyMesh* one_element_mesh = nullptr;
+    DirectSerendipity* high_order_ds_space = nullptr;
+    
+    // Pointer to Evaluation storage
+    int num_eval_pts;
+    Tensor1* v_value_n = nullptr;
+
+    double* v_div_value_n = nullptr;
+    double* v_edge_value_n = nullptr;
+
+
+    double* w_value_n = nullptr;
+    double* lag_value_n = nullptr;
+
+    void set_directmixedfe(DirectSerendipity* dsSpace, polymesh::PolyElement* element);
+
+  public:
+    DirectMixedFE() : my_ds_space(nullptr), my_poly_element(nullptr) {};
+    DirectMixedFE( DirectSerendipity* dsSpace, polymesh::PolyElement* element ) { 
+      set_directmixedfe(dsSpace, element); };
+    
+    ~DirectMixedFE();
+
+    void initBasis(const Point* pt, int num_pts); // (re)evaluate all basis fcns at the points
+
+    // Access basis functions evaluated at pt[iPt]
+    Tensor1 basis(int iFunc, int iPt) const {
+      return v_value_n[iPt * dim_v + iFunc];
+    };
+
+    double basisDotNu(int iFunc, int nEdge, int iPt) const {
+      return v_edge_value_n[iPt * dim_v * num_vertices + dim_v * nEdge + iFunc];
+    }
+
+    Tensor1 xPo(int iFunc, int iPt) const {
+      return v_value_n[iPt * dim_v + dim_curlpart + iFunc];
+    };
+
+    double divXPo(int iFunc, int iPt) const {
+      return v_div_value_n[iPt * dim_v + iFunc];
+    }
+
+    // Get dimensions of spaces
+    int dimVFull() { return dim_v; };
+    int dimVReduced() { return dim_v - polynomial_degree - 1; };
+
+    int dimCurlPart() { return dim_curlpart; }
+
+    int dimXPoFull() { return dim_v_div; };
+    int dimXPoReduced() { return polynomial_degree * (polynomial_degree + 1)/2; };
+    
+  };
+
+  
+  ////////////////////////////////////////////////////////////////////////////////
+  // class DirectDGFE
+  //    Defined on a poly-element (class PolyElement)
+  //    
+  //    Gives polynomials of order up to s on the element E, s = r-1, r
+  //    Serve as paired space of mixed space that approximate scalar functions
+  //      First call initBasis to evaluate all basis functions at a given set of points
+  //      Then access the basis functions by function index and pt number
+  //
+  // Store the result in such a way that the evaluations of all basis functions at
+  // one point are put together. The basis functions are stored in the following order:
+  //  \Po_{r-1}(E) -> \tilde\Po_r(E) ( polynomials of order r only )
+  ////////////////////////////////////////////////////////////////////////////////
+
+    class DirectDGFE
+  {
+  private:
+    DirectSerendipity* my_ds_space;
+    polymesh::PolyElement* my_poly_element;
+
+    int dim_w;
+
+    int num_vertices; // Redundant with my_poly_element
+    int polynomial_degree; // Redundant with my_ds_space
+    
+    // Pointer to Evaluation storage
+    int num_eval_pts;
+    double* value_n = nullptr;
+
+    void set_directdgfe(DirectSerendipity* dsSpace, polymesh::PolyElement* element);
+
+  public:
+    DirectDGFE() : my_ds_space(nullptr), my_poly_element(nullptr) {};
+    DirectDGFE( DirectSerendipity* dsSpace, polymesh::PolyElement* element ) { 
+      set_directdgfe(dsSpace, element); };
+    
+    ~DirectDGFE();
+
+    void initBasis(const Point* pt, int num_pts); // (re)evaluate all basis fcns at the points
+
+    // Access basis functions evaluated at pt[iPt]
+    double basis(int iFunc, int iPt) const {
+      return value_n[iPt * dim_w + iFunc];
+    };
+
+    // Get dimensions of spaces
+    int dim() { return dim_w; };
+  };
+
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // class DirectEdgeDGFE
+  //    Defined on a poly-element (class PolyElement)
+  //    
+  //    Gives polynomials of order up to r on each edge of the element
+  //    Serve as Lagrange multipliers of mixed space
+  //      First call initBasis to evaluate all basis functions at a given set of points
+  //      Then access the basis functions by function index, edge index, and pt number
+  //
+  // Store the result in such a way that the evaluations of all basis functions at
+  // one point are put together. The basis functions are stored in the following order:
+  //  \Po_r(e_0) -> \Po_r(e_1) -> \Po_r(e_2) -> \Po_r(e_3) -> ...
+  ////////////////////////////////////////////////////////////////////////////////
+
+    class DirectEdgeDGFE
+  {
+  private:
+    DirectSerendipity* my_ds_space;
+    polymesh::PolyElement* my_poly_element;
+
+    int dim_l;
+
+    int num_vertices; // Redundant with my_poly_element
+    int polynomial_degree; // Redundant with my_ds_space
+    
+    // Private helper function
+    double projToEdge(int iEdge, const Point& p) const;
+
+    // Pointer to Evaluation storage
+    int num_eval_pts;
+    double* value_n = nullptr;
+
+    void set_directedgedgfe(DirectSerendipity* dsSpace, polymesh::PolyElement* element);
+
+  public:
+    DirectEdgeDGFE() : my_ds_space(nullptr), my_poly_element(nullptr) {};
+    DirectEdgeDGFE( DirectSerendipity* dsSpace, polymesh::PolyElement* element ) { 
+      set_directedgedgfe(dsSpace, element); };
+    
+    ~DirectEdgeDGFE();
+
+    void initBasis(const Point* pt, int num_pts); // (re)evaluate all basis fcns at the points
+
+    // Access basis functions evaluated at pt[iPt]
+    double basis(int iFunc, int iPt) const {
+      return value_n[iPt * dim_l + iFunc];
+    };
+
+    // Get dimensions of spaces
+    int dim() { return dim_l; };
+  };
+
+
 
   ////////////////////////////////////////////////////////////////////////////////
   // class DirectSerendipity
@@ -452,6 +641,7 @@ namespace directserendipity {
     int write_matlab(std::string& filename) const;
 
     friend class DirectSerendipityFE;
+    friend class DirectMixedFE;
     friend class DirectSerendipityArray;
     friend class DirectSerendipityTensor1;
     friend class Node;
