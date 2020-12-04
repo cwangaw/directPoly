@@ -1,5 +1,5 @@
 HOME = .
-TARG = common
+#TARG = common
 include $(HOME)/Config/Make.cf.$(TARG)
 
 ###############################################################################

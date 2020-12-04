@@ -217,7 +217,7 @@ int MixedPDE::solve(Monitor& monitor) {
       // so we only need to consider divXPo part
 
       for (int j = mePtr -> dimCurlPart(); j < loc_dimAfull; j++) {
-        double divv_j = mePtr -> divXPo(j,iPt);
+        double divv_j = mePtr -> divXPo(j - mePtr -> dimCurlPart(),iPt);
         for (int i = 0; i < loc_colBfull; i++ ) {
           double p_i = dgePtr -> basis(i,iPt);
           curr_full_index = dimAfull * (starting_Afull + j) + (starting_colBfull + i);

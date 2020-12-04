@@ -423,7 +423,7 @@ namespace directserendipity {
     };
 
     double divXPo(int iFunc, int iPt) const {
-      return v_div_value_n[iPt * dim_v + iFunc];
+      return v_div_value_n[iPt * dim_v_div + iFunc];
     }
 
     // Get dimensions of spaces
