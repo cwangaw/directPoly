@@ -262,7 +262,8 @@ int ParameterData::read() {
   if(polynomial_degree < 1) polynomial_degree = 1;
 
   dsSpace.set(polynomial_degree,&mesh);
-
+  dmSpace.set(polynomial_degree,&mesh);
+  
   // ALGORITHM PARAMETERS
 
   /*

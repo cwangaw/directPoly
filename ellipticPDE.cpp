@@ -19,42 +19,7 @@ using namespace directserendipity;
 using namespace polymesh;
 using namespace polyquadrature;
 
-double infNorm(double *A, int n) 
-{ 
-    // Initialize maximum element
-    double max = 0;
 
-    // Traverse array elements  
-    // from second and compare 
-    // every element with current max  
-    for (int row = 0; row < n; row++) {
-      double norm = 0;
-      for (int col = 0; col < n; col++) {
-        norm += fabs(A[row*n+col]);
-      }
-      max = (norm > max)? norm : max;
-    }
-    return max;
-} 
-
-lapack_int matInv(double *A, unsigned n)
-{
-  // inplace inverse n x n matrix A.
-  // matrix A is Column Major (i.e. firts line, second line ... *not* C[][] order)
-  // returns:
-  //   ret = 0 on success
-  //   ret < 0 illegal argument value
-  //   ret > 0 singular matrix
-    int ipiv[n+1];
-    lapack_int ret;
-
-    ret =  LAPACKE_dgetrf(LAPACK_COL_MAJOR, n,n,A,n,ipiv);
-
-    if (ret !=0) return ret;
-    ret = LAPACKE_dgetri(LAPACK_COL_MAJOR,n,A,n,ipiv);
-    return ret;
-}
-  
 int EllipticPDE::solve(Monitor& monitor) {
   monitor(0,"Polynomial Degree = ", parameterDataPtr()->dsSpace.degPolyn());
 

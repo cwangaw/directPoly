@@ -7,8 +7,9 @@ include $(HOME)/Config/Make.cf.$(TARG)
 PROG = directpoly
 
 SRC = main.cpp parameterData.cpp fcns.cpp directSerendipity.cpp \
-      directSerendipityFE.cpp ellipticPDE.cpp polyQuadrature.cpp
-INC = parameterData.h fcns.h directSerendipity.h ellipticPDE.h polyQuadrature.h
+      directSerendipityFE.cpp ellipticPDE.cpp polyQuadrature.cpp \
+			directMixedFE.cpp mixedPDE.cpp
+INC = parameterData.h fcns.h directSerendipity.h ellipticPDE.h mixedPDE.h polyQuadrature.h
 
 MAIN_MODULE = $(PROG)_$(TARG).a
 OBJ = $(patsubst %.cpp, %.o, $(SRC))

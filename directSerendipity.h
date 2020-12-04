@@ -18,8 +18,9 @@ namespace directserendipity {
 
   enum class NodeType { vertex, edge, cell };
   enum class BCType { interior, dirichlet, neumann, robin };
-
+  enum class EdgeBCType { interior, boundary };
   class DirectSerendipity;
+  class DirectMixed;
  
   ////////////////////////////////////////////////////////////////////////////////
   // class Node
@@ -367,7 +368,7 @@ namespace directserendipity {
   class DirectMixedFE
   {
   private:
-    DirectSerendipity* my_ds_space;
+    DirectMixed* my_dm_space;
     polymesh::PolyElement* my_poly_element;
 
     int dim_v;
@@ -392,16 +393,21 @@ namespace directserendipity {
     double* w_value_n = nullptr;
     double* lag_value_n = nullptr;
 
-    void set_directmixedfe(DirectSerendipity* dsSpace, polymesh::PolyElement* element);
+    void set_directmixedfe(DirectMixed* dmSpace, polymesh::PolyElement* element);
 
   public:
-    DirectMixedFE() : my_ds_space(nullptr), my_poly_element(nullptr) {};
-    DirectMixedFE( DirectSerendipity* dsSpace, polymesh::PolyElement* element ) { 
-      set_directmixedfe(dsSpace, element); };
+    DirectMixedFE() : my_dm_space(nullptr), my_poly_element(nullptr) {};
+    DirectMixedFE( DirectMixed* dmSpace, polymesh::PolyElement* element) { 
+      set_directmixedfe(dmSpace, element); };
     
     ~DirectMixedFE();
 
+    void set(DirectMixed* dmSpace, polymesh::PolyElement* element) {
+      set_directmixedfe(dmSpace, element); };
+
     void initBasis(const Point* pt, int num_pts); // (re)evaluate all basis fcns at the points
+
+    polymesh::PolyElement* elementPtr() const { return my_poly_element; };
 
     // Access basis functions evaluated at pt[iPt]
     Tensor1 basis(int iFunc, int iPt) const {
@@ -449,7 +455,7 @@ namespace directserendipity {
     class DirectDGFE
   {
   private:
-    DirectSerendipity* my_ds_space;
+    DirectMixed* my_dm_space;
     polymesh::PolyElement* my_poly_element;
 
     int dim_w;
@@ -461,14 +467,17 @@ namespace directserendipity {
     int num_eval_pts;
     double* value_n = nullptr;
 
-    void set_directdgfe(DirectSerendipity* dsSpace, polymesh::PolyElement* element);
+    void set_directdgfe(DirectMixed* dmSpace, polymesh::PolyElement* element);
 
   public:
-    DirectDGFE() : my_ds_space(nullptr), my_poly_element(nullptr) {};
-    DirectDGFE( DirectSerendipity* dsSpace, polymesh::PolyElement* element ) { 
-      set_directdgfe(dsSpace, element); };
+    DirectDGFE() : my_dm_space(nullptr), my_poly_element(nullptr) {};
+    DirectDGFE( DirectMixed* dmSpace, polymesh::PolyElement* element ) { 
+      set_directdgfe(dmSpace, element); };
     
     ~DirectDGFE();
+
+    void set(DirectMixed* dmSpace, polymesh::PolyElement* element) {
+      set_directdgfe(dmSpace, element); };
 
     void initBasis(const Point* pt, int num_pts); // (re)evaluate all basis fcns at the points
 
@@ -478,50 +487,53 @@ namespace directserendipity {
     };
 
     // Get dimensions of spaces
-    int dim() { return dim_w; };
+    int dimFull() { return dim_w; };
+    int dimReduced() { return (polynomial_degree+1) * polynomial_degree /2;}
   };
 
 
   ////////////////////////////////////////////////////////////////////////////////
   // class DirectEdgeDGFE
-  //    Defined on a poly-element (class PolyElement)
+  //
+  //    Defined on an interior edge
   //    
-  //    Gives polynomials of order up to r on each edge of the element
+  //    Gives polynomials of order up to r on each interior edge of the global mesh
+  //
   //    Serve as Lagrange multipliers of mixed space
   //      First call initBasis to evaluate all basis functions at a given set of points
-  //      Then access the basis functions by function index, edge index, and pt number
+  //      Then access the basis functions by function index and pt number
   //
   // Store the result in such a way that the evaluations of all basis functions at
-  // one point are put together. The basis functions are stored in the following order:
-  //  \Po_r(e_0) -> \Po_r(e_1) -> \Po_r(e_2) -> \Po_r(e_3) -> ...
+  // one point are put together. 
   ////////////////////////////////////////////////////////////////////////////////
 
-    class DirectEdgeDGFE
+  class DirectEdgeDGFE
   {
   private:
-    DirectSerendipity* my_ds_space;
-    polymesh::PolyElement* my_poly_element;
+    DirectMixed* my_dm_space;
+    polymesh::Edge* my_edge;
 
     int dim_l;
 
-    int num_vertices; // Redundant with my_poly_element
-    int polynomial_degree; // Redundant with my_ds_space
+    int polynomial_degree; // Redundant with my_dm_space
     
     // Private helper function
-    double projToEdge(int iEdge, const Point& p) const;
+    double projToEdge(const Point& p) const;
 
     // Pointer to Evaluation storage
     int num_eval_pts;
     double* value_n = nullptr;
 
-    void set_directedgedgfe(DirectSerendipity* dsSpace, polymesh::PolyElement* element);
+    void set_directedgedgfe(DirectMixed* dmSpace, polymesh::Edge* edge);
 
   public:
-    DirectEdgeDGFE() : my_ds_space(nullptr), my_poly_element(nullptr) {};
-    DirectEdgeDGFE( DirectSerendipity* dsSpace, polymesh::PolyElement* element ) { 
-      set_directedgedgfe(dsSpace, element); };
+    DirectEdgeDGFE() : my_dm_space(nullptr), my_edge(nullptr) {};
+    DirectEdgeDGFE( DirectMixed* dmSpace, polymesh::Edge* edge ) { 
+      set_directedgedgfe(dmSpace, edge); };
     
     ~DirectEdgeDGFE();
+
+    void set(DirectMixed* dmSpace, polymesh::Edge* edge) { set_directedgedgfe(dmSpace, edge); };
 
     void initBasis(const Point* pt, int num_pts); // (re)evaluate all basis fcns at the points
 
@@ -581,8 +593,6 @@ namespace directserendipity {
   class DirectSerendipity
   {
   private:
-    typedef int int2[2];
-    
     int polynomial_degree;
     polymesh::PolyMesh* my_mesh;
     //DirectSerendipity my_high_order_ds_space;
@@ -647,6 +657,149 @@ namespace directserendipity {
     friend class Node;
   };
 
-};
+  ////////////////////////////////////////////////////////////////////////////////
+  // class DirectMixed
+  //   Defined on a poly-mesh (class PolyMesh), consisting of direct mixed
+  //     finite elements (class DirectMixedFE)
+  //    
+  //   Gives function evaluation from global coefficients for the basis functions
+  //
+  ////////////////////////////////////////////////////////////////////////////////
 
+  class DirectMixed
+  {
+  private:
+    int polynomial_degree;
+    polymesh::PolyMesh* my_mesh;
+    //DirectSerendipity my_high_order_ds_space;
+
+    int num_edges; //redundant with my_mesh
+    int num_interior_edges;
+    polymesh::Edge* the_dm_edges = nullptr;
+    EdgeBCType* the_bc_type = nullptr;
+    int* interior_edge_indexing = nullptr;
+    int* global_edge_indexing = nullptr;
+
+    DirectMixedFE* the_dm_elements = nullptr;
+    DirectDGFE* the_dg_elements = nullptr;
+    DirectEdgeDGFE* the_dg_edge_elements = nullptr;
+
+    void set_directmixed(int polyDeg, polymesh::PolyMesh* mesh);
+    
+  public:
+    DirectMixed() : polynomial_degree(0), my_mesh(nullptr), num_edges(0),
+    the_dm_edges(nullptr), the_bc_type(nullptr),
+			  the_dm_elements(nullptr) {};
+    DirectMixed(int polyDeg, polymesh::PolyMesh* mesh) {
+      set_directmixed(polyDeg, mesh); };
+    ~DirectMixed();
+
+    void set(int polyDeg, polymesh::PolyMesh* mesh) { set_directmixed(polyDeg, mesh); };
+    
+    int nEdges() const { return num_edges; };
+    int nInteriorEdges() const { return num_interior_edges; };
+    int degPolyn() const { return polynomial_degree; };
+    polymesh::PolyMesh* mesh() const { return my_mesh; };
+    polymesh::PolyElement* elementPtr(int i) const {return my_mesh->elementPtr(i); };
+
+    DirectMixedFE* MixedElementPtr(int i) const { return &the_dm_elements[i]; };
+    DirectDGFE* DGElementPtr(int i) const { return &the_dg_elements[i]; };
+    DirectEdgeDGFE* DGEdgePtr(int i) const { return &the_dg_edge_elements[i]; };
+    DirectEdgeDGFE* DGEdgeInteriorPtr(int i) const { return &the_dg_edge_elements[int_to_glob(i)]; };
+    EdgeBCType bcType(int i) const { return the_bc_type[i]; }; //Boundary type for each edge
+    
+    // Return the interior edge indexing from global edge indexing
+    int glob_to_int(int i) const { return interior_edge_indexing[i]; };
+
+    // Return the global edge indexing from interior edge indexing
+    int int_to_glob(int i) const {return global_edge_indexing[i]; }; 
+
+    // Return the interior edge indexing of the iEdge-th edge of the iElement-th element
+    int interiorEdgeIndex(int iElement, int iEdge) const { 
+      return interior_edge_indexing[my_mesh->elementPtr(iElement)->edgePtr(iEdge)->meshIndex()]; 
+    };
+
+    // Return the edge from interior edge index
+    polymesh::Edge* edgeInteriorPtr(int i) const {
+      return my_mesh -> edgePtr(int_to_glob(i));
+    };
+
+    void write_raw(std::ofstream& fout) const;
+    int write_raw(std::string& filename) const;
+
+    int write_matlab(std::string& filename) const;
+
+
+    friend class DirectMixedFE;
+    friend class DirectDGFE;
+    friend class DirectEdgeDGFE;
+    friend class DirectMixedArray;
+  };
+
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // class DirectMixedArray
+  //    Gives values for each coefficient of basis function
+  ////////////////////////////////////////////////////////////////////////////////
+
+  class DirectMixedArray
+  {
+  private:
+    int num_edges;
+    double* the_array = nullptr;
+
+    DirectMixed* my_dm_space;
+
+    void set_directmixedarray(DirectMixed* dmSpace);
+
+  public:
+    DirectMixedArray() : num_edges(0), the_array(nullptr), my_dm_space(nullptr) {};
+    DirectMixedArray(DirectMixed* dmSpace) {
+      set_directmixedarray(dmSpace); };
+    DirectMixedArray(const DirectMixedArray& a) : the_array(nullptr) {
+      set_directmixedarray(a.dmSpace()); };
+    ~DirectMixedArray();
+    
+    void set(DirectMixed* dsSpace) { set_directmixedarray(dsSpace); };
+
+    DirectMixed* dmSpace() const { return my_dm_space; };
+    int size() const { return num_edges; };
+
+    double& operator() (int i)       { return the_array[i]; }
+    double  operator() (int i) const { return the_array[i]; }
+    double& operator[] (int i)       { return the_array[i]; }
+    double  operator[] (int i) const { return the_array[i]; }
+
+    void eval(const Point* pts, double* result, Tensor1* gradResult, int num_pts) const;
+    void eval(const Point& pt, double& result, Tensor1& gradResult) const;
+    double eval(const Point& pt) const;
+
+    void l2normError(double& l2Error, double& l2GradError, double& l2Norm, double& l2GradNorm,
+		     double (*referenceFcn)(double,double) = nullptr, 
+		     Tensor1 (*referenceGradFcn)(double,double) = nullptr);
+    void l2norm(double& l2Norm, double& l2GradNorm) {
+      double null1,null2; l2normError(l2Norm,l2GradNorm,null1,null2); };
+
+    void write_matlab_mesh(std::ofstream* fout, std::ofstream* fout_grad,
+			   int num_pts_x, int num_pts_y) const;
+    void write_matlab_mesh(std::ofstream& fout, std::ofstream& fout_grad,
+			   int num_pts_x, int num_pts_y) const {
+      write_matlab_mesh(&fout, &fout_grad, num_pts_x, num_pts_y); };
+    void write_matlab_mesh(std::ofstream& fout, int num_pts_x, int num_pts_y) const {
+      write_matlab_mesh(&fout, nullptr, num_pts_x, num_pts_y); };
+    int write_matlab_mesh(std::string& filename, std::string& filename_grad,
+			  int num_pts_x, int num_pts_y) const;
+    int write_matlab_mesh(std::string& filename, int num_pts_x, int num_pts_y) const;
+
+    void write_matlab_mesh_by_pt(std::ofstream& fout, std::ofstream& fout_grad,
+				 int num_pts_x, int num_pts_y) const;
+    void write_matlab_mesh_by_pt(std::ofstream& fout, int num_pts_x, int num_pts_y) const;
+    int write_matlab_mesh_by_pt(std::string& filename, std::string& filename_grad,
+				int num_pts_x, int num_pts_y) const;
+    int write_matlab_mesh_by_pt(std::string& filename, int num_pts_x, int num_pts_y) const;
+
+    void write_raw(std::ofstream& fout) const;
+    int write_raw(std::string& filename) const;
+  };
+};
 #endif

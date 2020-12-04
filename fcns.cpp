@@ -27,6 +27,11 @@ void coefD(double x, double y, Tensor2& d) {
   d.set(1,0,0,1);
 }
 
+void coefD_inv(double x, double y, Tensor2& d) {
+  //d.set(0,0,0,0);
+  d.set(1,0,0,1);
+}
+
 // Source f
 double sourceVal(double x, double y) {
   return 2*pow(PI,2)*sin(PI*x)*sin(PI*y); 

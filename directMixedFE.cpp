@@ -19,10 +19,12 @@ using namespace directserendipity;
   // class DirectMixedFE
 
 void DirectMixedFE::
-         set_directmixedfe(DirectSerendipity* dsSpace, polymesh::PolyElement* element) {
+         set_directmixedfe(DirectMixed* dmSpace, polymesh::PolyElement* element) {
+  my_dm_space = dmSpace;
+  my_poly_element = element;
 
   num_vertices = element->nVertices();
-  polynomial_degree = my_ds_space->degPolyn();
+  polynomial_degree = my_dm_space->degPolyn();
 
 
   int dim_supp;
@@ -39,12 +41,11 @@ void DirectMixedFE::
 };
 
 DirectMixedFE::~DirectMixedFE() {
-  if(high_order_ds_space) delete high_order_ds_space;
-  if(one_element_mesh) delete one_element_mesh;
-  if(v_value_n) delete[] v_value_n;
+  if (high_order_ds_space) delete high_order_ds_space;
+  if (one_element_mesh) delete one_element_mesh;
+  if (v_value_n) delete[] v_value_n;
   if (v_div_value_n) delete[] v_div_value_n;
-  if (w_value_n) delete[] w_value_n;
-  if (lag_value_n) delete[] lag_value_n;
+  if (v_edge_value_n) delete[] v_edge_value_n;
 }
 
 void DirectMixedFE::initBasis(const Point* pt, int num_pts) {
@@ -198,10 +199,11 @@ void DirectMixedFE::initBasis(const Point* pt, int num_pts) {
 // Class DirectDGFE
 
 void DirectDGFE::
-         set_directdgfe(DirectSerendipity* dsSpace, polymesh::PolyElement* element) {
-
+         set_directdgfe(DirectMixed* dmSpace, polymesh::PolyElement* element) {
+  my_dm_space = dmSpace;
+  my_poly_element = element;
   num_vertices = element->nVertices();
-  polynomial_degree = my_ds_space->degPolyn();
+  polynomial_degree = my_dm_space->degPolyn();
 
   dim_w = (polynomial_degree+2) * (polynomial_degree+1) /2;
 };
@@ -247,12 +249,12 @@ void DirectDGFE::initBasis(const Point* pt, int num_pts) {
 // Class DirectEdgeDGFE
 
 void DirectEdgeDGFE::
-         set_directedgedgfe(DirectSerendipity* dsSpace, polymesh::PolyElement* element) {
+         set_directedgedgfe(DirectMixed* dmSpace, Edge* edge) {
+  my_dm_space = dmSpace;
+  polynomial_degree = my_dm_space->degPolyn();
+  my_edge = edge;
 
-  num_vertices = element->nVertices();
-  polynomial_degree = my_ds_space->degPolyn();
-
-  dim_l = num_vertices * ( polynomial_degree + 1 );
+  dim_l =  polynomial_degree + 1;
 };
 
 DirectEdgeDGFE::~DirectEdgeDGFE() {
@@ -277,22 +279,20 @@ void DirectEdgeDGFE::initBasis(const Point* pt, int num_pts) {
   // Initialize curr_index to 0
   int curr_index = 0;
 
-  for (int edge = 0; edge < num_vertices; edge++) {
-    for (int deg = 0; deg <= polynomial_degree; deg++) {
-      for (int pt_index = 0; pt_index < num_pts; pt_index++) {
-        value_n[pt_index * dim_l + curr_index] = pow(projToEdge(edge,pt[pt_index]), deg);
-      }
-      curr_index += 1;
+  for (int deg = 0; deg <= polynomial_degree; deg++) {
+    for (int pt_index = 0; pt_index < num_pts; pt_index++) {
+      value_n[pt_index * dim_l + curr_index] = pow(projToEdge(pt[pt_index]), deg);
     }
+    curr_index += 1;
   }
+
 
   //Check if our indexing is working as expected
   assert(curr_index == dim_l);
 };
 
 
-double DirectEdgeDGFE::projToEdge(int iEdge, const Point& p) const {
-  polymesh::OrientedEdge* e = my_poly_element->edgePtr(iEdge);
-  Tensor1 tau(e->tangent());
-  return (p[0] - e->vertexPtr(0)->val(0))*tau[0] + (p[1] - e->vertexPtr(0)->val(1))*tau[1];
+double DirectEdgeDGFE::projToEdge(const Point& p) const {
+  Tensor1 tau(my_edge->tangent());
+  return (p[0] - (my_edge->vertexPtr(0)->val(0))*tau[0] + (p[1] - (my_edge->vertexPtr(0)->val(1))*tau[1])) ;
 };

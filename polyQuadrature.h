@@ -9,8 +9,8 @@
 // Assume base objects: Point, Tensor1, and Tensor2
 ////////////////////////////////////////////////////////////////////////////////
 
-#include<vector>
-
+#include <vector>
+#include <cmath>
 #include "Mesh/baseObjects.h"
 #include "Mesh/polyMesh.h"
 
@@ -392,6 +392,244 @@ namespace polyquadrature {
     bool isDesiredDOP() { return my_desired_dop == my_dop; };
     bool isAtLeastDesiredDOP() { return my_desired_dop <= my_dop; };
   }; 
+ 
+ 
+  ////////////////////////////////////////////////////////////////////////////////
+  // Quadrature rules on reference edge -1 1
+  //    num = number of points in the rule = degree of precision of the rule
+  //    pts = quadrature points (using double)
+  //    wts = quadrature weights
+  ////////////////////////////////////////////////////////////////////////////////
+
+  static struct {
+    const int num = 1;
+    double pts[1] = { 0 };
+    double wts[1] = { 2 };
+  } gauleg1;
+
+  static struct {
+    const int num = 2;
+    double pts[2] = { -1/sqrt(3), 1/sqrt(3) };
+    double wts[2] = { 1, 1 };
+  } gauleg2;
+
+  static struct {
+    const int num = 3;
+    double pts[3] = { -sqrt(0.6), 0, sqrt(0.6) };
+    double wts[3] = { double(5)/double(9), double(8)/double(9), 
+                      double(5)/double(9) };
+  } gauleg3;
+
+  static struct {
+    const int num = 4;
+    double pts[4] = { -0.861136311594052575224, -0.3399810435848562648027,
+                      0.3399810435848562648027, 0.861136311594052575224 };
+    double wts[4] = { 0.3478548451374538573731, 0.6521451548625461426269, 
+                      0.6521451548625461426269, 0.3478548451374538573731 };
+  } gauleg4;
+
+  static struct {
+    const int num = 5;
+    double pts[5] = { -0.9061798459386639927976, -0.5384693101056830910363,
+                      0, 
+                      0.5384693101056830910363, 0.9061798459386639927976 };
+    double wts[5] = { 0.2369268850561890875143, 0.4786286704993664680413, 
+                      0.5688888888888888888889, 
+                      0.4786286704993664680413, 0.2369268850561890875143 };
+  } gauleg5;
+
+  static struct {
+    const int num = 6;
+    double pts[6] = { -0.9324695142031520278123, -0.661209386466264513661,
+                      -0.2386191860831969086305, 0.238619186083196908631, 
+                      0.661209386466264513661, 0.9324695142031520278123 };
+    double wts[6] = { 0.1713244923791703450403, 0.3607615730481386075698, 
+                      0.4679139345726910473899, 0.4679139345726910473899,
+                      0.3607615730481386075698, 0.1713244923791703450403 };
+  } gauleg6;
+
+  static struct {
+    const int num = 7;
+    double pts[7] = { -0.9491079123427585245262, -0.7415311855993944398639,
+                      -0.4058451513773971669066, 0, 
+                      0.4058451513773971669066, 0.7415311855993944398639,
+                      0.9491079123427585245262 };
+    double wts[7] = { 0.1294849661688696932706, 0.2797053914892766679015, 
+                      0.38183005050511894495, 0.417959183673469387755,
+                      0.38183005050511894495, 0.279705391489276667901,
+                      0.129484966168869693271 };
+  } gauleg7;
+
+
+  static struct {
+    const int num = 8;
+    double pts[8] = { -0.9602898564975362316836, -0.7966664774136267395916,
+                      -0.5255324099163289858177, -0.1834346424956498049395, 
+                      0.1834346424956498049395, 0.5255324099163289858177,
+                      0.7966664774136267395916, 0.9602898564975362316836 };
+    double wts[8] = { 0.1012285362903762591525, 0.2223810344533744705444, 
+                      0.313706645877887287338, 0.3626837833783619829652,
+                      0.3626837833783619829652, 0.313706645877887287338,
+                      0.222381034453374470544, 0.1012285362903762591525 };
+  } gauleg8;
+
+  static struct {
+    const int num = 9;
+    double pts[9] = { -0.9681602395076260898356, -0.8360311073266357942994,
+                      -0.6133714327005903973087, -0.3242534234038089290385,
+                      0,
+                      0.3242534234038089290385, 0.6133714327005903973087,
+                      0.8360311073266357942994, 0.9681602395076260898356 };
+    double wts[9] = { 0.0812743883615744119719, 0.1806481606948574040585, 
+                      0.2606106964029354623187, 0.312347077040002840069,
+                      0.330239355001259763165,
+                      0.312347077040002840069, 0.260610696402935462319,
+                      0.1806481606948574040585, 0.081274388361574411972 };
+  } gauleg9;
+
+  static struct {
+    const int num = 10;
+    double pts[10] = { -0.973906528517171720078, -0.8650633666889845107321,
+                       -0.6794095682990244062343, -0.4333953941292471907993,
+                       -0.1488743389816312108848, 0.1488743389816312108848,
+                        0.4333953941292471907993, 0.6794095682990244062343,
+                        0.8650633666889845107321, 0.973906528517171720078 };
+    double wts[10] = { 0.0666713443086881375936, 0.149451349150580593146,
+                       0.219086362515982043996, 0.2692667193099963550912,
+                       0.2955242247147528701739, 0.295524224714752870174,
+                       0.269266719309996355091, 0.2190863625159820439955,
+                       0.1494513491505805931458, 0.0666713443086881375936 };
+  } gauleg10;
+
+  static struct {
+    const int num = 11;
+    double pts[11] = { -0.9782286581460569928039, -0.8870625997680952990752,
+                       -0.7301520055740493240934, -0.5190961292068118159257,
+                       -0.2695431559523449723315, 0,
+                       0.269543155952344972332, 0.5190961292068118159257,
+                       0.7301520055740493240934, 0.887062599768095299075,
+                       0.9782286581460569928039 };
+    double wts[11] = { 0.0556685671161736664828, 0.1255803694649046246347,
+                       0.1862902109277342514261, 0.2331937645919904799185,
+                       0.2628045445102466621807, 0.2729250867779006307145,
+                       0.262804544510246662181, 0.2331937645919904799185,
+                       0.1862902109277342514261, 0.1255803694649046246347,
+                       0.055668567116173666483 };
+  } gauleg11;
+
+  static struct {
+    const int num = 12;
+    double pts[12] = { -0.9815606342467192506906, -0.9041172563704748566785,
+                       -0.769902674194304687037, -0.5873179542866174472967,
+                       -0.3678314989981801937527, -0.1252334085114689154724,
+                       0.1252334085114689154724, 0.3678314989981801937527,
+                       0.5873179542866174472967, 0.7699026741943046870369,
+                       0.9041172563704748566785, 0.9815606342467192506906 };
+    double wts[12] = { 0.0471753363865118271946, 0.1069393259953184309603,
+                       0.1600783285433462263347, 0.2031674267230659217491,
+                       0.233492536538354808761, 0.2491470458134027850006,
+                       0.2491470458134027850006, 0.233492536538354808761,
+                       0.203167426723065921749, 0.160078328543346226335,
+                       0.1069393259953184309603, 0.0471753363865118271946 };
+  } gauleg12;
+
+  static struct {
+    const int num = 13;
+    double pts[13] = { -0.9841830547185881494728, -0.9175983992229779652066,
+                       -0.8015780907333099127942, -0.642349339440340220644,
+                       -0.4484927510364468528779, -0.2304583159551347940655,
+                       0,
+                       0.2304583159551347940655, 0.448492751036446852878,
+                       0.642349339440340220644, 0.8015780907333099127942,
+                       0.9175983992229779652066, 0.9841830547185881494728 };
+    double wts[13] = { 0.04048400476531587952, 0.0921214998377284479144,
+                       0.1388735102197872384636, 0.1781459807619457382801,
+                       0.2078160475368885023125, 0.2262831802628972384121,
+                       0.2325515532308739101946, 
+                       0.2262831802628972384121, 0.2078160475368885023125, 
+                       0.17814598076194573828, 0.138873510219787238464, 
+                       0.0921214998377284479144, 0.04048400476531587952 };
+  } gauleg13;
+
+  class RuleForEdge {
+  public:
+    int num;
+    double* pts;
+    double* wts;
+
+    RuleForEdge(int num_in,  double* pts_in, double* wts_in) :
+      num(num_in), pts(pts_in), wts(wts_in) {};
+  };
+
+  static const std::vector<RuleForEdge> ruleForEdge
+    = { RuleForEdge(gauleg1.num, gauleg1.pts, gauleg1.wts),
+	      RuleForEdge(gauleg2.num, gauleg2.pts, gauleg2.wts),
+        RuleForEdge(gauleg3.num, gauleg3.pts, gauleg3.wts),
+        RuleForEdge(gauleg4.num, gauleg4.pts, gauleg4.wts),
+        RuleForEdge(gauleg5.num, gauleg5.pts, gauleg5.wts),
+        RuleForEdge(gauleg6.num, gauleg6.pts, gauleg6.wts),
+        RuleForEdge(gauleg7.num, gauleg7.pts, gauleg7.wts),
+        RuleForEdge(gauleg8.num, gauleg8.pts, gauleg8.wts),
+        RuleForEdge(gauleg9.num, gauleg9.pts, gauleg9.wts),
+        RuleForEdge(gauleg10.num, gauleg10.pts, gauleg10.wts),
+        RuleForEdge(gauleg11.num, gauleg11.pts, gauleg11.wts),
+        RuleForEdge(gauleg12.num, gauleg12.pts, gauleg12.wts),
+        RuleForEdge(gauleg13.num, gauleg13.pts, gauleg13.wts),
+ };
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // PolyEdgeQuadrature class
+  //
+  //  One sets the rule type on creation
+  //  
+  //  One first sets the edge, and then the points are computed for use.
+  ////////////////////////////////////////////////////////////////////////////////
+
+  class PolyEdgeQuadrature
+  {
+  private:
+    polymesh::Edge* my_edge = nullptr;
+
+    int my_desired_dop; // desired degree of precision
+    int my_dop; // actual degree of precision
+    int my_rule;
+
+    // Reference edge
+    int num_pts;
+    double* my_pts_ref;
+    double* my_wts;
+
+    // Edge
+    Point* my_pts = nullptr;
+
+    void set_rule(int desired_dop);
+    void set_edge(polymesh::Edge* edge);
+    
+  public:
+    PolyEdgeQuadrature(int desired_dop=2, polymesh::Edge* edge=nullptr) {
+      set_rule(desired_dop); set_edge(edge); };
+    ~PolyEdgeQuadrature();
+
+    void set(int desired_dop=2, polymesh::Edge* edge=nullptr) {
+      set_rule(desired_dop); set_edge(edge); };
+    void setRule(int desired_dop) { set_rule(desired_dop); set_edge(my_edge); };
+    void setEdge(polymesh::Edge* edge) { set_edge(edge); };
+
+    polymesh::Edge* edgePtr() const { return my_edge; };
+    int edgeQuadratureRule() const { return my_rule; };
+
+    int num() const { return num_pts; };
+    Point& pt(int i) const { return my_pts[i]; };
+    double wt(int i) const { return my_wts[i]; };
+    Point* pts() const { return my_pts; };
+    double* wts() const { return my_wts; };
+
+    int desiredDOP() const { return my_desired_dop; };
+    int dop() const { return my_dop; };
+    bool isDesiredDOP() { return my_desired_dop == my_dop; };
+    bool isAtLeastDesiredDOP() { return my_desired_dop <= my_dop; };
+  }; 
+
 
   void testPolyQuadrature(polymesh::PolyMesh* mesh, double eps=1e-6,
 			  int toDOP=ruleForTriangle[ruleForTriangle.size()-1].dop);

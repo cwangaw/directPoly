@@ -97,3 +97,44 @@ void polyquadrature::testPolyQuadrature(polymesh::PolyMesh* mesh, double eps, in
   }
   std::cout << std::endl;
 };
+
+////////////////////////////////////////////////////////////////////////////////
+// class PolyEdgeQuadrature
+
+void PolyEdgeQuadrature::set_rule(int desired_dop) {
+  my_desired_dop = desired_dop;
+  my_rule = ruleForEdge.size()-1;
+
+  for(unsigned long int i=0; i<ruleForEdge.size(); i++) {
+    if(ruleForEdge[i].num >= desired_dop) { my_rule = i; break; }
+  }
+  my_dop  = ruleForEdge[my_rule].num;
+
+  num_pts = ruleForEdge[my_rule].num;
+  my_pts_ref  = ruleForEdge[my_rule].pts;
+  my_wts  = ruleForEdge[my_rule].wts;
+}
+
+void PolyEdgeQuadrature::set_edge(polymesh::Edge* edge) {
+  my_edge = edge;
+  if(!edge) return;
+
+  // Quadrature points and weights
+
+  if(my_pts) delete[] my_pts;
+  my_pts = new Point[num_pts];
+
+  Point v0(*(my_edge->vertexPtr(0)));
+  Point v1(*(my_edge->vertexPtr(1)));
+
+  for (int i = 0; i < num_pts; i++) {
+    my_pts[i].set(v0);
+    my_pts[i] += (my_pts_ref[i]+1)/2 * (v1 - v0);
+  }
+
+}
+
+PolyEdgeQuadrature::~PolyEdgeQuadrature() {
+  if(my_pts) delete[] my_pts;
+}
+

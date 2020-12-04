@@ -10,6 +10,7 @@ double coefA(double x, double y);
 void coefB(double x, double y, Tensor1& b);
 void coefC(double x, double y, Tensor1& c);
 void coefD(double x, double y, Tensor2& d);
+void coefD_inv(double x, double y, Tensor2& d);
 
 double sourceVal(double x, double y);
 double bcVal(double x, double y);
