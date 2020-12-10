@@ -12,7 +12,7 @@ using namespace std;
 #include "Utilities/debug.h"
 #include "Mesh/polyMesh.h"
 using namespace polymesh;
-#include "directSerendipity.h"
+#include "directMixed.h"
 using namespace directserendipity;
 
   ////////////////////////////////////////////////////////////////////////////////
