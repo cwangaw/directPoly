@@ -28,7 +28,7 @@ C++C = g++
 	$(C++C) $(C++FLAGS) -c $<
 
 $(PROG).$(TARG): $(MAIN_OBJECTS) $(MODULES)
-	$(C++C) -o $@ $(LDFLAGS) $(MODULES) $(LIBS) -lm -lblas -llapack -llapacke
+	$(C++C) -o $@ $(LDFLAGS) $(MODULES) $(LIBS)
 
 .force:
 
