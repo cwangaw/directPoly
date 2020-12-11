@@ -1114,29 +1114,6 @@ void DirectSerendipityFE::eval(const Point* pt, double* result, int num_pts,
 
 // Output for DirectSerendipityFE
 
-void DirectSerendipityFE::write_matlab_vertices(std::ofstream& fout, double* vertex_dofs) const {
-  fout << "patch([ ";
-  for(int i=0; i<num_vertices; i++) {
-    fout << the_vertex_nodes[i]->val(0) << " ";
-  }
-  fout << "],[ ";
-  for(int i=0; i<num_vertices; i++) {
-    fout << the_vertex_nodes[i]->val(1) << " ";
-  }
-  fout << "],[ ";
-  for(int i=0; i<num_vertices; i++) {
-    fout << vertex_dofs[i] << " ";
-  }
-  fout << "]);\n";
-}
-
-int DirectSerendipityFE::write_matlab_vertices(std::string& filename, double* vertex_dofs) const {
-  std::ofstream fout(filename+".m");
-  if( !fout ) return 1;
-  write_matlab_vertices(fout, vertex_dofs);
-  return 0;
-}
-
 void DirectSerendipityFE::write_raw(std::ofstream& fout) const {
   fout << "    DIRECT SERENDIPITY FE\n";
   fout << "    my_ds_space       = " << my_ds_space << "\n";

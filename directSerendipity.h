@@ -18,9 +18,8 @@ namespace directserendipity {
 
   enum class NodeType { vertex, edge, cell };
   enum class BCType { interior, dirichlet, neumann, robin };
-  enum class EdgeBCType { interior, boundary };
+
   class DirectSerendipity;
-  class DirectMixed;
  
   ////////////////////////////////////////////////////////////////////////////////
   // class Node
@@ -315,7 +314,7 @@ namespace directserendipity {
       return value_n[iCNode + num_vertices*polynomial_degree + iPt*num_nodes]; };
     Tensor1 gradCellBasis(int iCNode, int iPt) const { return gradvalue_n[iCNode + num_vertices*polynomial_degree + iPt*num_nodes]; };  
     
-    //mode:0,1. If mode = 0, we defaultly use nodal basis functions; if mode = 1, we use shape functions 
+
     void eval(const Point* pt, double* result, Tensor1* gradResult, int num_pts,
 	      double* vertex_dofs, double* edge_dofs=nullptr, double* cell_dofs=nullptr);
     void eval(const Point& pt, double& result, Tensor1& gradResult, double* vertex_dofs,
@@ -331,9 +330,6 @@ namespace directserendipity {
     // Output functions
     void write_raw(std::ofstream& fout) const;
     int write_raw(std::string& filename) const;
-
-    void write_matlab_vertices(std::ofstream& fout, double* vertex_dofs) const;
-    int write_matlab_vertices(std::string& filename, double* vertex_dofs) const;
 
     friend class DirectMixedFE;
   };

@@ -1,4 +1,4 @@
-TARG = common
+#TARG = common
 CODE = reader_$(TARG).a
 
 # Set-up information ==========================================================

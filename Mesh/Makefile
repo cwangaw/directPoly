@@ -1,4 +1,4 @@
-TARG = common
+#TARG = common
 CODE = mesh_$(TARG).a
 
 # Set-up information ==========================================================

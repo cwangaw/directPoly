@@ -1,4 +1,4 @@
-TARG = common
+#TARG = common
 CODE = utilities_$(TARG).a
 
 # Set-up information ==========================================================

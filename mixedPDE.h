@@ -6,7 +6,7 @@
 
 #include "Mesh/baseObjects.h"
 #include "Mesh/polyMesh.h"
-#include "directSerendipity.h"
+#include "directMixed.h"
 #include "parameterData.h"
 #include "Utilities/monitor.h"
 #include "debug.h"

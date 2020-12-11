@@ -20,8 +20,8 @@ $END_COMMENT
 q		# meshType (quads, deviated, triangles, or general)
 0,1        	# xMin,xMax
 0,1        	# yMin,yMax 
-25,25     	# nx,ny
-0.2          	# distortion factor
+2,2     	# nx,ny
+0         # distortion factor
 # $END_COMMENT
 
 ### FINITE ELEMENTS ###########################################################

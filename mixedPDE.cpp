@@ -7,7 +7,7 @@
 #include "fcns.h"
 #include "Mesh/baseObjects.h"
 #include "Mesh/polyMesh.h"
-#include "directSerendipity.h"
+#include "directMixed.h"
 #include "parameterData.h"
 #include "polyQuadrature.h"
 #include "Utilities/monitor.h"

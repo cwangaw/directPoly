@@ -4,6 +4,10 @@
 #include "directSerendipity.h"
 
 namespace directserendipity {
+
+  enum class EdgeBCType { interior, boundary };
+  class DirectSerendipity;
+  class DirectMixed;
   
   ////////////////////////////////////////////////////////////////////////////////
   // class DirectMixedFE
@@ -71,10 +75,8 @@ namespace directserendipity {
       return v_edge_value_n[iPt * dim_v * num_vertices + dim_v * nEdge + iFunc];
     }
 
-    Tensor1 xPo(int iFunc, int iPt) const {
-      return v_value_n[iPt * dim_v + dim_curlpart + iFunc];
-    };
-
+    // If the functions are indexed including curl part, 
+    // we need to pass iFunc = index of the function - dimCurlPart
     double divXPo(int iFunc, int iPt) const {
       return v_div_value_n[iPt * dim_v_div + iFunc];
     }
@@ -87,7 +89,37 @@ namespace directserendipity {
 
     int dimXPoFull() { return dim_v_div; };
     int dimXPoReduced() { return polynomial_degree * (polynomial_degree + 1)/2; };
+
+    // Evaluation \u in full or reduced space or both at a point
+    void eval_f(const Point* pt, Tensor1* result, int num_pts, double* dofs=nullptr);
+    void eval_f(const Point& pt, Tensor1& result, double* dofs=nullptr) {
+      eval_f(&pt, &result, 1, dofs); };
+
+    Tensor1 eval_f(const Point& pt, double* dofs=nullptr) { 
+      Tensor1 result;
+      eval_f(&pt, &result, 1, dofs); 
+      return result; 
+    }
+
+    void eval_r(const Point* pt, Tensor1* result, int num_pts, double* dofs=nullptr);
+    void eval_r(const Point& pt, Tensor1& result, double* dofs=nullptr) {
+      eval_r(&pt, &result, 1, dofs); };
+
+    Tensor1 eval_r(const Point& pt, double* dofs=nullptr) { 
+      Tensor1 result;
+      eval_r(&pt, &result, 1, dofs); 
+      return result; 
+    }
+
+    void eval(const Point* pt, Tensor1* fullResult, Tensor1* reducedResult, int num_pts, 
+              double* full_dofs=nullptr, double* reduced_dofs=nullptr);
+    void eval(const Point& pt, Tensor1& fullResult, Tensor1& reducedResult, 
+              double* full_dofs=nullptr, double* reduced_dofs=nullptr) {
+      eval(&pt, &fullResult, &reducedResult, 1, full_dofs, reduced_dofs); };
     
+    // Output functions
+    void write_raw(std::ofstream& fout) const;
+    int write_raw(std::string& filename) const;
   };
 
   
@@ -105,7 +137,7 @@ namespace directserendipity {
   //  \Po_{r-1}(E) -> \tilde\Po_r(E) ( polynomials of order r only )
   ////////////////////////////////////////////////////////////////////////////////
 
-    class DirectDGFE
+  class DirectDGFE
   {
   private:
     DirectMixed* my_dm_space;
@@ -142,6 +174,37 @@ namespace directserendipity {
     // Get dimensions of spaces
     int dimFull() { return dim_w; };
     int dimReduced() { return (polynomial_degree+1) * polynomial_degree /2;}
+
+    // Evaluation \p of full or reduced space at a point
+    void eval_f(const Point* pt, double* result, int num_pts, double* dofs=nullptr);
+    void eval_f(const Point& pt, double& result, double* dofs=nullptr) {
+      eval_f(&pt, &result, 1, dofs); };
+
+    double eval_f(const Point& pt, double* dofs=nullptr) { 
+      double result;
+      eval_f(&pt, &result, 1, dofs); 
+      return result; 
+    }
+
+    void eval_r(const Point* pt, double* result, int num_pts, double* dofs=nullptr);
+    void eval_r(const Point& pt, double& result, double* dofs=nullptr) {
+      eval_r(&pt, &result, 1, dofs); };
+
+    double eval_r(const Point& pt, double* dofs=nullptr) { 
+      double result;
+      eval_r(&pt, &result, 1, dofs); 
+      return result; 
+    }
+
+    void eval(const Point* pt, double* fullResult, double* reducedResult, int num_pts, 
+              double* full_dofs=nullptr, double* reduced_dofs=nullptr);
+    void eval(const Point& pt, double& fullResult, double& reducedResult, 
+              double* full_dofs=nullptr, double* reduced_dofs=nullptr) {
+      eval(&pt, &fullResult, &reducedResult, 1, full_dofs, reduced_dofs); };
+    
+    // Output functions
+    void write_raw(std::ofstream& fout) const;
+    int write_raw(std::string& filename) const;
   };
 
 
@@ -197,6 +260,21 @@ namespace directserendipity {
 
     // Get dimensions of spaces
     int dim() { return dim_l; };
+
+    // Evaluation \lambda at a point
+    void eval(const Point* pt, double* result, int num_pts, double* dofs=nullptr);
+    void eval(const Point& pt, double& result, double* dofs=nullptr) {
+      eval(&pt, &result, 1, dofs); };
+
+    double eval(const Point& pt, double* dofs=nullptr) { 
+      double result;
+      eval(&pt, &result, 1, dofs); 
+      return result; 
+    }
+    
+    // Output functions
+    void write_raw(std::ofstream& fout) const;
+    int write_raw(std::string& filename) const;
   };
 
   ////////////////////////////////////////////////////////////////////////////////

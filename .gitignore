@@ -290,6 +290,8 @@ test/rhs.txt
 test/matrhs.asv
 test/matrhs.m
 problem.txt
-Mesh/mesh_common.a
-directpoly.common
-directpoly_common.a
+Mesh/mesh_x86_64.a
+Reader/reader_x86_64.a
+Utilities/utilities_x86_64.a
+directpoly_x86_64.a
+directpoly.x86_64

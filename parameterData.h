@@ -7,6 +7,7 @@
 #include "Mesh/baseObjects.h"
 #include "Mesh/polyMesh.h"
 #include "directSerendipity.h"
+#include "directMixed.h"
 #include "debug.h"
 
 class ParameterData {
