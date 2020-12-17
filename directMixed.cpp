@@ -56,6 +56,22 @@ void DirectMixed::set_directmixed(int polyDeg, PolyMesh* mesh) {
   if(global_edge_indexing) delete[] global_edge_indexing;
   global_edge_indexing = new int[num_interior_edges];
 
+  if(mixed_elem_first_to_global_dof_full) delete[] mixed_elem_first_to_global_dof_full;
+  mixed_elem_first_to_global_dof_full = new int[my_mesh->nElements()];
+
+  if(mixed_elem_first_to_global_dof_reduced) delete[] mixed_elem_first_to_global_dof_reduced;
+  mixed_elem_first_to_global_dof_reduced = new int[my_mesh->nElements()];
+  
+  if(dg_elem_first_to_global_dof_full) delete[] dg_elem_first_to_global_dof_full;
+  dg_elem_first_to_global_dof_full = new int[my_mesh->nElements()];
+
+  if(dg_elem_first_to_global_dof_reduced) delete[] dg_elem_first_to_global_dof_reduced;
+  dg_elem_first_to_global_dof_reduced = new int[my_mesh->nElements()];
+  
+  if(edge_elem_first_to_global_dof) delete[] edge_elem_first_to_global_dof;
+  edge_elem_first_to_global_dof = new int[num_edges];
+
+
   // DETERMINE EDGES (ORDERING AND TYPES)
 
   // interior_edge_indexing maps from global edge index to interior edge index
@@ -83,6 +99,11 @@ void DirectMixed::set_directmixed(int polyDeg, PolyMesh* mesh) {
   dg_edge_dofs = 0;
 
   for(int iElement=0; iElement<my_mesh->nElements(); iElement++) {
+    mixed_elem_first_to_global_dof_full[iElement] = mixed_dofs_full;
+    mixed_elem_first_to_global_dof_reduced[iElement] = mixed_dofs_reduced;
+    dg_elem_first_to_global_dof_full[iElement] = dg_dofs_full;
+    dg_elem_first_to_global_dof_reduced[iElement] = dg_dofs_reduced;
+
     PolyElement* element = my_mesh->elementPtr(iElement);
 
     the_dm_elements[iElement].set(this, element);
@@ -96,6 +117,8 @@ void DirectMixed::set_directmixed(int polyDeg, PolyMesh* mesh) {
   }
 
   for (int iEdge = 0; iEdge < num_edges; iEdge++ ) {
+    edge_elem_first_to_global_dof[iEdge] = dg_edge_dofs;
+
     Edge* edge = my_mesh->edgePtr(iEdge);
     the_dg_edge_elements[iEdge].set(this,edge);
     dg_edge_dofs += the_dg_edge_elements[iEdge].dim();
@@ -111,6 +134,11 @@ DirectMixed::~DirectMixed() {
     if (the_dm_elements) delete[] the_dm_elements;
     if (the_dg_elements) delete[] the_dg_elements;
     if (the_dg_edge_elements) delete[] the_dg_edge_elements;
+    if (mixed_elem_first_to_global_dof_full) delete [] mixed_elem_first_to_global_dof_full;
+    if (mixed_elem_first_to_global_dof_reduced) delete [] mixed_elem_first_to_global_dof_reduced;
+    if (dg_elem_first_to_global_dof_full) delete[] dg_elem_first_to_global_dof_full;
+    if (dg_elem_first_to_global_dof_reduced) delete[] dg_elem_first_to_global_dof_reduced;
+    if (edge_elem_first_to_global_dof) delete[] edge_elem_first_to_global_dof;
 }
 
 int DirectMixed::nMixedDoFs(char type) const{
@@ -125,6 +153,133 @@ int DirectMixed::nEdgeDGDoFs() const {
   return dg_edge_dofs;
 };
 
+int DirectMixed::mixed_Elem_First_To_Global_Dof(int i, char type) const {
+  return (type == 'f') ? mixed_elem_first_to_global_dof_full[i] : mixed_elem_first_to_global_dof_reduced[i];
+}
+    
+int DirectMixed::dg_Elem_First_To_Global_Dof(int i, char type) const {
+  return (type == 'f') ? dg_elem_first_to_global_dof_full[i] : dg_elem_first_to_global_dof_reduced[i];
+}
+
+int DirectMixed::edge_Elem_First_To_Global_Dof(int i) const {
+  return edge_elem_first_to_global_dof[i];
+}
+
+void DirectMixed::write_raw(std::ofstream& fout) const {
+  fout << "DIRECT MIXED SPACE\n";
+  fout << "polynomial_degree      = " <<  polynomial_degree << "\n";
+  fout << "my_mesh                = " << my_mesh << "\n";
+  fout << "num_dofs of V_full     = " << mixed_dofs_full << "\n";
+  fout << "num_dofs of V_reduced  = " << mixed_dofs_reduced << "\n";
+  fout << "num_dofs of W_full     = " << dg_dofs_full << "\n";
+  fout << "num_dofs of W_reduced  = " << dg_dofs_reduced << "\n";
+  fout << "num_dofs of Lambda     = " << dg_edge_dofs << "\n";
+
+  fout << "\ndmSpace edges:\n";
+  for(int i=0; i<num_edges; i++) {
+    fout << "  Edge " << i << " (type ";
+    switch(the_bc_type[i]) {
+    case EdgeBCType::interior: { fout << "interior"; break; }
+    case EdgeBCType::boundary:   { fout << "boundary"; break; }
+    default: { fout << "???"; break; }
+    }
+    fout << ")\n";
+    the_dm_edges[i].write_raw(fout);
+  }
+
+  fout << "\ndmSpace indexing\n";
+  fout << "\nmixed_elem_first_to_global_dof_full:\n";
+  for(int i=0; i<my_mesh->nElements(); i++) {
+    fout << "  " << mixed_elem_first_to_global_dof_full[i];
+  }
+  fout << "\n";
+  fout << "\nmixed_elem_first_to_global_dof_reduced:\n";
+  for(int i=0; i<my_mesh->nElements(); i++) {
+    fout << "  " << mixed_elem_first_to_global_dof_reduced[i];
+  }
+  fout << "\n";
+  fout << "\ndg_elem_first_to_global_dof_full:\n";
+  for(int i=0; i<my_mesh->nElements(); i++) {
+    fout << "  " << dg_elem_first_to_global_dof_full[i];
+  }
+  fout << "\n";
+    fout << "\ndg_elem_first_to_global_dof_reduced:\n";
+  for(int i=0; i<my_mesh->nElements(); i++) {
+    fout << "  " << dg_elem_first_to_global_dof_reduced[i];
+  }
+  fout << "\n";
+  fout << "\nedge_elem_first_to_global_dof:\n";
+  for(int i=0; i<my_mesh->nEdges(); i++) {
+    fout << "  " << edge_elem_first_to_global_dof[i];
+  }
+  fout << "\n";
+
+  fout << "\nMixed elements:\n";
+  for(int i=0; i<my_mesh->nElements(); i++) {
+    fout << " Element " << i << "\n";
+    the_dm_elements[i].write_raw(fout);
+  }
+  fout << "\n";
+
+  fout << "\nDG elements:\n";
+  for(int i=0; i<my_mesh->nElements(); i++) {
+    fout << " Element " << i << "\n";
+    the_dg_elements[i].write_raw(fout);
+  }
+  fout << "\n";
+
+  fout << "\nEdge DG elements:\n";
+  for(int i=0; i<my_mesh->nEdges(); i++) {
+    fout << " Edge " << i << "\n";
+    the_dg_edge_elements[i].write_raw(fout);
+  }
+  fout << "\n";
+}
+
+int DirectMixed::write_raw(std::string& filename) const {
+  std::ofstream fout(filename);
+  if( !fout ) return 1;
+  write_raw(fout);
+  return 0;
+}
+
+int DirectMixed::write_matlab(std::string& filename) const {
+  std::ofstream fout(filename + ".m");
+  if( !fout ) return 1;
+
+  // MESH
+    
+  fout << "clf;\n";
+  fout << "hold on;\n";
+  for(int i=0; i<my_mesh->nElements(); i++) {
+    int nGon = my_mesh->nVerticesOfElement(i);
+
+    fout << "patch([";
+    for(int j=0; j<nGon-1; j++) {
+      fout << my_mesh->elementPtr(i)->edgePtr(j)->vertexPtr(1)->val(0) <<",";
+    }
+    fout << my_mesh->elementPtr(i)->edgePtr(nGon-1)->vertexPtr(1)->val(0) <<"],[";
+    for(int j=0; j<nGon-1; j++) {
+      fout << my_mesh->elementPtr(i)->edgePtr(j)->vertexPtr(1)->val(1) <<",";
+    }
+    fout << my_mesh->elementPtr(i)->edgePtr(nGon-1)->vertexPtr(1)->val(1) <<"],'w')\n";
+  }
+  fout << "\n";
+
+  // Centers
+
+  fout << "scatter([ ";
+  for(int i=0; i<my_mesh->nElements(); i++) {
+    fout << my_mesh->elementPtr(i)->center()[0] << " ";
+  }
+  fout << "],[ ";
+  for(int i=0; i<my_mesh->nElements(); i++) {
+    fout << my_mesh->elementPtr(i)->center()[1] << " ";
+  }
+  fout << "],'*g')\n";
+
+  return 0;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // class DirectMixedArray
@@ -212,17 +367,8 @@ void DirectMixedArray::eval(const Point& pt, Tensor1& result) const {
   // SET DoFs for element
   int nDoFs = ( space_type == 'f' ) ? elem -> dimVFull() : elem -> dimVReduced();
 
-  // Find corresponding global index
-  int global_index = 0;
-  if (space_type == 'f') {
-    for (int i = 0; i < iElement; i++) {
-      global_index += my_dm_space -> MixedElementPtr(i) -> dimVFull();
-    }
-  } else {
-    for (int i = 0; i < iElement; i++) {
-      global_index += my_dm_space -> MixedElementPtr(i) -> dimVReduced();
-    }
-  }
+  // Find corresponding global index of first local dof
+  int global_index = my_dm_space->mixed_Elem_First_To_Global_Dof(iElement, space_type);
 
   double dofs[nDoFs];
   for(int i=0; i<nDoFs; i++) {
@@ -465,17 +611,8 @@ void DirectDGArray::eval(const Point& pt, double& result) const {
   // SET DoFs for element
   int nDoFs = ( space_type == 'f' ) ? elem -> dimFull() : elem -> dimReduced();
 
-  // Find corresponding global index
-  int global_index = 0;
-  if (space_type == 'f') {
-    for (int i = 0; i < iElement; i++) {
-      global_index += my_dm_space -> DGElementPtr(i) -> dimFull();
-    }
-  } else {
-    for (int i = 0; i < iElement; i++) {
-      global_index += my_dm_space -> DGElementPtr(i) -> dimReduced();
-    }
-  }
+  // Find corresponding global index of first local dof
+  int global_index = my_dm_space->dg_Elem_First_To_Global_Dof(iElement, space_type);
 
   double dofs[nDoFs];
   for(int i=0; i<nDoFs; i++) {
@@ -708,14 +845,9 @@ void DirectEdgeDGArray::eval(const Point& pt, double& result) const {
   // SET DoFs for element
   int nDoFs = edge -> dim();
 
-  // Find corresponding global index
-  int global_index = 0;
-
-  for (int i = 0; i < iEdge; i++) {
-    global_index += my_dm_space -> DGEdgePtr(i) -> dim();
-  }
-
-
+  // Find corresponding global index of first local dof
+  int global_index = my_dm_space->edge_Elem_First_To_Global_Dof(iElement);
+  
   double dofs[nDoFs];
   for(int i=0; i<nDoFs; i++) {
     dofs[i] = the_array[global_index];

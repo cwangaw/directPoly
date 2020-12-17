@@ -288,6 +288,12 @@ namespace directserendipity {
     DirectDGFE* the_dg_elements = nullptr;
     DirectEdgeDGFE* the_dg_edge_elements = nullptr;
 
+    int* mixed_elem_first_to_global_dof_full = nullptr;
+    int* mixed_elem_first_to_global_dof_reduced = nullptr;
+    int* dg_elem_first_to_global_dof_full = nullptr;
+    int* dg_elem_first_to_global_dof_reduced = nullptr;
+    int* edge_elem_first_to_global_dof = nullptr;
+
     int mixed_dofs_full;
     int mixed_dofs_reduced;
     int dg_dofs_full;
@@ -300,7 +306,10 @@ namespace directserendipity {
     DirectMixed() : polynomial_degree(0), my_mesh(nullptr), num_edges(0), num_interior_edges(0),
                     the_dm_edges(nullptr), the_bc_type(nullptr), interior_edge_indexing(nullptr),
                     global_edge_indexing(nullptr), the_dm_elements(nullptr), the_dg_elements(nullptr),
-                    the_dg_edge_elements(nullptr), mixed_dofs_full(0), mixed_dofs_reduced(0),
+                    the_dg_edge_elements(nullptr), mixed_elem_first_to_global_dof_full(nullptr),
+                    mixed_elem_first_to_global_dof_reduced(nullptr), dg_elem_first_to_global_dof_full(nullptr),
+                    dg_elem_first_to_global_dof_reduced(nullptr), edge_elem_first_to_global_dof(nullptr),
+                    mixed_dofs_full(0), mixed_dofs_reduced(0),
                     dg_dofs_full(0), dg_dofs_reduced(0), dg_edge_dofs(0) {};
     DirectMixed(int polyDeg, polymesh::PolyMesh* mesh) {
       set_directmixed(polyDeg, mesh); };
@@ -335,6 +344,11 @@ namespace directserendipity {
     int nMixedDoFs(char type) const;
     int nDGDoFs(char type) const;
     int nEdgeDGDoFs() const;
+
+    // Map the (first local dof of) element/edge to global dof
+    int mixed_Elem_First_To_Global_Dof(int i, char type) const;
+    int dg_Elem_First_To_Global_Dof(int i, char type) const;
+    int edge_Elem_First_To_Global_Dof(int i) const;
 
     // Return the edge from interior edge index
     polymesh::Edge* edgeInteriorPtr(int i) const {
