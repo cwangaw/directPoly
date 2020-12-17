@@ -77,37 +77,27 @@ namespace directserendipity {
 
     // If the functions are indexed including curl part, 
     // we need to pass iFunc = index of the function - dimCurlPart
-    double divXPo(int iFunc, int iPt) const {
+    double basisdivXPo(int iFunc, int iPt) const {
       return v_div_value_n[iPt * dim_v_div + iFunc];
     }
 
     // Get dimensions of spaces
-    int dimVFull() { return dim_v; };
-    int dimVReduced() { return dim_v - polynomial_degree - 1; };
+    int dimVFull() const { return dim_v; };
+    int dimVReduced() const { return dim_v - polynomial_degree - 1; };
 
-    int dimCurlPart() { return dim_curlpart; }
+    int dimCurlPart() const { return dim_curlpart; }
 
-    int dimXPoFull() { return dim_v_div; };
-    int dimXPoReduced() { return polynomial_degree * (polynomial_degree + 1)/2; };
+    int dimXPoFull() const { return dim_v_div; };
+    int dimXPoReduced() const { return polynomial_degree * (polynomial_degree + 1)/2; };
 
     // Evaluation \u in full or reduced space or both at a point
-    void eval_f(const Point* pt, Tensor1* result, int num_pts, double* dofs=nullptr);
-    void eval_f(const Point& pt, Tensor1& result, double* dofs=nullptr) {
-      eval_f(&pt, &result, 1, dofs); };
+    void eval(const Point* pt, Tensor1* result, int num_pts, char type, double* dofs=nullptr);
+    void eval(const Point& pt, Tensor1& result, char type, double* dofs=nullptr) {
+      eval(&pt, &result, 1, type, dofs); };
 
-    Tensor1 eval_f(const Point& pt, double* dofs=nullptr) { 
+    Tensor1 eval(const Point& pt, char type, double* dofs=nullptr) { 
       Tensor1 result;
-      eval_f(&pt, &result, 1, dofs); 
-      return result; 
-    }
-
-    void eval_r(const Point* pt, Tensor1* result, int num_pts, double* dofs=nullptr);
-    void eval_r(const Point& pt, Tensor1& result, double* dofs=nullptr) {
-      eval_r(&pt, &result, 1, dofs); };
-
-    Tensor1 eval_r(const Point& pt, double* dofs=nullptr) { 
-      Tensor1 result;
-      eval_r(&pt, &result, 1, dofs); 
+      eval(&pt, &result, 1, type, dofs); 
       return result; 
     }
 
@@ -164,6 +154,8 @@ namespace directserendipity {
     void set(DirectMixed* dmSpace, polymesh::PolyElement* element) {
       set_directdgfe(dmSpace, element); };
 
+    polymesh::PolyElement* elementPtr() const { return my_poly_element; };
+
     void initBasis(const Point* pt, int num_pts); // (re)evaluate all basis fcns at the points
 
     // Access basis functions evaluated at pt[iPt]
@@ -172,27 +164,17 @@ namespace directserendipity {
     };
 
     // Get dimensions of spaces
-    int dimFull() { return dim_w; };
-    int dimReduced() { return (polynomial_degree+1) * polynomial_degree /2;}
+    int dimFull() const { return dim_w; };
+    int dimReduced() const { return (polynomial_degree+1) * polynomial_degree /2;}
 
     // Evaluation \p of full or reduced space at a point
-    void eval_f(const Point* pt, double* result, int num_pts, double* dofs=nullptr);
-    void eval_f(const Point& pt, double& result, double* dofs=nullptr) {
-      eval_f(&pt, &result, 1, dofs); };
+    void eval(const Point* pt, double* result, int num_pts, char type, double* dofs=nullptr);
+    void eval(const Point& pt, double& result,char type, double* dofs=nullptr) {
+      eval(&pt, &result, 1, type, dofs); };
 
-    double eval_f(const Point& pt, double* dofs=nullptr) { 
+    double eval(const Point& pt, char type, double* dofs=nullptr) { 
       double result;
-      eval_f(&pt, &result, 1, dofs); 
-      return result; 
-    }
-
-    void eval_r(const Point* pt, double* result, int num_pts, double* dofs=nullptr);
-    void eval_r(const Point& pt, double& result, double* dofs=nullptr) {
-      eval_r(&pt, &result, 1, dofs); };
-
-    double eval_r(const Point& pt, double* dofs=nullptr) { 
-      double result;
-      eval_r(&pt, &result, 1, dofs); 
+      eval(&pt, &result, 1, type, dofs); 
       return result; 
     }
 
@@ -251,6 +233,8 @@ namespace directserendipity {
 
     void set(DirectMixed* dmSpace, polymesh::Edge* edge) { set_directedgedgfe(dmSpace, edge); };
 
+    polymesh::Edge* edgePtr() const { return my_edge; };
+
     void initBasis(const Point* pt, int num_pts); // (re)evaluate all basis fcns at the points
 
     // Access basis functions evaluated at pt[iPt]
@@ -304,12 +288,20 @@ namespace directserendipity {
     DirectDGFE* the_dg_elements = nullptr;
     DirectEdgeDGFE* the_dg_edge_elements = nullptr;
 
+    int mixed_dofs_full;
+    int mixed_dofs_reduced;
+    int dg_dofs_full;
+    int dg_dofs_reduced;
+    int dg_edge_dofs; // Here we also include DoFs on the boundary
+
     void set_directmixed(int polyDeg, polymesh::PolyMesh* mesh);
     
   public:
-    DirectMixed() : polynomial_degree(0), my_mesh(nullptr), num_edges(0),
-    the_dm_edges(nullptr), the_bc_type(nullptr),
-			  the_dm_elements(nullptr) {};
+    DirectMixed() : polynomial_degree(0), my_mesh(nullptr), num_edges(0), num_interior_edges(0),
+                    the_dm_edges(nullptr), the_bc_type(nullptr), interior_edge_indexing(nullptr),
+                    global_edge_indexing(nullptr), the_dm_elements(nullptr), the_dg_elements(nullptr),
+                    the_dg_edge_elements(nullptr), mixed_dofs_full(0), mixed_dofs_reduced(0),
+                    dg_dofs_full(0), dg_dofs_reduced(0), dg_edge_dofs(0) {};
     DirectMixed(int polyDeg, polymesh::PolyMesh* mesh) {
       set_directmixed(polyDeg, mesh); };
     ~DirectMixed();
@@ -339,6 +331,11 @@ namespace directserendipity {
       return interior_edge_indexing[my_mesh->elementPtr(iElement)->edgePtr(iEdge)->meshIndex()]; 
     };
 
+    // Return the number of global dofs of spaces
+    int nMixedDoFs(char type) const;
+    int nDGDoFs(char type) const;
+    int nEdgeDGDoFs() const;
+
     // Return the edge from interior edge index
     polymesh::Edge* edgeInteriorPtr(int i) const {
       return my_mesh -> edgePtr(int_to_glob(i));
@@ -354,6 +351,8 @@ namespace directserendipity {
     friend class DirectDGFE;
     friend class DirectEdgeDGFE;
     friend class DirectMixedArray;
+    friend class DirectDGArray;
+    friend class DirectEdgeDGArray;
   };
 
 
@@ -365,57 +364,172 @@ namespace directserendipity {
   class DirectMixedArray
   {
   private:
-    int num_edges;
+    int num_dofs;
+    int num_elements; // Redundant with my_dm_space
+    char space_type; // either 'f' or 'r'
+
     double* the_array = nullptr;
 
     DirectMixed* my_dm_space;
 
-    void set_directmixedarray(DirectMixed* dmSpace);
+    void set_directmixedarray(DirectMixed* dmSpace, char spacetype);
 
   public:
-    DirectMixedArray() : num_edges(0), the_array(nullptr), my_dm_space(nullptr) {};
-    DirectMixedArray(DirectMixed* dmSpace) {
-      set_directmixedarray(dmSpace); };
+    DirectMixedArray() : num_dofs(0), num_elements(0), space_type('f'), the_array(nullptr), my_dm_space(nullptr) {};
+    DirectMixedArray(DirectMixed* dmSpace, char spacetype) {
+      set_directmixedarray(dmSpace, spacetype); };
     DirectMixedArray(const DirectMixedArray& a) : the_array(nullptr) {
-      set_directmixedarray(a.dmSpace()); };
+      set_directmixedarray(a.dmSpace(), a.spaceType()); };
     ~DirectMixedArray();
     
-    void set(DirectMixed* dsSpace) { set_directmixedarray(dsSpace); };
+    void set(DirectMixed* dmSpace, char spacetype) { set_directmixedarray(dmSpace, spacetype); };
 
     DirectMixed* dmSpace() const { return my_dm_space; };
-    int size() const { return num_edges; };
+    char spaceType() const { return space_type; }
+    int size() const { return num_dofs; };
 
     double& operator() (int i)       { return the_array[i]; }
     double  operator() (int i) const { return the_array[i]; }
     double& operator[] (int i)       { return the_array[i]; }
     double  operator[] (int i) const { return the_array[i]; }
 
-    void eval(const Point* pts, double* result, Tensor1* gradResult, int num_pts) const;
-    void eval(const Point& pt, double& result, Tensor1& gradResult) const;
-    double eval(const Point& pt) const;
+    void eval(const Point* pts, Tensor1* result, int num_pts) const;
+    void eval(const Point& pt, Tensor1& result) const;
+    Tensor1 eval(const Point& pt) const {
+      Tensor1 result; eval(pt, result); return result;
+    };
 
-    void l2normError(double& l2Error, double& l2GradError, double& l2Norm, double& l2GradNorm,
-		     double (*referenceFcn)(double,double) = nullptr, 
-		     Tensor1 (*referenceGradFcn)(double,double) = nullptr);
-    void l2norm(double& l2Norm, double& l2GradNorm) {
-      double null1,null2; l2normError(l2Norm,l2GradNorm,null1,null2); };
+    void l2normError(double& l2Error, double& l2Norm, Tensor1 (*referenceFcn)(double,double) = nullptr);
+    void l2norm(double& l2Norm) {
+      double null; l2normError(l2Norm,null); };
 
-    void write_matlab_mesh(std::ofstream* fout, std::ofstream* fout_grad,
-			   int num_pts_x, int num_pts_y) const;
-    void write_matlab_mesh(std::ofstream& fout, std::ofstream& fout_grad,
-			   int num_pts_x, int num_pts_y) const {
-      write_matlab_mesh(&fout, &fout_grad, num_pts_x, num_pts_y); };
+    void write_matlab_mesh(std::ofstream* fout, int num_pts_x, int num_pts_y) const;
     void write_matlab_mesh(std::ofstream& fout, int num_pts_x, int num_pts_y) const {
-      write_matlab_mesh(&fout, nullptr, num_pts_x, num_pts_y); };
-    int write_matlab_mesh(std::string& filename, std::string& filename_grad,
-			  int num_pts_x, int num_pts_y) const;
+      write_matlab_mesh(&fout, num_pts_x, num_pts_y); };
+
     int write_matlab_mesh(std::string& filename, int num_pts_x, int num_pts_y) const;
 
-    void write_matlab_mesh_by_pt(std::ofstream& fout, std::ofstream& fout_grad,
-				 int num_pts_x, int num_pts_y) const;
     void write_matlab_mesh_by_pt(std::ofstream& fout, int num_pts_x, int num_pts_y) const;
-    int write_matlab_mesh_by_pt(std::string& filename, std::string& filename_grad,
-				int num_pts_x, int num_pts_y) const;
+    int write_matlab_mesh_by_pt(std::string& filename, int num_pts_x, int num_pts_y) const;
+
+    void write_raw(std::ofstream& fout) const;
+    int write_raw(std::string& filename) const;
+  };
+
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // class DirectDGArray
+  //    Gives values for each coefficient of basis function
+  ////////////////////////////////////////////////////////////////////////////////
+
+  class DirectDGArray
+  {
+  private:
+    int num_dofs;
+    int num_elements; // Redundant with my_dm_space
+    char space_type; // either 'f' or 'r'
+
+    double* the_array = nullptr;
+
+    DirectMixed* my_dm_space;
+
+    void set_directdgarray(DirectMixed* dmSpace, char spacetype);
+
+  public:
+    DirectDGArray() : num_dofs(0), num_elements(0), space_type('f'), the_array(nullptr), my_dm_space(nullptr) {};
+    DirectDGArray(DirectMixed* dmSpace, char spacetype) {
+      set_directdgarray(dmSpace, spacetype); };
+    DirectDGArray(const DirectDGArray& a) : the_array(nullptr) {
+      set_directdgarray(a.dmSpace(), a.spaceType()); };
+    ~DirectDGArray();
+    
+    void set(DirectMixed* dmSpace, char spacetype) { set_directdgarray(dmSpace, spacetype); };
+
+    DirectMixed* dmSpace() const { return my_dm_space; };
+    char spaceType() const { return space_type; }
+    int size() const { return num_dofs; };
+
+    double& operator() (int i)       { return the_array[i]; }
+    double  operator() (int i) const { return the_array[i]; }
+    double& operator[] (int i)       { return the_array[i]; }
+    double  operator[] (int i) const { return the_array[i]; }
+
+    void eval(const Point* pts, double* result, int num_pts) const;
+    void eval(const Point& pt, double& result) const;
+    double eval(const Point& pt) const {
+      double result; eval(pt, result); return result;
+    };
+
+    void l2normError(double& l2Error, double& l2Norm, double (*referenceFcn)(double,double) = nullptr);
+    void l2norm(double& l2Norm) {
+      double null; l2normError(l2Norm,null); };
+
+    void write_matlab_mesh(std::ofstream* fout, int num_pts_x, int num_pts_y) const;
+    void write_matlab_mesh(std::ofstream& fout, int num_pts_x, int num_pts_y) const {
+      write_matlab_mesh(&fout, num_pts_x, num_pts_y); };
+
+    int write_matlab_mesh(std::string& filename, int num_pts_x, int num_pts_y) const;
+
+    void write_matlab_mesh_by_pt(std::ofstream& fout, int num_pts_x, int num_pts_y) const;
+    int write_matlab_mesh_by_pt(std::string& filename, int num_pts_x, int num_pts_y) const;
+
+    void write_raw(std::ofstream& fout) const;
+    int write_raw(std::string& filename) const;
+  };
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // class DirectEdgeDGArray
+  //    Gives values for each coefficient of basis function
+  //    Here we do not distinguish boundary and
+  ////////////////////////////////////////////////////////////////////////////////
+
+  class DirectEdgeDGArray
+  {
+  private:
+    int num_dofs;
+    int num_edges; // Redundant with my_dm_space
+
+    double* the_array = nullptr;
+
+    DirectMixed* my_dm_space;
+
+    void set_directedgedgarray(DirectMixed* dmSpace);
+
+  public:
+    DirectEdgeDGArray() : num_dofs(0), num_edges(0), the_array(nullptr), my_dm_space(nullptr) {};
+    DirectEdgeDGArray(DirectMixed* dmSpace) {
+      set_directedgedgarray(dmSpace); };
+    DirectEdgeDGArray(const DirectDGArray& a) : the_array(nullptr) {
+      set_directedgedgarray(a.dmSpace()); };
+    ~DirectEdgeDGArray();
+    
+    void set(DirectMixed* dmSpace) { set_directedgedgarray(dmSpace); };
+
+    DirectMixed* dmSpace() const { return my_dm_space; };
+    int size() const { return num_dofs; };
+
+    double& operator() (int i)       { return the_array[i]; }
+    double  operator() (int i) const { return the_array[i]; }
+    double& operator[] (int i)       { return the_array[i]; }
+    double  operator[] (int i) const { return the_array[i]; }
+
+    void eval(const Point* pts, double* result, int num_pts) const;
+    void eval(const Point& pt, double& result) const;
+    double eval(const Point& pt) const {
+      double result; eval(pt, result); return result;
+    };
+
+    void l2normError(double& l2Error, double& l2Norm, double (*referenceFcn)(double,double) = nullptr);
+    void l2norm(double& l2Norm) {
+      double null; l2normError(l2Norm,null); };
+
+    void write_matlab_mesh(std::ofstream* fout, int num_pts_x, int num_pts_y) const;
+    void write_matlab_mesh(std::ofstream& fout, int num_pts_x, int num_pts_y) const {
+      write_matlab_mesh(&fout, num_pts_x, num_pts_y); };
+
+    int write_matlab_mesh(std::string& filename, int num_pts_x, int num_pts_y) const;
+
+    void write_matlab_mesh_by_pt(std::ofstream& fout, int num_pts_x, int num_pts_y) const;
     int write_matlab_mesh_by_pt(std::string& filename, int num_pts_x, int num_pts_y) const;
 
     void write_raw(std::ofstream& fout) const;

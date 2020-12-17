@@ -102,6 +102,9 @@ namespace polymesh {
 
     void nbrElements(int theNbrIndices[2]) const;
     bool isOnBoundary() const;
+    
+    // Decide if a point is in this edge
+    bool isInEdge(const Point& pt) const;
 
     Tensor1 normal() const { return normal_vector; };
     double normal(int i) const { return normal_vector[i % 2]; };

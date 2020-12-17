@@ -97,7 +97,7 @@ int MixedPDE::solve(Monitor& monitor) {
 
   monitor(0,"\nSolve the PDE\n");
   
-  DirectMixedArray solution(&(param.dmSpace));
+  //DirectMixedArray solution(&(param.dmSpace));
 
   // Initialize matrix A for both full and reduced space
   int dimAfull = 0, dimAreduced = 0;
@@ -217,7 +217,7 @@ int MixedPDE::solve(Monitor& monitor) {
       // so we only need to consider divXPo part
 
       for (int j = mePtr -> dimCurlPart(); j < loc_dimAfull; j++) {
-        double divv_j = mePtr -> divXPo(j - mePtr -> dimCurlPart(),iPt);
+        double divv_j = mePtr -> basisdivXPo(j - mePtr -> dimCurlPart(),iPt);
         for (int i = 0; i < loc_colBfull; i++ ) {
           double p_i = dgePtr -> basis(i,iPt);
           curr_full_index = dimAfull * (starting_Afull + j) + (starting_colBfull + i);
