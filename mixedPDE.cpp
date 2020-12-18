@@ -60,7 +60,7 @@ int MixedPDE::solve(Monitor& monitor) {
   
   // TEST BASIS FUNCTIONS //////////////////////////////////////////////////
 
-  if(false) {
+  if(true) {
     monitor(0,"\nTest basis functions for element 0\n");
 
     DirectMixedArray u(&(parameterDataPtr()->dmSpace), 'f');
@@ -70,31 +70,31 @@ int MixedPDE::solve(Monitor& monitor) {
     for(int i=0; i<u.size(); i++) {
       u[i]=0;
     }
-    u[0]=1;
+    u[1]=1;
 
     for(int i=0; i<p.size(); i++) {
       p[i]=0;
     }
-    p[0]=1;
+    p[1]=1;
 
     for(int i=0; i<l.size(); i++) {
       l[i]=0;
     }
-    l[0]=1;
+    l[1]=1;
 
     monitor(1,"Write Array");
 
     std::string fileName = parameterDataPtr()->directory_name;
     fileName += "basis_mesh_mixed";
-    u.write_matlab_mesh(fileName,301,301);
+    u.write_matlab_mesh(fileName,51,51);
 
     std::string fileNameDG = parameterDataPtr()->directory_name;
     fileNameDG += "basis_mesh_DG";
-    u.write_matlab_mesh(fileNameDG,301,301);
+    p.write_matlab_mesh(fileNameDG,51,51);
 
     std::string fileNameEDG = parameterDataPtr()->directory_name;
     fileNameEDG += "basis_mesh_EDG";
-    u.write_matlab_mesh(fileNameEDG,301,301);
+    l.write_matlab_mesh(fileNameEDG,51,51);
   }
 
   // TEST QUADRATURE ///////////////////////////////////////////////////////
@@ -106,7 +106,7 @@ int MixedPDE::solve(Monitor& monitor) {
   }
   
   // SOLVE THE PDE ///////////////////////////////////////////////////////////
-
+  if(false) {
   monitor(0,"\nSolve the PDE\n");
   
   //DirectMixedArray solution(&(param.dmSpace));
@@ -287,6 +287,8 @@ int MixedPDE::solve(Monitor& monitor) {
     starting_Areduced += loc_dimAreduced;
     starting_colBreduced += loc_colBreduced;
     starting_colBfull += loc_colBfull;
+
+  }
 
   }
 

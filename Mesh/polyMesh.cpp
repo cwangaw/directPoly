@@ -84,7 +84,7 @@ bool Edge::isOnBoundary() const {
 bool Edge::isInEdge(const Point& pt) const {
   double distToV0 = Tensor1(*vertexPtr(0)-pt).norm();
   double distToV1 = Tensor1(*vertexPtr(1)-pt).norm();
-  if (abs(distToV0 + distToV1 - edge_length) < edge_eps) {
+  if (fabs(distToV0 + distToV1 - edge_length) < edge_eps) {
     return true;
   } else { return false; }
 }

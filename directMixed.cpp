@@ -309,10 +309,11 @@ void DirectMixedArray::eval(const Point* pts,
   // Loop through the elements
   std::vector<Point> elementPts;
   std::vector<int> elementPtsIndex;
+  int global_index = 0;
   for(int iElement=0; iElement < num_elements; iElement++) {
     DirectMixedFE* mixedElement = my_dm_space->MixedElementPtr(iElement);
     PolyElement* element = mixedElement->elementPtr();
-    int global_index = 0;
+    
 
     // Set list of points in element
     elementPts.clear();
@@ -554,10 +555,11 @@ void DirectDGArray::eval(const Point* pts, double* result, int num_pts) const {
   // Loop through the elements
   std::vector<Point> elementPts;
   std::vector<int> elementPtsIndex;
+  int global_index = 0;
   for(int iElement=0; iElement < my_dm_space->my_mesh->nElements(); iElement++) {
     DirectDGFE* dgElement = my_dm_space->DGElementPtr(iElement);
     PolyElement* element = dgElement->elementPtr();
-    int global_index = 0;
+    
 
     // Set list of points in element
     elementPts.clear();
@@ -772,17 +774,18 @@ void DirectEdgeDGArray::eval(const Point* pts, double* result, int num_pts) cons
   // Loop through the edges
   std::vector<Point> edgePts;
   std::vector<int> edgePtsIndex;
+  int global_index = 0;
   for(int iEdge=0; iEdge < my_dm_space->my_mesh->nEdges(); iEdge++) {
     DirectEdgeDGFE* edgElement = my_dm_space->DGEdgePtr(iEdge);
     Edge* edge = edgElement->edgePtr();
-    int global_index = 0;
-
+    
     // Set list of points in element
     edgePts.clear();
     edgePtsIndex.clear();
     for(int i=0; i<num_pts; i++) {
       if(ptEvaluated[i]) continue;
       
+
       if(edge->isInEdge(pts[i])) {
         edgePts.push_back(pts[i]);
         edgePtsIndex.push_back(i);
@@ -797,7 +800,7 @@ void DirectEdgeDGArray::eval(const Point* pts, double* result, int num_pts) cons
     double dofs[nDoFs];
     for(int i=0; i<nDoFs; i++) {
       dofs[i] = the_array[global_index];
-      global_index ++;
+      global_index++;
     }
 
     // Evaluate array at points on element

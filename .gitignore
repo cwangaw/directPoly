@@ -295,3 +295,6 @@ Reader/reader_x86_64.a
 Utilities/utilities_x86_64.a
 directpoly_x86_64.a
 directpoly.x86_64
+test/basis_mesh_DG.m
+test/basis_mesh_mixed.m
+test/basis_mesh_EDG.m

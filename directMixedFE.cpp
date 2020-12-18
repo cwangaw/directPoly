@@ -109,7 +109,6 @@ void DirectMixedFE::initBasis(const Point* pt, int num_pts) {
 
   if (polynomial_degree < num_vertices - 3) {
     // Get supplemental functions for small r
-
     // Get gradient of phi_{v,i} in A_\Supp
     for (int i = 0; i < num_vertices; i++) {
       // Exclude vertices in A_\Po
@@ -152,7 +151,7 @@ void DirectMixedFE::initBasis(const Point* pt, int num_pts) {
       double result;
 
       for (int k=0; k <= num_vertices-3; k++) {
-        for (int l=k+2; l <= num_vertices-1; k++) {
+        for (int l=k+2; l <= num_vertices-1; l++) {
           if (k==0 && l==num_vertices-1) { continue; }
           for (int pt_index = 0; pt_index < num_pts; pt_index++) {
             // Update gradresult to evaluate phi_k_l at pt[pt_index]
