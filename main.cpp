@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 //
-//           DIRECT SERENDIPITY ELEMENTS ON POLYGONS
+//        DIRECT SERENDIPITY AND MIXED FINITE ELEMENTS ON POLYGONS
 //
 //  Todd Arbogast <arbogast@ices.utexas.edu>
 //  Chuning Wang <cwangaw@utexas.edu>
@@ -25,6 +25,9 @@
 //          = (f , q) for all q in DS_{r,0}
 //    where DS_r are the direct serendipity spaces and DS_{r,g} has the
 //      boundary nodes set to g. We use a nodal basis for the space.
+//
+//    Find (u,p,lambda) in V_r^s X W_s X Lambda_r (hybrid form) such that
+//       ???
 //      
 //  ELEMENTS E
 //    E is a convex, nondegenerate polygon (of at least 3 sides)
@@ -60,6 +63,7 @@
 #include "Utilities/version.h"
 #include "Reader/expr.h"
 #include "ellipticPDE.h"
+#include "mixedPDE.h"
 //#include "baseObjects.h"
 //#include "polyMesh.h"
 //#include "directSerendipity.h"
@@ -71,7 +75,7 @@
 static void write_header (const Version& code, const ParameterData& param)
 {
   std::cout << "\n";
-  std::cout << "       DIRECT SERENDIPITY ELEMENTS ON POLYGONS\n\n";
+  std::cout << "  DIRECT SERENDIPITY AND MIXED FINITE ELEMENTS ON POLYGONS\n\n";
 
   std::cout << "           Name:       " << code.name << "\n";
   std::cout << "           Version:    " << code.version[0];
@@ -153,7 +157,7 @@ int main(int argc, char* argv[]) {
   // Initialize
   Version code("directpoly","September 2020",3);
   code.set_version(1,0,1);
-  code.set_description("Solves a second order PDE using DS spaces on polygons\nAllows simple mesh construction");
+  code.set_description("Solves a second order PDE using DS and hybrid mixed spaces on polygons\nAllows simple mesh construction");
 
   ParameterData param;
   Monitor monitor;
@@ -167,11 +171,23 @@ int main(int argc, char* argv[]) {
     monitor.reset (0, param.monitor_to_level);
     monitor (0, "THE DATA WAS READ");
 
-    monitor (0, "\nBEGIN COMPUTATION\n");
+    if(param.output_soln_DS_format != ParameterData::case_soln_DS_output_omit) {
+      monitor (0, "\nBEGIN DS COMPUTATION\n");
 
-    EllipticPDE ellipticPDE(param);
-    ellipticPDE.solve(monitor);
-    
+      EllipticPDE ellipticPDE(param);
+      ellipticPDE.solve(monitor);
+
+      monitor(0,"\nEND DS COMPUTATION");
+    }
+
+    if(param.output_soln_Mixed_format != ParameterData::case_soln_Mixed_output_omit) {
+      monitor(0,"\nBEGIN MIXED COMPUTATION");
+
+      MixedPDE mixedPDE(param);
+      mixedPDE.solve(monitor);
+
+      monitor(0,"\nEND COMPUTATION");
+    }
   }
   catch (std::exception &exc) {
     std::cerr << "\n\n----------------------------------------------------\n";
@@ -192,6 +208,5 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  monitor(0,"\nEND COMPUTATION");
   return 0;
 }

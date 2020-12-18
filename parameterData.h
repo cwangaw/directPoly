@@ -28,9 +28,15 @@ public:
 
   void print_cases(std::ostream& = std::cout);
 
-  enum case_soln_output
-    { case_soln_output_none=0, case_soln_output_raw, case_soln_output_matlab,
-      n_case_soln_output };
+  enum case_soln_DS_output
+    { case_soln_DS_output_omit=-1, case_soln_DS_output_none=0,
+      case_soln_DS_output_raw, case_soln_DS_output_matlab,
+      n_case_soln_DS_output };
+
+  enum case_soln_Mixed_output
+    { case_soln_Mixed_output_omit=-1, case_soln_Mixed_output_none=0,
+      case_soln_Mixed_output_raw, case_soln_Mixed_output_matlab,
+      n_case_soln_Mixed_output };
 
   enum case_mesh_output
     { case_mesh_output_none=0, case_mesh_output_raw, case_mesh_output_matlab,
@@ -39,6 +45,10 @@ public:
   enum case_dsSpace_output
     { case_dsSpace_output_none=0, case_dsSpace_output_raw, case_dsSpace_output_matlab,
       n_case_dsSpace_output };
+  
+  enum case_dmSpace_output
+    { case_dmSpace_output_none=0, case_dmSpace_output_raw, case_dmSpace_output_matlab,
+      n_case_dmSpace_output };
 
   // DATA =======================================================================
 
@@ -67,11 +77,15 @@ public:
   */
 
   // OUTPUT PARAMETERS
-  int output_soln_format;
-  int output_mesh_numPts_x, output_mesh_numPts_y;
+  int output_soln_DS_format;
+  int output_mesh_numPts_DS_x, output_mesh_numPts_DS_y;
+
+  int output_soln_Mixed_format;
+  int output_mesh_numPts_Mixed_x, output_mesh_numPts_Mixed_y;
   
   int output_mesh_format;
   int output_dsSpace_format;
+  int output_dmSpace_format;
 
   int monitor_to_level; // level up to which to monitor code progress
 

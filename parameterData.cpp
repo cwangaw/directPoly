@@ -30,19 +30,43 @@ ParameterData::ParameterData(const std::string& infileName,
 void ParameterData::print_cases(ostream& fout) {
   int n;
 
-  // Soln output
-  fout<< "Soln output formats (" << n_case_soln_output << " total):\n";
+  // Soln DS output
+  fout<< "Soln output formats (" << n_case_soln_DS_output << " total):\n";
+  n=-1;
+  fout<< "  " << case_soln_DS_output_omit
+      << " = do not compute DS soln\n";
+  n++;
   n=0;
-  fout<< "  " << case_soln_output_none
+  fout<< "  " << case_soln_DS_output_none
       << " = no soln output\n";
   n++;
-  fout<< "  " << case_soln_output_raw
+  fout<< "  " << case_soln_DS_output_raw
       << " = raw text file\n";
   n++;
-  fout<< "  " << case_soln_output_matlab
+  fout<< "  " << case_soln_DS_output_matlab
       << " = matlab file\n";
   n++;
-  if(n != n_case_soln_output) {
+  if(n != n_case_soln_DS_output) {
+    fout<< "  " << "other cases exist" << endl;
+  }
+
+  // Soln Mixed output
+  fout<< "Soln output formats (" << n_case_soln_Mixed_output << " total):\n";
+  n=-1;
+  fout<< "  " << case_soln_Mixed_output_omit
+      << " = do not compute Mixed soln\n";
+  n++;
+  n=0;
+  fout<< "  " << case_soln_Mixed_output_none
+      << " = no soln output\n";
+  n++;
+  fout<< "  " << case_soln_Mixed_output_raw
+      << " = raw text file\n";
+  n++;
+  fout<< "  " << case_soln_Mixed_output_matlab
+      << " = matlab file\n";
+  n++;
+  if(n != n_case_soln_Mixed_output) {
     fout<< "  " << "other cases exist" << endl;
   }
 
@@ -75,6 +99,22 @@ void ParameterData::print_cases(ostream& fout) {
       << " = matlab file\n";
   n++;
   if(n != n_case_dsSpace_output) {
+    fout<< "  " << "other cases exist" << endl;
+  }
+
+  // DMSpace output
+  fout<< "DM space output formats (" << n_case_dmSpace_output << " total):\n";
+  n=0;
+  fout<< "  " << case_dmSpace_output_none
+      << " = no DM space output\n";
+  n++;
+  fout<< "  " << case_dmSpace_output_raw
+      << " = raw text file\n";
+  n++;
+  fout<< "  " << case_dmSpace_output_matlab
+      << " = matlab file\n";
+  n++;
+  if(n != n_case_dmSpace_output) {
     fout<< "  " << "other cases exist" << endl;
   }
 }
@@ -281,15 +321,27 @@ int ParameterData::read() {
   
   // OUTPUT PARAMETERS
 
-  ERRCHK(readScalar(output_soln_format));
-  if(output_soln_format < 0 || output_soln_format >= n_case_soln_output)
+  // DS
+  ERRCHK(readScalar(output_soln_DS_format));
+  if(output_soln_DS_format < -1 || output_soln_DS_format >= n_case_soln_DS_output)
     return processReaderError(ERR_OUT_OF_RANGE);
 
-  ERRCHK(readScalar(output_mesh_numPts_x));
-  if(output_mesh_numPts_x < 2) output_mesh_numPts_x = 2;
-  ERRCHK(readScalar(output_mesh_numPts_y));
-  if(output_mesh_numPts_y < 2) output_mesh_numPts_y = 2;
+  ERRCHK(readScalar(output_mesh_numPts_DS_x));
+  if(output_mesh_numPts_DS_x < 2) output_mesh_numPts_DS_x = 2;
+  ERRCHK(readScalar(output_mesh_numPts_DS_y));
+  if(output_mesh_numPts_DS_y < 2) output_mesh_numPts_DS_y = 2;
 
+  // Mixed
+  ERRCHK(readScalar(output_soln_Mixed_format));
+  if(output_soln_Mixed_format < -1 || output_soln_Mixed_format >= n_case_soln_Mixed_output)
+    return processReaderError(ERR_OUT_OF_RANGE);
+
+  ERRCHK(readScalar(output_mesh_numPts_Mixed_x));
+  if(output_mesh_numPts_Mixed_x < 2) output_mesh_numPts_Mixed_x = 2;
+  ERRCHK(readScalar(output_mesh_numPts_Mixed_y));
+  if(output_mesh_numPts_Mixed_y < 2) output_mesh_numPts_Mixed_y = 2;
+
+  // Mesh and Spaces
   ERRCHK(readScalar(output_mesh_format));
   if(output_mesh_format < 0 || output_mesh_format >= n_case_mesh_output)
     return processReaderError(ERR_OUT_OF_RANGE);
@@ -299,6 +351,11 @@ int ParameterData::read() {
   if(output_dsSpace_format < 0 || output_dsSpace_format >= n_case_dsSpace_output)
     return processReaderError(ERR_OUT_OF_RANGE);
   ERRCHK(writeDSSpace());
+
+  ERRCHK(readScalar(output_dmSpace_format));
+  if(output_dmSpace_format < 0 || output_dmSpace_format >= n_case_dmSpace_output)
+    return processReaderError(ERR_OUT_OF_RANGE);
+  //??? ERRCHK(writeDMSpace());
 
   ERRCHK(readScalar(monitor_to_level));
 

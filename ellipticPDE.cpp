@@ -252,12 +252,11 @@ int EllipticPDE::solve(Monitor& monitor) {
     }
   }
 
-  if(param.output_soln_format) {
+  if(param.output_soln_DS_format > 0) {
   
-
     monitor(1,"Write Solution"); //////////////////////////////////////////////////
 
-    switch(param.output_soln_format) {
+    switch(param.output_soln_DS_format) {
     case 1: {
       std::string fileName(param.directory_name);
       fileName += "solution_raw";
@@ -270,7 +269,7 @@ int EllipticPDE::solve(Monitor& monitor) {
       std::string fileNameGrad(param.directory_name);
       fileNameGrad += "solution_grad_mesh";
       solution.write_matlab_mesh(fileName,fileNameGrad,
-				 param.output_mesh_numPts_x,param.output_mesh_numPts_y);
+				 param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y);
       break;
     }
     }
@@ -291,7 +290,7 @@ int EllipticPDE::solve(Monitor& monitor) {
     std::cout << "  Relative L_2 Grad Error: " << l2GradError/l2GradNorm << std::endl;
     std::cout << std::endl;
 
-    if(param.output_soln_format) {
+    if(param.output_soln_DS_format > 0) {
       monitor(1,"Write True Solution"); ////////////////////////////////////////////
 
       DirectSerendipityArray u(&(param.dsSpace));
@@ -302,7 +301,7 @@ int EllipticPDE::solve(Monitor& monitor) {
         u[i] = trueSoln(x,y);
       }
 
-      switch(param.output_soln_format) {
+      switch(param.output_soln_DS_format) {
       case 1: {
         std::string fileName(param.directory_name);
         fileName += "true_solution_raw";
@@ -315,7 +314,7 @@ int EllipticPDE::solve(Monitor& monitor) {
         std::string fileNameGrad(param.directory_name);
         fileNameGrad += "true_solution_grad_mesh";
         u.write_matlab_mesh(fileName,fileNameGrad,
-        param.output_mesh_numPts_x,param.output_mesh_numPts_y);
+        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y);
         break;
       }
       }
