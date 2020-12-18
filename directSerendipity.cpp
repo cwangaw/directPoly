@@ -74,9 +74,9 @@ void DirectSerendipityArray::eval(const Point* pts, double* result,
       if(ptEvaluated[i]) continue;
       
       if(element->isInElement(pts[i])) {
-	elementPts.push_back(pts[i]);
-	elementPtsIndex.push_back(i);
-	ptEvaluated[i] = true;
+        elementPts.push_back(pts[i]);
+        elementPtsIndex.push_back(i);
+        ptEvaluated[i] = true;
       }
     }
     if(elementPts.size() == 0) continue;
@@ -97,7 +97,7 @@ void DirectSerendipityArray::eval(const Point* pts, double* result,
       int iMesh = element->edgePtr(i)->meshIndex();
       int iEdgeDof = my_ds_space->mesh_edge_to_first_node_index[iMesh];
       for(int j=0; j<(finiteElement->degPolyn() - 1); j++) {
-	edge_dofs[j + i*(finiteElement->degPolyn() - 1)] = the_array[iEdgeDof+j];
+	      edge_dofs[j + i*(finiteElement->degPolyn() - 1)] = the_array[iEdgeDof+j];
       }
     }
 
@@ -105,7 +105,7 @@ void DirectSerendipityArray::eval(const Point* pts, double* result,
       int iMesh = element->meshIndex();
       int iCellDof = my_ds_space->mesh_element_to_first_node_index[iMesh];
       for(int j=0; j<finiteElement->nCellNodes(); j++) {
-	cell_dofs[j] = the_array[iCellDof+j];
+	      cell_dofs[j] = the_array[iCellDof+j];
       }
     }
 

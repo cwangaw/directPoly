@@ -197,29 +197,19 @@ void DirectMixedFE::initBasis(const Point* pt, int num_pts) {
 
 // Eval for DirectMixedFE
 
-void DirectMixedFE::eval_f(const Point* pt, Tensor1* result, int num_pts, double* dofs) {
+void DirectMixedFE::eval(const Point* pt, Tensor1* result, int num_pts, char type, double* dofs) {
   initBasis(pt,num_pts);
-  for(int n=0; n<num_pts; n++) {
+  int dim = (type == 'f') ? dimVFull() : dimVReduced();
+  for(int n=0; n<num_pts; n++) { 
     result[n].set(0,0);
     Point p(pt[n]);
 
-    for(int i=0; i<dimVFull(); i++) {
+    for(int i=0; i<dim; i++) {
       result[n] += dofs[i]*basis(i,n);
     }
   }
 }
 
-void DirectMixedFE::eval_r(const Point* pt, Tensor1* result, int num_pts, double* dofs) {
-  initBasis(pt,num_pts);
-  for(int n=0; n<num_pts; n++) {
-    result[n].set(0,0);
-    Point p(pt[n]);
-
-    for(int i=0; i<dimVReduced(); i++) {
-      result[n] += dofs[i]*basis(i,n);
-    }
-  }
-}
 
 void DirectMixedFE::eval(const Point* pt, Tensor1* fullResult, Tensor1* reducedResult, int num_pts, 
               double* full_dofs, double* reduced_dofs) {
@@ -244,6 +234,11 @@ void DirectMixedFE::write_raw(std::ofstream& fout) const {
   fout << "    my_poly_element   = " << my_poly_element << "\n";
   fout << "    num_vertices      = " << num_vertices << "\n";
   fout << "    polynomial_degree = " << polynomial_degree << "\n";
+  fout << "    dimension of V_full = " << dim_v << "\n";
+  fout << "    dimension of V_reduced = " << dimVReduced() << "\n";
+  fout << "    dimension of Curl part = " << dim_curlpart << "\n";
+  fout << "    dimension of xPo_full = " << dim_v_div << "\n";
+  fout << "    dimension of xPo_reduced = " << dimXPoReduced() << "\n";
 
   fout << "    vertex nodes:";
   for(int i=0; i< my_poly_element->nVertices(); i++) {
@@ -313,25 +308,14 @@ void DirectDGFE::initBasis(const Point* pt, int num_pts) {
 
 // Eval for DirectDGFE
 
-void DirectDGFE::eval_f(const Point* pt, double* result, int num_pts, double* dofs) {
+void DirectDGFE::eval(const Point* pt, double* result, int num_pts, char type, double* dofs) {
   initBasis(pt,num_pts);
+  int dim = (type == 'f') ? dimFull() : dimReduced();
   for(int n=0; n<num_pts; n++) {
     result[n] = 0;
     Point p(pt[n]);
 
-    for(int i=0; i<dimFull(); i++) {
-      result[n] += dofs[i]*basis(i,n);
-    }
-  }
-}
-
-void DirectDGFE::eval_r(const Point* pt, double* result, int num_pts, double* dofs) {
-  initBasis(pt,num_pts);
-  for(int n=0; n<num_pts; n++) {
-    result[n] = 0;
-    Point p(pt[n]);
-
-    for(int i=0; i<dimReduced(); i++) {
+    for(int i=0; i<dim; i++) {
       result[n] += dofs[i]*basis(i,n);
     }
   }
@@ -361,6 +345,8 @@ void DirectDGFE::write_raw(std::ofstream& fout) const {
   fout << "    my_poly_element   = " << my_poly_element << "\n";
   fout << "    num_vertices      = " << num_vertices << "\n";
   fout << "    polynomial_degree = " << polynomial_degree << "\n";
+  fout << "    dimension of W_full = " << dim_w << "\n";
+  fout << "    dimension of W_reduced = " << dimReduced() << "\n";
 
   fout << "    vertex nodes:";
   for(int i=0; i< my_poly_element->nVertices(); i++) {
@@ -451,6 +437,7 @@ void DirectEdgeDGFE::write_raw(std::ofstream& fout) const {
   fout << "    my_dm_space       = " << my_dm_space << "\n";
   fout << "    my_edge   = " << my_edge << "\n";
   fout << "    polynomial_degree = " << polynomial_degree << "\n";
+  fout << "    dimension of lambda space = " << dim_l << "\n";
 
   fout << "    vertex nodes:";
   for(int i=0; i < 2; i++) {

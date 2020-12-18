@@ -45,6 +45,7 @@ int Vertex::write_raw(std::string& filename) const {
 
 ////////////////////////////////////////////////////////////////////////////////
 // Class Edge
+static const double edge_eps = 1e-8;
 
 void Edge::set_edge(Vertex* pt0, Vertex* pt1, int myIndex, PolyMesh* myMesh) {
   the_vertex[0] = pt0;
@@ -78,6 +79,14 @@ bool Edge::isOnBoundary() const {
   return (!my_mesh) ? false :
     my_mesh->nbr_elements_of_edge[my_mesh_index][0] == -1
     || my_mesh->nbr_elements_of_edge[my_mesh_index][1] == -1;
+}
+
+bool Edge::isInEdge(const Point& pt) const {
+  double distToV0 = Tensor1(*vertexPtr(0)-pt).norm();
+  double distToV1 = Tensor1(*vertexPtr(1)-pt).norm();
+  if (abs(distToV0 + distToV1 - edge_length) < edge_eps) {
+    return true;
+  } else { return false; }
 }
 
 void Edge::write_raw(std::ofstream& fout) const {
@@ -347,6 +356,7 @@ bool PolyElement::isOnElementBoundary(const Point& pt) const {
   }
   return false;
 }
+
 
 void PolyElement::write_raw(std::ofstream& fout) const {
   fout << "  POLYELEMENT\n";
