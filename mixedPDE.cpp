@@ -63,26 +63,38 @@ int MixedPDE::solve(Monitor& monitor) {
   if(false) {
     monitor(0,"\nTest basis functions for element 0\n");
 
-    DirectSerendipityArray u(&(parameterDataPtr()->dsSpace));
+    DirectMixedArray u(&(parameterDataPtr()->dmSpace), 'f');
+    DirectDGArray p(&(parameterDataPtr()->dmSpace), 'f');
+    DirectEdgeDGArray l(&(parameterDataPtr()->dmSpace));
 
-    double PI = 3.141592653589793238463;
-    
     for(int i=0; i<u.size(); i++) {
-      double x = parameterDataPtr()->dsSpace.nodePtr(i)->val(0);
-      double y = parameterDataPtr()->dsSpace.nodePtr(i)->val(1);
-      u[i] = sin(PI*x)*sin(PI*y); //x*x+y*y;
-      //u[i]=0;
-      //if (fabs(x-5)<1e-6&&fabs(y-6)<1e-6) {u[i]=1;}
+      u[i]=0;
     }
-    //u[21]=1;
+    u[0]=1;
+
+    for(int i=0; i<p.size(); i++) {
+      p[i]=0;
+    }
+    p[0]=1;
+
+    for(int i=0; i<l.size(); i++) {
+      l[i]=0;
+    }
+    l[0]=1;
+
     monitor(1,"Write Array");
 
     std::string fileName = parameterDataPtr()->directory_name;
-    fileName += "basis_mesh";
-    std::string fileName_grad = parameterDataPtr()->directory_name;
-    fileName_grad += "basis_grad_mesh";
-    //u.write_matlab_mesh_by_pt(fileName,fileName_grad,3,3);
-    u.write_matlab_mesh(fileName,fileName_grad,301,301);
+    fileName += "basis_mesh_mixed";
+    u.write_matlab_mesh(fileName,301,301);
+
+    std::string fileNameDG = parameterDataPtr()->directory_name;
+    fileNameDG += "basis_mesh_DG";
+    u.write_matlab_mesh(fileNameDG,301,301);
+
+    std::string fileNameEDG = parameterDataPtr()->directory_name;
+    fileNameEDG += "basis_mesh_EDG";
+    u.write_matlab_mesh(fileNameEDG,301,301);
   }
 
   // TEST QUADRATURE ///////////////////////////////////////////////////////
