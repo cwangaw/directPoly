@@ -230,6 +230,30 @@ int ParameterData::writeDSSpace() {
   return 0;
 }
 
+// Output DM space
+int ParameterData::writeDMSpace() {
+  if(output_dmSpace_format == case_dmSpace_output_none) return 0;
+
+  string fileName = directory_name;
+  fileName += "dmSpaceOut";
+
+  switch(output_dmSpace_format) {
+  case case_dmSpace_output_raw: {
+    fileName += ".txt";
+    if(dmSpace.write_raw(fileName)) return ERR_FILESYSTEM;
+    break;
+  }
+  case case_dmSpace_output_matlab: {
+    if(dmSpace.write_matlab(fileName)) return ERR_FILESYSTEM;
+    break;
+  }
+  default:
+    return ERR_UNSUPPORTED_OPTION;
+  }
+  return 0;
+}
+
+
 // READ ==========================================================================
 
 #define SIZE_STRING 15
@@ -355,7 +379,7 @@ int ParameterData::read() {
   ERRCHK(readScalar(output_dmSpace_format));
   if(output_dmSpace_format < 0 || output_dmSpace_format >= n_case_dmSpace_output)
     return processReaderError(ERR_OUT_OF_RANGE);
-  //??? ERRCHK(writeDMSpace());
+  ERRCHK(writeDMSpace());
 
   ERRCHK(readScalar(monitor_to_level));
 

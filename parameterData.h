@@ -93,6 +93,7 @@ public:
   int readMesh();
   int writeMesh();
   int writeDSSpace();
+  int writeDMSpace();
 };
 
 #endif
