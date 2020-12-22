@@ -14,15 +14,15 @@
 //=============================================================================
 //  EQUATIONS
 //
-//    - div D grad p = f
+//    - div D grad p + div(b p) + a p = f
 //                       in Omega (bounded, connected, Lipschitz domain in R^2)
 //    p = 0              on the boundary of Omega
 //    where D is a tensor (matrix)
 //
-//    Setting u = - D grad p,
+//    Setting u = - D grad p + b p,
 //    find (u, p, l) in V^s_r x W_s x L_r such that
-//      (D^{-1} u , v) - (p , div v) + Sum_E (l , v.nu)_{delta E} = 0 for all v in V^s_r
-//      (div u, q)  = (f , q) for all q in W_s
+//      (D^{-1} u , v) - (p , div v) + (D^{-1} b p, v) + Sum_E (l , v.nu)_{delta E} = 0 for all v in V^s_r
+//      (div u, q) + (a p, q) = (f , q) for all q in W_s
 //      Sum_E (u.nu , l)_{delta E} = 0 for all l in L_r
 //    where 
 //      V^s_r is the direct sum of V^s_r(E), which is 

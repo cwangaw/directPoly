@@ -26,8 +26,19 @@
 //    where DS_r are the direct serendipity spaces and DS_{r,g} has the
 //      boundary nodes set to g. We use a nodal basis for the space.
 //
-//    Find (u,p,lambda) in V_r^s X W_s X Lambda_r (hybrid form) such that
-//       ???
+//    For mixed formulation, we ask c=0.    
+//    
+//    Find (u,p,lambda) in V_r^s X W_s X Lambda_r  such that
+//    Setting u = - D grad p + b p,
+//    find (u, p, l) in V^s_r x W_s x L_r (hybrid form) such that
+//      (D^{-1} u , v) - (p , div v) + (D^{-1} b p, v) + Sum_E (l , v.nu)_{delta E} = 0 for all v in V^s_r
+//      (div u, q) + (a p, q) = (f , q) for all q in W_s
+//      Sum_E (u.nu , l)_{delta E} = 0 for all l in L_r
+//    where 
+//      V^s_r is the direct sum of V^s_r(E), which is 
+//        a full / reduced direct mixed space on element E for s = r, r - 1
+//      W_s is the direct sum of W_s(E) = \Po_s(E) restriced to each element
+//      L_r is \Po_r(e) restriced to each interior edge e, 0 on boundary edges
 //      
 //  ELEMENTS E
 //    E is a convex, nondegenerate polygon (of at least 3 sides)
