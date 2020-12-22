@@ -2,7 +2,7 @@
 #include <vector>
 #include <cmath>
 #include <iostream>
-
+#include <assert.h>
 #include "mixedPDE.h"
 #include "fcns.h"
 #include "Mesh/baseObjects.h"
@@ -52,10 +52,10 @@ int MixedPDE::solve(Monitor& monitor) {
     fileName += "mesh_e4";
     s_mesh.write_matlab(fileName);
 
-    DirectSerendipity s_dsSpace(8,&s_mesh);
+    DirectMixed s_dmSpace(8,&s_mesh);
     fileName = parameterDataPtr()->directory_name;
-    fileName += "dsSpace_e4";
-    s_dsSpace.write_matlab(fileName);
+    fileName += "dmSpace_e4";
+    s_dmSpace.write_matlab(fileName);
   }
   
   // TEST BASIS FUNCTIONS //////////////////////////////////////////////////
@@ -88,13 +88,13 @@ int MixedPDE::solve(Monitor& monitor) {
     fileName += "basis_mesh_mixed";
     u.write_matlab_mesh(fileName,51,51);
 
-    std::string fileNameDG = parameterDataPtr()->directory_name;
-    fileNameDG += "basis_mesh_DG";
-    p.write_matlab_mesh(fileNameDG,51,51);
+    fileName = parameterDataPtr()->directory_name;
+    fileName += "basis_mesh_DG";
+    p.write_matlab_mesh(fileName,51,51);
 
-    std::string fileNameEDG = parameterDataPtr()->directory_name;
-    fileNameEDG += "basis_mesh_EDG";
-    l.write_matlab_mesh(fileNameEDG,51,51);
+    fileName = parameterDataPtr()->directory_name;
+    fileName += "basis_mesh_EDG";
+    l.write_matlab_mesh(fileName,51,51);
   }
 
   // TEST QUADRATURE ///////////////////////////////////////////////////////
@@ -106,18 +106,18 @@ int MixedPDE::solve(Monitor& monitor) {
   }
   
   // SOLVE THE PDE ///////////////////////////////////////////////////////////
-  if(false) {
+
   monitor(0,"\nSolve the PDE\n");
   
-  //DirectMixedArray solution(&(param.dmSpace));
+  DirectMixedArray solution_u_f(&(param.dmSpace),'f');
+  DirectMixedArray solution_u_r(&(param.dmSpace),'r');
+  DirectDGArray solution_p_f(&(param.dmSpace),'f');
+  DirectDGArray solution_p_r(&(param.dmSpace),'r');
+  DirectEdgeDGArray solution_l(&(param.dmSpace));
 
   // Initialize matrix A for both full and reduced space
-  int dimAfull = 0, dimAreduced = 0;
-
-  for(int iElement=0; iElement<param.mesh.nElements(); iElement++) { 
-    dimAfull += param.dmSpace.MixedElementPtr(iElement)->dimVFull();
-    dimAreduced += param.dmSpace.MixedElementPtr(iElement)->dimVReduced();
-  }
+  int dimAfull = param.dmSpace.nMixedDoFs('f');
+  int dimAreduced = param.dmSpace.nMixedDoFs('r');
 
   std::vector<double> mat_A_full_vector(dimAfull*dimAfull,0);
   double* mat_A_full = mat_A_full_vector.data();
@@ -126,12 +126,8 @@ int MixedPDE::solve(Monitor& monitor) {
 
   // Initialize matrix B for both full and reduced space
   int rowBfull = dimAfull, rowBreduced = dimAreduced;
-  int colBfull = 0, colBreduced = 0;
-
-  for (int iElement=0; iElement<param.mesh.nElements(); iElement++) {
-    colBfull += param.dmSpace.DGElementPtr(iElement)->dimFull();
-    colBreduced += param.dmSpace.DGElementPtr(iElement)->dimReduced();
-  }
+  int colBfull = param.dmSpace.nDGDoFs('f');
+  int colBreduced = param.dmSpace.nDGDoFs('r');
 
   std::vector<double> mat_B_full_vector(rowBfull*colBfull,0);
   double* mat_B_full = mat_B_full_vector.data();
@@ -140,7 +136,7 @@ int MixedPDE::solve(Monitor& monitor) {
 
   // Initialize matrix L
   int rowLfull = dimAfull, rowLreduced = dimAreduced;
-  int colL = param.dmSpace.nInteriorEdges() * (param.dmSpace.degPolyn()+1);
+  int colL = param.dmSpace.nIntEdgeDGDoFs();
 
   std::vector<double> mat_L_full_vector(rowLfull*colL,0);
   double* mat_L_full = mat_L_full_vector.data();
@@ -169,7 +165,6 @@ int MixedPDE::solve(Monitor& monitor) {
 
   int starting_Afull = 0, starting_Areduced = 0;
   int starting_colBfull = 0, starting_colBreduced = 0;
-  int starting_colL = 0;
 
   int loc_dimAfull = 0, loc_dimAreduced = 0, loc_colBfull = 0, loc_colBreduced = 0;
 
@@ -200,16 +195,16 @@ int MixedPDE::solve(Monitor& monitor) {
     loc_colBfull = dgePtr -> dimFull();
     loc_colBreduced = dgePtr -> dimReduced();
 
-    // Matrix and rhs assembly over elements
+    // Matrix A, B and rhs assembly over elements
+ 
     for(int iPt=0; iPt<quadRule.num(); iPt++) {
       double x = quadRule.pt(iPt)[0];
       double y = quadRule.pt(iPt)[1];
 
       Tensor2 valD;
       coefD_inv(x,y,valD);
-
+  
       // Assemble matrix A
-
       for (int j = 0; j < loc_dimAfull; j++) {
         Tensor1 v_j = mePtr -> basis(j,iPt);
         for (int i = 0; i < loc_dimAfull; i++) {
@@ -232,40 +227,13 @@ int MixedPDE::solve(Monitor& monitor) {
         double divv_j = mePtr -> basisdivXPo(j - mePtr -> dimCurlPart(),iPt);
         for (int i = 0; i < loc_colBfull; i++ ) {
           double p_i = dgePtr -> basis(i,iPt);
-          curr_full_index = dimAfull * (starting_Afull + j) + (starting_colBfull + i);
+          curr_full_index = colBfull * (starting_Afull + j) + (starting_colBfull + i);
           evaluation = divv_j * p_i * quadRule.wt(iPt);
           mat_B_full[curr_full_index] += evaluation;
           if (j < loc_dimAreduced && i < loc_colBreduced) {
-            curr_reduced_index = dimAreduced * (starting_Areduced + j) + (starting_colBreduced + i);
+            curr_reduced_index = colBreduced * (starting_Areduced + j) + (starting_colBreduced + i);
             mat_B_reduced[curr_reduced_index] += evaluation;
           }
-        }
-      }
-
-      // Assemble matrix L
-      numEdges = param.mesh.elementPtr(iElement) -> nVertices();
-
-      // Column indexing of L: (global edge indexed by interior)
-      // {edge(0),Func(0)}, {edge(0),Func(1)}, ..., {edge(0),Func(eePtr[0]->dim()-1)},
-      // {edge(1),Func(0)}, {edge(1),Func(1)}, ..., {edge(1),Func(eePtr[1]->dim()-1)},
-      // ..., {edge(nInteriorEdge()-1),Func(eePtr[nInteriorEdge()-1]->dim()-1)} 
-
-      for (int iEdge = 0; iEdge < numEdges; iEdge ++) {
-        loc_to_int = param.dmSpace.interiorEdgeIndex(iElement,iEdge);
-        if (loc_to_int == -1) continue; // If the edge is on boundary, we skip the loop
-        for (int i = 0; i < eePtr[loc_to_int]->dim(); i++){
-          double l_i = eePtr[loc_to_int]->basis(i,iPt);
-          for (int j = 0; j < loc_dimAfull; j++) {
-            double v_jdotNu = mePtr->basisDotNu(j,iEdge,iPt);
-            // Here we use the property that eePtr[loc_to_int]->dim() is the same (degPolyn()+1)for every edge in our mesh
-            curr_full_index = dimAfull * (starting_Afull + j) + (loc_to_int*(param.dmSpace.degPolyn()+1)+i);
-            evaluation = l_i * v_jdotNu * quadEdgeRule[loc_to_int].wt(iPt);
-            mat_L_full[curr_full_index] += evaluation;
-            if (j < loc_dimAreduced) {
-              curr_reduced_index = dimAreduced * (starting_Areduced + j) + (loc_to_int*(param.dmSpace.degPolyn()+1)+i);
-              mat_L_reduced[curr_reduced_index] += evaluation;
-            }
-          } 
         }
       }
 
@@ -282,133 +250,44 @@ int MixedPDE::solve(Monitor& monitor) {
       }
     }
 
+    // Matrix L assembly over elements
+
+     numEdges = param.mesh.elementPtr(iElement) -> nVertices();
+
+      // Column indexing of L: (global edge indexed by interior)
+      // {edge(0),Func(0)}, {edge(0),Func(1)}, ..., {edge(0),Func(eePtr[0]->dim()-1)},
+      // {edge(1),Func(0)}, {edge(1),Func(1)}, ..., {edge(1),Func(eePtr[1]->dim()-1)},
+      // ..., {edge(nInteriorEdge()-1),Func(eePtr[nInteriorEdge()-1]->dim()-1)} 
+
+      for (int iEdge = 0; iEdge < numEdges; iEdge ++) {
+        loc_to_int = param.dmSpace.interiorEdgeIndex(iElement,iEdge);
+        if (loc_to_int == -1) continue; // If the edge is on boundary, we skip the loop
+
+        mePtr->initBasis(quadEdgeRule[loc_to_int].pts(), quadEdgeRule[loc_to_int].num());
+
+        for (int iPt = 0; iPt < quadEdgeRule[loc_to_int].num(); iPt++) {
+          for (int i = 0; i < eePtr[loc_to_int]->dim(); i++){
+            double l_i = eePtr[loc_to_int]->basis(i,iPt);
+            for (int j = 0; j < loc_dimAfull; j++) {
+              double v_jdotNu = mePtr->basisDotNu(j,iEdge,iPt);
+              // Here we use the property that eePtr[loc_to_int]->dim() is the same (degPolyn()+1)for every edge in our mesh
+              curr_full_index = colL * (starting_Afull + j) + (loc_to_int*(param.dmSpace.degPolyn()+1)+i);
+              evaluation = l_i * v_jdotNu * quadEdgeRule[loc_to_int].wt(iPt);
+              mat_L_full[curr_full_index] += evaluation;
+              if (j < loc_dimAreduced) {
+                curr_reduced_index = colL * (starting_Areduced + j) + (loc_to_int*(param.dmSpace.degPolyn()+1)+i);
+                mat_L_reduced[curr_reduced_index] += evaluation;
+              }
+            } 
+          }
+        }
+      
+      }
 
     starting_Afull += loc_dimAfull;
     starting_Areduced += loc_dimAreduced;
     starting_colBreduced += loc_colBreduced;
     starting_colBfull += loc_colBfull;
-
   }
-
-  }
-
-
-
-  // std::ofstream fout("test/matrix.txt");
-  // for(int j=0; j<nn; j++) {
-  //   for(int i=0; i<nn; i++) {
-  //     fout << mat[i + nn*j] << "\t";
-  //   }
-  //   if (j < nn - 1) fout << "\n";
-  // }
-  // std::ofstream rout("test/rhs.txt");
-  // for(int i=0; i<nn; i++) {
-  //   rout << rhs[i];
-  //   if (i < nn - 1) rout << "\n";
-  // }
-
-  // monitor(1,"Solution of linear system"); ////////////////////////////////////////
-  
-  // //Solve the matrix, result would be stored in rhs
-  // lapack_int* ipiv; char norm = 'I'; 
-  // ipiv = (lapack_int*)malloc(nn * sizeof(lapack_int));
-  // double anorm = LAPACKE_dlange(LAPACK_ROW_MAJOR, norm, nn, nn, mat, nn);
-  // int ierr = LAPACKE_dgesv(LAPACK_ROW_MAJOR, nn, 1, mat, nn, ipiv, rhs, 1); //mat updated to be LU
-  // if(ierr) { // ?? what should we do ???
-  //   std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
-  // }
-  // double rcond = 0;
-  // ierr = LAPACKE_dgecon(LAPACK_ROW_MAJOR, norm, nn, mat, nn, anorm, &rcond);
-  // if(ierr) { // ?? what should we do ???
-  //   std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
-  // }
-  // rcond = 1/rcond;
-
-  // //Calculate inf condition number
-  // std::cout << "\tNorm Format:\t" << norm << std::endl;
-  // std::cout << "\tNorm of mat:\t" << anorm << std::endl;
-  // std::cout << "\tCond number:\t" << rcond << std::endl;
-
-
-  // for(int i=0; i<solution.size(); i++) {
-  //   if(index_correction[i] == -1) {
-  //     double x = param.dsSpace.nodePtr(i)->val(0);
-  //     double y = param.dsSpace.nodePtr(i)->val(1);
-  //     solution[i] = bcVal(x,y);
-  //   } else {
-  //     solution[i] = rhs[index_correction[i]];
-  //   }
-  // }
-
-  // if(param.output_soln_format) {
-  
-
-  //   monitor(1,"Write Solution"); //////////////////////////////////////////////////
-
-  //   switch(param.output_soln_format) {
-  //   case 1: {
-  //     std::string fileName(param.directory_name);
-  //     fileName += "solution_raw";
-  //     solution.write_raw(fileName);
-  //     break;
-  //   }
-  //   case 2: {
-  //     std::string fileName(param.directory_name);
-  //     fileName += "solution_mesh";
-  //     std::string fileNameGrad(param.directory_name);
-  //     fileNameGrad += "solution_grad_mesh";
-  //     solution.write_matlab_mesh(fileName,fileNameGrad,
-	// 			 param.output_mesh_numPts_x,param.output_mesh_numPts_y);
-  //     break;
-  //   }
-  //   }
-
-  // if(trueSolnKnown()) {
-  //   monitor(0,"\nError estimate\n"); ///////////////////////////////////////////////
-  
-  //   double h = param.dsSpace.mesh()->maxElementDiameter();
-    
-  //   double l2Error = 0, l2GradError = 0, l2Norm = 0, l2GradNorm = 0;
-  //   solution.l2normError(l2Error, l2GradError, l2Norm, l2GradNorm, trueSoln, trueGradSoln);
-    
-  //   std::cout << "  Max Element Diameter h:  " << h << std::endl;
-  //   std::cout << "  L_2 Error:      " << l2Error << std::endl;
-  //   std::cout << "  L_2 Grad Error: " << l2GradError << std::endl;
-  //   std::cout << std::endl;
-  //   std::cout << "  Relative L_2 Error:      " << l2Error/l2Norm << std::endl;
-  //   std::cout << "  Relative L_2 Grad Error: " << l2GradError/l2GradNorm << std::endl;
-  //   std::cout << std::endl;
-
-  //   if(param.output_soln_format) {
-  //     monitor(1,"Write True Solution"); ////////////////////////////////////////////
-
-  //     DirectSerendipityArray u(&(param.dsSpace));
-
-  //     for(int i=0; i<u.size(); i++) {
-  //       double x = param.dsSpace.nodePtr(i)->val(0);
-  //       double y = param.dsSpace.nodePtr(i)->val(1);
-  //       u[i] = trueSoln(x,y);
-  //     }
-
-  //     switch(param.output_soln_format) {
-  //     case 1: {
-  //       std::string fileName(param.directory_name);
-  //       fileName += "true_solution_raw";
-  //       u.write_raw(fileName);
-  //       break;
-  //     }
-  //     case 2: {
-  //       std::string fileName(param.directory_name);
-  //       fileName += "true_solution_mesh";
-  //       std::string fileNameGrad(param.directory_name);
-  //       fileNameGrad += "true_solution_grad_mesh";
-  //       u.write_matlab_mesh(fileName,fileNameGrad,
-  //       param.output_mesh_numPts_x,param.output_mesh_numPts_y);
-  //       break;
-  //     }
-  //     }
-  //   }
-  // }
-  
   return 0;
 } 

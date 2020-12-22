@@ -273,6 +273,7 @@ int EllipticPDE::solve(Monitor& monitor) {
       break;
     }
     }
+  }
 
   if(trueSolnKnown()) {
     monitor(0,"\nError estimate\n"); ///////////////////////////////////////////////
@@ -319,7 +320,6 @@ int EllipticPDE::solve(Monitor& monitor) {
       }
       }
     }
-  }
-  
+  }  
   return 0;
-} }
+} 

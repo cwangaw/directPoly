@@ -122,6 +122,7 @@ void DirectMixed::set_directmixed(int polyDeg, PolyMesh* mesh) {
     Edge* edge = my_mesh->edgePtr(iEdge);
     the_dg_edge_elements[iEdge].set(this,edge);
     dg_edge_dofs += the_dg_edge_elements[iEdge].dim();
+    if (the_bc_type[iEdge] == EdgeBCType::interior) dg_int_edge_dofs += the_dg_edge_elements[iEdge].dim();
   }
 
 };
@@ -151,6 +152,10 @@ int DirectMixed::nDGDoFs(char type) const {
 
 int DirectMixed::nEdgeDGDoFs() const {
   return dg_edge_dofs;
+};
+
+int DirectMixed::nIntEdgeDGDoFs() const {
+  return dg_int_edge_dofs;
 };
 
 int DirectMixed::mixed_Elem_First_To_Global_Dof(int i, char type) const {
@@ -835,7 +840,7 @@ void DirectEdgeDGArray::eval(const Point& pt, double& result) const {
     return;
   }
 
-  int edge_index, iEdge;
+  int edge_index, iEdge = -1;
   for (int nEdge = 0; nEdge < elemPtr->nVertices(); nEdge++) {
     edge_index = elemPtr->edgePtr(nEdge)->meshIndex(); //corresponding global index
     if (my_dm_space->my_mesh->edgePtr(edge_index)->isInEdge(pt)) {
@@ -927,7 +932,7 @@ void DirectEdgeDGArray::write_matlab_mesh(std::ofstream* fout, int num_pts_x, in
   *fout << "]);\n";
   *fout << "xlabel('x'); ylabel('y');\n";
 
-  delete[] pts;
+  if (pts) delete[] pts;
 };
 
 int DirectEdgeDGArray::write_matlab_mesh(std::string& filename, int num_pts_x, int num_pts_y) const {

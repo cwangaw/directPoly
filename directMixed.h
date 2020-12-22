@@ -299,6 +299,7 @@ namespace directserendipity {
     int dg_dofs_full;
     int dg_dofs_reduced;
     int dg_edge_dofs; // Here we also include DoFs on the boundary
+    int dg_int_edge_dofs;
 
     void set_directmixed(int polyDeg, polymesh::PolyMesh* mesh);
     
@@ -310,7 +311,7 @@ namespace directserendipity {
                     mixed_elem_first_to_global_dof_reduced(nullptr), dg_elem_first_to_global_dof_full(nullptr),
                     dg_elem_first_to_global_dof_reduced(nullptr), edge_elem_first_to_global_dof(nullptr),
                     mixed_dofs_full(0), mixed_dofs_reduced(0),
-                    dg_dofs_full(0), dg_dofs_reduced(0), dg_edge_dofs(0) {};
+                    dg_dofs_full(0), dg_dofs_reduced(0), dg_edge_dofs(0), dg_int_edge_dofs(0) {};
     DirectMixed(int polyDeg, polymesh::PolyMesh* mesh) {
       set_directmixed(polyDeg, mesh); };
     ~DirectMixed();
@@ -344,6 +345,7 @@ namespace directserendipity {
     int nMixedDoFs(char type) const;
     int nDGDoFs(char type) const;
     int nEdgeDGDoFs() const;
+    int nIntEdgeDGDoFs() const;
 
     // Map the (first local dof of) element/edge to global dof
     int mixed_Elem_First_To_Global_Dof(int i, char type) const;
