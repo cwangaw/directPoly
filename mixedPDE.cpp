@@ -14,12 +14,13 @@
 #include "Utilities/debug.h"
 #include <complex.h>
 #include "lapacke.h"
+#include <cblas.h>
 
 using namespace directserendipity;
 using namespace polymesh;
 using namespace polyquadrature;
 
-lapack_int matInv(double *A, unsigned n)
+lapack_int mat_inv(double *A, unsigned n)
 {
   // inplace inverse n x n matrix A.
   // matrix A is Column Major (i.e. firts line, second line ... *not* C[][] order)
@@ -30,10 +31,10 @@ lapack_int matInv(double *A, unsigned n)
   int ipiv[n+1];
   lapack_int ret;
 
-  ret =  LAPACKE_dgetrf(LAPACK_COL_MAJOR, n,n,A,n,ipiv);
+  ret =  LAPACKE_dgetrf(LAPACK_ROW_MAJOR, n,n,A,n,ipiv);
 
   if (ret !=0) return ret;
-  ret = LAPACKE_dgetri(LAPACK_COL_MAJOR,n,A,n,ipiv);
+  ret = LAPACKE_dgetri(LAPACK_ROW_MAJOR,n,A,n,ipiv);
   return ret;
 }
 
@@ -70,17 +71,17 @@ int MixedPDE::solve(Monitor& monitor) {
     for(int i=0; i<u.size(); i++) {
       u[i]=0;
     }
-    u[1]=1;
+    u[0]=1;
 
     for(int i=0; i<p.size(); i++) {
       p[i]=0;
     }
-    p[1]=1;
+    p[0]=1;
 
     for(int i=0; i<l.size(); i++) {
       l[i]=0;
     }
-    l[1]=1;
+    l[0]=1;
 
     monitor(1,"Write Array");
 
@@ -108,7 +109,7 @@ int MixedPDE::solve(Monitor& monitor) {
   // SOLVE THE PDE ///////////////////////////////////////////////////////////
 
   monitor(0,"\nSolve the PDE\n");
-  
+
   DirectMixedArray solution_u_f(&(param.dmSpace),'f');
   DirectMixedArray solution_u_r(&(param.dmSpace),'r');
   DirectDGArray solution_p_f(&(param.dmSpace),'f');
@@ -155,6 +156,7 @@ int MixedPDE::solve(Monitor& monitor) {
   // Note that we update quadRule in each iElement loop
   // But we define quadEdgeRule for all edges at once
   // and get them by interior edge indexing
+
   polyquadrature::PolyQuadrature quadRule(2*param.dmSpace.degPolyn()+3);
   std::vector<polyquadrature::PolyEdgeQuadrature> quadEdgeRule(param.dmSpace.nInteriorEdges());
   for (int i = 0; i < param.dmSpace.nInteriorEdges(); i++) {
@@ -174,6 +176,7 @@ int MixedPDE::solve(Monitor& monitor) {
 
   // We construct an array of pointer to all the DirectEdgeDGFE
   // and get them by interior edge indexing
+
   std::vector<DirectEdgeDGFE*> eePtr(param.dmSpace.nInteriorEdges());
   for (int i = 0; i < param.dmSpace.nInteriorEdges(); i++) {
     eePtr[i] = param.dmSpace.DGEdgeInteriorPtr(i);
@@ -212,9 +215,11 @@ int MixedPDE::solve(Monitor& monitor) {
           curr_full_index = dimAfull * (starting_Afull + j) + (starting_Afull + i);
           evaluation = ((valD*u_i)*v_j)*quadRule.wt(iPt);
           mat_A_full[curr_full_index] += evaluation;
+//          assert(curr_full_index < dimAfull * dimAfull);
           if (j < loc_dimAreduced && i < loc_dimAreduced) {
             curr_reduced_index = dimAreduced * (starting_Areduced + j) + (starting_Areduced + i);
             mat_A_reduced[curr_reduced_index] += evaluation;
+//            assert(curr_reduced_index < dimAreduced * dimAreduced);
           }
         }
       }
@@ -230,9 +235,11 @@ int MixedPDE::solve(Monitor& monitor) {
           curr_full_index = colBfull * (starting_Afull + j) + (starting_colBfull + i);
           evaluation = divv_j * p_i * quadRule.wt(iPt);
           mat_B_full[curr_full_index] += evaluation;
+//          assert(curr_full_index < dimAfull * colBfull);
           if (j < loc_dimAreduced && i < loc_colBreduced) {
             curr_reduced_index = colBreduced * (starting_Areduced + j) + (starting_colBreduced + i);
             mat_B_reduced[curr_reduced_index] += evaluation;
+//            assert(curr_reduced_index < dimAreduced * colBreduced);
           }
         }
       }
@@ -243,9 +250,11 @@ int MixedPDE::solve(Monitor& monitor) {
         curr_full_index = starting_colBfull + j;
         evaluation = f_wted * dgePtr->basis(j,iPt);
         rhs_full[curr_full_index] += evaluation;
+//        assert(curr_full_index < colBfull);
         if (j < loc_colBreduced) {
           curr_reduced_index = starting_colBreduced + j;
           rhs_reduced[curr_reduced_index] += evaluation;
+//          assert(curr_reduced_index < colBreduced);
         }
       }
     }
@@ -274,9 +283,11 @@ int MixedPDE::solve(Monitor& monitor) {
               curr_full_index = colL * (starting_Afull + j) + (loc_to_int*(param.dmSpace.degPolyn()+1)+i);
               evaluation = l_i * v_jdotNu * quadEdgeRule[loc_to_int].wt(iPt);
               mat_L_full[curr_full_index] += evaluation;
+//              assert(curr_full_index < dimAfull*colL);
               if (j < loc_dimAreduced) {
                 curr_reduced_index = colL * (starting_Areduced + j) + (loc_to_int*(param.dmSpace.degPolyn()+1)+i);
                 mat_L_reduced[curr_reduced_index] += evaluation;
+//                assert(curr_reduced_index < dimAreduced*colL);
               }
             } 
           }
@@ -356,9 +367,305 @@ int MixedPDE::solve(Monitor& monitor) {
 
   }
 
-/*
+  // SOLVE LINEAR SYSTEM //////////////////////////////////////////////////
 
   monitor(1,"Solution of linear system"); ////////////////////////////////////////
+
+  // Solve the matrix
+  // B^{T} A^{-1} [B - L * (L^{T} A^{-1} L)^{-1} * (L^{T} A^{-1} B)] b = rhs
+
+
+  // Initialize A^{-1} and evaluate as A
+
+  std::vector<double> A_full_inv_vector(dimAfull*dimAfull,0);
+  double* A_full_inv = A_full_inv_vector.data();
+  std::vector<double> A_reduced_inv_vector(dimAreduced*dimAreduced,0);
+  double* A_reduced_inv = A_reduced_inv_vector.data();
+
+  for (int j = 0; j < dimAfull; j++) {
+    for (int i = 0; i < dimAfull; i++) {
+      A_full_inv[j * dimAfull + i] = mat_A_full[j * dimAfull + i];
+      if (i < dimAreduced && j < dimAreduced) {
+        A_reduced_inv[j * dimAreduced + i] = mat_A_reduced[j * dimAreduced + i];
+      }
+    }
+  }
+
+  // Update A^{-1} to be the inverse matrix A^{-1} 
+
+  lapack_int ierr = mat_inv(A_full_inv, dimAfull);
+  if(ierr) { // ?? what should we do ???
+    std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
+  }
+
+  ierr = mat_inv(A_reduced_inv, dimAreduced);
+  if(ierr) { // ?? what should we do ???
+    std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
+  }
+
+  std::ofstream fout15("test/A_full_inv.txt");
+  for(int j = 0; j < dimAfull; j++) {
+    for(int i = 0; i < dimAfull; i++) {
+      fout15 << A_full_inv[i + dimAfull*j] << "\t";
+    }
+    if (j < dimAfull - 1) fout15 << "\n";
+  }
+
+
+  // Calculate L^{T}A^{-1}
+  std::vector<double> ltai_full_vector(colL*dimAfull,0);
+  double* ltai_full = ltai_full_vector.data();
+  std::vector<double> ltai_reduced_vector(colL*dimAreduced,0);
+  double* ltai_reduced = ltai_reduced_vector.data();
+
+
+  cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, colL, dimAfull,
+              dimAfull, 1, mat_L_full, colL, A_full_inv, dimAfull,
+              0, ltai_full, dimAfull);
+
+  cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, colL, dimAreduced,
+              dimAreduced, 1, mat_L_reduced, colL, A_reduced_inv, dimAreduced,
+              0, ltai_reduced, dimAreduced);
+
+
+  std::ofstream fout11("test/ltai_full.txt");
+  for(int j = 0; j < colL; j++) {
+    for(int i = 0; i < dimAfull; i++) {
+      fout11 << ltai_full[i + dimAfull*j] << "\t";
+    }
+    if (j < colL - 1) fout11 << "\n";
+  }
+
+
+
+  // Caluculate (L^{T} A^{-1} L)^{-1} and (L^{T} A^{-1} B)
+  // Multiply them together to be mat_b_c
+  // Notice that mat_b_c * b = c
+
+  std::vector<double> ltaili_full_vector(colL*colL,0);
+  double* ltaili_full = ltaili_full_vector.data();
+
+  std::vector<double> ltaili_reduced_vector(colL*colL,0);
+  double* ltaili_reduced = ltaili_reduced_vector.data();
+
+  std::vector<double> mat_b_c_full_vector(colL*colBfull,0);
+  double* mat_b_c_full = mat_b_c_full_vector.data();
+  std::vector<double> mat_b_c_reduced_vector(colL*colBreduced,0);
+  double* mat_b_c_reduced = mat_b_c_reduced_vector.data();
+
+  // Calculate L^{T} A^{-1} * L and store in ltaili
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colL, colL,
+              dimAfull, 1, ltai_full, dimAfull, mat_L_full, colL,
+              0, ltaili_full, colL);
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colL, colL,
+              dimAreduced, 1, ltai_reduced, dimAfull, mat_L_reduced, colL,
+              0, ltaili_reduced, colL);
+
+  // Calculate inverse of L^{T} A^{-1} * L and store in ltaili
+
+  ierr = mat_inv(ltaili_full, colL);
+  if(ierr) { // ?? what should we do ???
+    std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
+  }
+
+  ierr = mat_inv(ltaili_reduced, colL);
+  if(ierr) { // ?? what should we do ???
+    std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
+  }
+
+  std::ofstream fout12("test/ltaili_full.txt");
+  for(int j = 0; j < colL; j++) {
+    for(int i = 0; i < colL; i++) {
+      fout12 << ltaili_full[i + colL*j] << "\t";
+    }
+    if (j < colL - 1) fout12 << "\n";
+  }
+
+
+  // Calculate L^{T} A^{-1} * B and store in mat_b_c
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colL, colBfull,
+              dimAfull, 1, ltai_full, dimAfull, mat_B_full, colBfull,
+              0, mat_b_c_full, colBfull);
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colL, colBreduced,
+              dimAreduced, 1, ltai_reduced, dimAfull, mat_B_reduced, colBreduced,
+              0, mat_b_c_reduced, colBreduced);
+
+
+
+
+
+  // Multiply (L^{T} A^{-1} L)^{-1} and (L^{T} A^{-1} B)
+  // Store in mat_b_c
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colL, colBfull,
+              colL, 1, ltaili_full, colL, mat_b_c_full, colBfull,
+              0, mat_b_c_full, colBfull);
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colL, colBreduced,
+              colL, 1, ltaili_reduced, colL, mat_b_c_reduced, colBreduced,
+              0, mat_b_c_reduced, colBreduced);
+
+
+  std::ofstream fout13("test/mat_b_c_full.txt");
+  for(int j = 0; j < colL; j++) {
+    for(int i = 0; i < colBfull; i++) {
+      fout13 << ltaili_full[i + colBfull*j] << "\t";
+    }
+    if (j < colL - 1) fout13 << "\n";
+  }
+
+
+  // -L * mat_b_c + B -> workmat
+
+  std::vector<double> workmat_full_vector(dimAfull*colBfull,0);
+  double* workmat_full = workmat_full_vector.data();
+  std::vector<double> workmat_reduced_vector(dimAreduced*colBreduced,0);
+  double* workmat_reduced = workmat_reduced_vector.data();
+
+  // We first update workmat to be B
+
+  for (int j = 0; j < dimAfull; j++) {
+    for (int i = 0; i < colBfull; i++) {
+      workmat_full[j * colBfull + i] = mat_B_full[j * colBfull + i];
+      if (j < dimAreduced && i < colBreduced) {
+        workmat_reduced[j * colBreduced + i] = mat_B_reduced[j * colBreduced + i];
+      }
+    }
+  }
+
+  // Calculate -L * mat_b_c + B
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAfull, colBfull,
+              colL, -1, mat_L_full, colL, mat_b_c_full, colBfull,
+              1, workmat_full, colBfull);
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAreduced, colBreduced,
+              colL, -1, mat_L_reduced, colL, mat_b_c_reduced, colBreduced,
+              1, workmat_reduced, colBreduced);
+
+  std::ofstream fout14("test/workmat_full.txt");
+  for(int j = 0; j < dimAfull; j++) {
+    for(int i = 0; i < colBfull; i++) {
+      fout14 << workmat_full[i + colBfull*j] << "\t";
+    }
+    if (j < dimAfull - 1) fout14 << "\n";
+  }
+
+
+
+  // Do multiplication A^{-1} * workmat and update workmat as this
+  // Then workmat = A^{-1} [B - L * (L^{T} A^{-1} L)^{-1} * (L^{T} A^{-1} B)]
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAfull, colBfull,
+              dimAfull, 1, A_full_inv, dimAfull, workmat_full, colBfull,
+              0, workmat_full, colBfull);
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAreduced, colBreduced,
+              dimAreduced, 1, A_reduced_inv, dimAreduced, workmat_reduced, colBreduced,
+              0, workmat_reduced, colBreduced);
+
+  std::ofstream fout16("test/Aiworkmat_full.txt");
+  for(int j = 0; j < dimAfull; j++) {
+    for(int i = 0; i < colBfull; i++) {
+      fout16 << workmat_full[i + colBfull*j] << "\t";
+    }
+    if (j < dimAfull - 1) fout16 << "\n";
+  }
+
+
+  // Now we initialize mat_b_rhs and evaluate it as B^{T} * workmat
+  // Then mat_b_rhs * b = rhs
+
+  std::vector<double> mat_b_rhs_full_vector(colBfull*colBfull,0);
+  double* mat_b_rhs_full = mat_b_rhs_full_vector.data();
+  std::vector<double> mat_b_rhs_reduced_vector(colBreduced*colBreduced,0);
+  double* mat_b_rhs_reduced = mat_b_rhs_reduced_vector.data();
+
+  cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, colBfull, colBfull,
+              dimAfull, 1, mat_B_full, colBfull, workmat_full, colBfull,
+              0, mat_b_rhs_full, colBfull);  
+
+  cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, colBreduced, colBreduced,
+              dimAreduced, 1, mat_B_reduced, colBreduced, workmat_reduced, colBreduced,
+              0, mat_b_rhs_reduced, colBreduced);
+
+
+  std::ofstream fout9("test/mat_b_rhs_full.txt");
+  for(int j = 0; j < colBfull; j++) {
+    for(int i = 0; i < colBfull; i++) {
+      fout9 << mat_b_rhs_full[i + colBfull*j] << "\t";
+    }
+    if (j < colBfull - 1) fout9 << "\n";
+  }
+
+  std::ofstream fout10("test/mat_b_rhs_reduced.txt");
+  for(int j = 0; j < colBreduced; j++) {
+    for(int i = 0; i < colBreduced; i++) {
+      fout10 << mat_b_rhs_reduced[i + colBreduced*j] << "\t";
+    }
+    if (j < colBreduced - 1) fout10 << "\n";
+  }
+
+
+
+
+
+
+  // Now we initialize b with rhs and solve the linear system
+
+  std::vector<double> b_full_vector(colBfull,0);
+  double* b_full = b_full_vector.data();
+  std::vector<double> b_reduced_vector(colBreduced,0);
+  double* b_reduced = b_reduced_vector.data();
+
+  for (int i = 0; i < colBfull; i++) {
+    b_full[i] = rhs_full[i];
+    if (i < colBreduced) b_reduced[i] = rhs_reduced[i];
+  }
+
+
+  lapack_int* ipiv; char norm = 'I'; 
+  ipiv = (lapack_int*)malloc(colBfull * sizeof(lapack_int));
+  double anorm = LAPACKE_dlange(LAPACK_ROW_MAJOR, norm, colBfull, colBfull, mat_b_rhs_full, colBfull);
+  ierr = LAPACKE_dgesv(LAPACK_ROW_MAJOR, colBfull, 1, mat_b_rhs_full, colBfull, ipiv, b_full, 1); //mat updated to be LU
+  if(ierr) { // ?? what should we do ???
+    std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
+  }
+  double rcond = 0;
+  ierr = LAPACKE_dgecon(LAPACK_ROW_MAJOR, norm, colBfull, mat_b_rhs_full, colBfull, anorm, &rcond);
+  if(ierr) { // ?? what should we do ???
+    std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
+  }
+  rcond = 1/rcond;
+
+  ipiv = (lapack_int*)malloc(colBreduced * sizeof(lapack_int));
+  double anorm_r = LAPACKE_dlange(LAPACK_ROW_MAJOR, norm, colBreduced, colBreduced, mat_b_rhs_reduced, colBreduced);
+  ierr = LAPACKE_dgesv(LAPACK_ROW_MAJOR, colBreduced, 1, mat_b_rhs_reduced, colBreduced, ipiv, b_reduced, 1); //mat updated to be LU
+  if(ierr) { // ?? what should we do ???
+    std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
+  }
+  double rcond_r = 0;
+  ierr = LAPACKE_dgecon(LAPACK_ROW_MAJOR, norm, colBreduced, mat_b_rhs_reduced, colBreduced, anorm_r, &rcond_r);
+  if(ierr) { // ?? what should we do ???
+    std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
+  }
+  rcond_r = 1/rcond_r;
+
+  //Calculate inf condition number
+  std::cout << "\tNorm Format:\t" << norm << std::endl;
+  std::cout << "\tNorm of mat:\t" << "full:\t" << anorm << "\treduced:\t"<< anorm_r << std::endl;
+  std::cout << "\tCond number:\t" << "full:\t" << rcond << "\treduced:\t"<< rcond_r  << std::endl;
+
+
+
+
+/*
+
+  
   
   //Solve the matrix, result would be stored in rhs
   lapack_int* ipiv; char norm = 'I'; 
