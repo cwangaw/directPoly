@@ -208,7 +208,7 @@ int MixedPDE::solve(Monitor& monitor) {
       for (int j = 0; j < loc_dimAfull; j++) {
         Tensor1 v_j = mePtr -> basis(j,iPt);
         for (int i = 0; i < loc_dimAfull; i++) {
-          Tensor1 u_i = mePtr -> basis(j,iPt);
+          Tensor1 u_i = mePtr -> basis(i,iPt);
           curr_full_index = dimAfull * (starting_Afull + j) + (starting_Afull + i);
           evaluation = ((valD*u_i)*v_j)*quadRule.wt(iPt);
           mat_A_full[curr_full_index] += evaluation;
@@ -289,5 +289,108 @@ int MixedPDE::solve(Monitor& monitor) {
     starting_colBreduced += loc_colBreduced;
     starting_colBfull += loc_colBfull;
   }
+
+  // OUTPUT MATRICES AND RHS //////////////////////////////////////////////////
+
+  if (true) {
+  
+  std::ofstream fout1("test/A_full.txt");
+  for(int j = 0; j < dimAfull; j++) {
+    for(int i = 0; i < dimAfull; i++) {
+      fout1 << mat_A_full[i + dimAfull*j] << "\t";
+    }
+    if (j < dimAfull - 1) fout1 << "\n";
+  }
+
+  std::ofstream fout2("test/A_reduced.txt");
+  for(int j = 0; j < dimAreduced; j++) {
+    for(int i = 0; i < dimAreduced; i++) {
+      fout2 << mat_A_reduced[i + dimAreduced*j] << "\t";
+    }
+    if (j < dimAreduced - 1) fout2 << "\n";
+  }
+
+  std::ofstream fout3("test/B_full.txt");
+  for(int j = 0; j < rowBfull; j++) {
+    for(int i = 0; i < colBfull; i++) {
+      fout3 << mat_B_full[i + colBfull*j] << "\t";
+    }
+    if (j < rowBfull - 1) fout3 << "\n";
+  }
+
+  std::ofstream fout4("test/B_reduced.txt");
+  for(int j = 0; j < rowBreduced; j++) {
+    for(int i = 0; i < colBreduced; i++) {
+      fout4 << mat_B_reduced[i + colBreduced*j] << "\t";
+    }
+    if (j < rowBreduced - 1) fout4 << "\n";
+  }
+
+  std::ofstream fout5("test/L_full.txt");
+  for(int j = 0; j < rowLfull; j++) {
+    for(int i = 0; i < colL; i++) {
+      fout5 << mat_L_full[i + colL*j] << "\t";
+    }
+    if (j < rowLfull - 1) fout5 << "\n";
+  }
+
+  std::ofstream fout6("test/L_reduced.txt");
+  for(int j = 0; j < rowLreduced; j++) {
+    for(int i = 0; i < colL; i++) {
+      fout6 << mat_L_reduced[i + colL*j] << "\t";
+    }
+    if (j < rowLreduced - 1) fout6 << "\n";
+  }
+
+  std::ofstream fout7("test/rhs_full.txt");
+  for(int i = 0; i < colBfull; i++) {
+    fout7 << rhs_full[i];
+    if (i < colBfull - 1) fout7 << "\n";
+  }
+
+  std::ofstream fout8("test/rhs_reduced.txt");
+  for(int i = 0; i < colBreduced; i++) {
+    fout8 << rhs_reduced[i];
+    if (i < colBreduced - 1) fout8 << "\n";
+  }
+
+  }
+
+/*
+
+  monitor(1,"Solution of linear system"); ////////////////////////////////////////
+  
+  //Solve the matrix, result would be stored in rhs
+  lapack_int* ipiv; char norm = 'I'; 
+  ipiv = (lapack_int*)malloc(nn * sizeof(lapack_int));
+  double anorm = LAPACKE_dlange(LAPACK_ROW_MAJOR, norm, nn, nn, mat, nn);
+  int ierr = LAPACKE_dgesv(LAPACK_ROW_MAJOR, nn, 1, mat, nn, ipiv, rhs, 1); //mat updated to be LU
+  if(ierr) { // ?? what should we do ???
+    std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
+  }
+  double rcond = 0;
+  ierr = LAPACKE_dgecon(LAPACK_ROW_MAJOR, norm, nn, mat, nn, anorm, &rcond);
+  if(ierr) { // ?? what should we do ???
+    std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
+  }
+  rcond = 1/rcond;
+
+  //Calculate inf condition number
+  std::cout << "\tNorm Format:\t" << norm << std::endl;
+  std::cout << "\tNorm of mat:\t" << anorm << std::endl;
+  std::cout << "\tCond number:\t" << rcond << std::endl;
+
+
+  for(int i=0; i<solution.size(); i++) {
+    if(index_correction[i] == -1) {
+      double x = param.dsSpace.nodePtr(i)->val(0);
+      double y = param.dsSpace.nodePtr(i)->val(1);
+      solution[i] = bcVal(x,y);
+    } else {
+      solution[i] = rhs[index_correction[i]];
+    }
+  }
+
+*/
   return 0;
 } 

@@ -298,3 +298,11 @@ directpoly.x86_64
 test/basis_mesh_DG.m
 test/basis_mesh_mixed.m
 test/basis_mesh_EDG.m
+test/rhs_reduced.txt
+test/rhs_full.txt
+test/L_reduced.txt
+test/L_full.txt
+test/B_reduced.txt
+test/B_full.txt
+test/A_reduced.txt
+test/A_full.txt
