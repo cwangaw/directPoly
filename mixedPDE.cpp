@@ -20,7 +20,7 @@ using namespace directserendipity;
 using namespace polymesh;
 using namespace polyquadrature;
 
-lapack_int mat_inv(double *A, unsigned n)
+lapack_int mat_inv(double *A, int n)
 {
   // inplace inverse n x n matrix A.
   // matrix A is Column Major (i.e. firts line, second line ... *not* C[][] order)
@@ -215,11 +215,9 @@ int MixedPDE::solve(Monitor& monitor) {
           curr_full_index = dimAfull * (starting_Afull + j) + (starting_Afull + i);
           evaluation = ((valD*u_i)*v_j)*quadRule.wt(iPt);
           mat_A_full[curr_full_index] += evaluation;
-//          assert(curr_full_index < dimAfull * dimAfull);
           if (j < loc_dimAreduced && i < loc_dimAreduced) {
             curr_reduced_index = dimAreduced * (starting_Areduced + j) + (starting_Areduced + i);
             mat_A_reduced[curr_reduced_index] += evaluation;
-//            assert(curr_reduced_index < dimAreduced * dimAreduced);
           }
         }
       }
@@ -235,11 +233,9 @@ int MixedPDE::solve(Monitor& monitor) {
           curr_full_index = colBfull * (starting_Afull + j) + (starting_colBfull + i);
           evaluation = divv_j * p_i * quadRule.wt(iPt);
           mat_B_full[curr_full_index] += evaluation;
-//          assert(curr_full_index < dimAfull * colBfull);
           if (j < loc_dimAreduced && i < loc_colBreduced) {
             curr_reduced_index = colBreduced * (starting_Areduced + j) + (starting_colBreduced + i);
             mat_B_reduced[curr_reduced_index] += evaluation;
-//            assert(curr_reduced_index < dimAreduced * colBreduced);
           }
         }
       }
@@ -250,11 +246,9 @@ int MixedPDE::solve(Monitor& monitor) {
         curr_full_index = starting_colBfull + j;
         evaluation = f_wted * dgePtr->basis(j,iPt);
         rhs_full[curr_full_index] += evaluation;
-//        assert(curr_full_index < colBfull);
         if (j < loc_colBreduced) {
           curr_reduced_index = starting_colBreduced + j;
           rhs_reduced[curr_reduced_index] += evaluation;
-//          assert(curr_reduced_index < colBreduced);
         }
       }
     }
@@ -370,9 +364,9 @@ int MixedPDE::solve(Monitor& monitor) {
   // SOLVE LINEAR SYSTEM //////////////////////////////////////////////////
 
   monitor(1,"Solution of linear system"); ////////////////////////////////////////
-
+ 
   // Solve the matrix
-  // B^{T} A^{-1} [B - L * (L^{T} A^{-1} L)^{-1} * (L^{T} A^{-1} B)] b = rhs
+  // L^{T} A^{-1} { B (B^{T} A^{-1} B)^{-1} B^{T} A^{-1} L - L } c = - L^{T} A^{-1} B (B^{T} A^{-1} B)^{-1} rhs
 
 
   // Initialize A^{-1} and evaluate as A
@@ -402,254 +396,196 @@ int MixedPDE::solve(Monitor& monitor) {
   if(ierr) { // ?? what should we do ???
     std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
   }
+  
+  // Calculate m1 = L^{T} A^{-1}
 
-  std::ofstream fout15("test/A_full_inv.txt");
-  for(int j = 0; j < dimAfull; j++) {
-    for(int i = 0; i < dimAfull; i++) {
-      fout15 << A_full_inv[i + dimAfull*j] << "\t";
-    }
-    if (j < dimAfull - 1) fout15 << "\n";
-  }
-
-
-  // Calculate L^{T}A^{-1}
-  std::vector<double> ltai_full_vector(colL*dimAfull,0);
-  double* ltai_full = ltai_full_vector.data();
-  std::vector<double> ltai_reduced_vector(colL*dimAreduced,0);
-  double* ltai_reduced = ltai_reduced_vector.data();
+  std::vector<double> m1_full_vector(colL*dimAfull,0);
+  double* m1_full = m1_full_vector.data();
+  std::vector<double> m1_reduced_vector(colL*dimAreduced,0);
+  double* m1_reduced = m1_reduced_vector.data();
 
 
   cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, colL, dimAfull,
-              dimAfull, 1, mat_L_full, colL, A_full_inv, dimAfull,
-              0, ltai_full, dimAfull);
+              dimAfull, 1.0, mat_L_full, colL, A_full_inv, dimAfull,
+              0.0, m1_full, dimAfull);
 
   cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, colL, dimAreduced,
-              dimAreduced, 1, mat_L_reduced, colL, A_reduced_inv, dimAreduced,
-              0, ltai_reduced, dimAreduced);
+              dimAreduced, 1.0, mat_L_reduced, colL, A_reduced_inv, dimAreduced,
+              0.0, m1_reduced, dimAreduced);
 
 
-  std::ofstream fout11("test/ltai_full.txt");
+  std::ofstream fout11("test/m1_full.txt");
   for(int j = 0; j < colL; j++) {
     for(int i = 0; i < dimAfull; i++) {
-      fout11 << ltai_full[i + dimAfull*j] << "\t";
+      fout11 << m1_full[i + dimAfull*j] << "\t";
     }
     if (j < colL - 1) fout11 << "\n";
   }
 
+  // Calculate m2 = ( B^{T} A^{-1} B )^{-1}
 
+  std::vector<double> m2_full_vector(colBfull*colBfull,0);
+  double* m2_full = m2_full_vector.data();
+  std::vector<double> m2_reduced_vector(colBreduced*colBreduced,0);
+  double* m2_reduced = m2_reduced_vector.data();
 
-  // Caluculate (L^{T} A^{-1} L)^{-1} and (L^{T} A^{-1} B)
-  // Multiply them together to be mat_b_c
-  // Notice that mat_b_c * b = c
+  // First calculate B^{T}A^{-1}
+  std::vector<double> btai_full_vector(colBfull*dimAfull,0);
+  double* btai_full = btai_full_vector.data();
+  std::vector<double> btai_reduced_vector(colBreduced*dimAreduced,0);
+  double* btai_reduced = btai_reduced_vector.data();
 
-  std::vector<double> ltaili_full_vector(colL*colL,0);
-  double* ltaili_full = ltaili_full_vector.data();
+  cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, colBfull, dimAfull,
+              dimAfull, 1.0, mat_B_full, colBfull, A_full_inv, dimAfull,
+              0.0, btai_full, dimAfull);
 
-  std::vector<double> ltaili_reduced_vector(colL*colL,0);
-  double* ltaili_reduced = ltaili_reduced_vector.data();
+  cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, colBreduced, dimAreduced,
+              dimAreduced, 1.0, mat_B_reduced, colBreduced, A_reduced_inv, dimAreduced,
+              0.0, btai_reduced, dimAreduced);
 
-  std::vector<double> mat_b_c_full_vector(colL*colBfull,0);
-  double* mat_b_c_full = mat_b_c_full_vector.data();
-  std::vector<double> mat_b_c_reduced_vector(colL*colBreduced,0);
-  double* mat_b_c_reduced = mat_b_c_reduced_vector.data();
+  // Times B^{T}A^{-1} with B and store in m2
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colBfull, colBfull,
+              dimAfull, 1.0, btai_full, dimAfull, mat_B_full, colBfull,
+              0.0, m2_full, colBfull);
 
-  // Calculate L^{T} A^{-1} * L and store in ltaili
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colBreduced, colBreduced,
+              dimAreduced, 1.0, btai_reduced, dimAreduced, mat_B_reduced, colBreduced,
+              0.0, m2_reduced, colBreduced);
 
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colL, colL,
-              dimAfull, 1, ltai_full, dimAfull, mat_L_full, colL,
-              0, ltaili_full, colL);
-
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colL, colL,
-              dimAreduced, 1, ltai_reduced, dimAfull, mat_L_reduced, colL,
-              0, ltaili_reduced, colL);
-
-  // Calculate inverse of L^{T} A^{-1} * L and store in ltaili
-
-  ierr = mat_inv(ltaili_full, colL);
+  // Take inverse
+  ierr = mat_inv(m2_full, colBfull);
   if(ierr) { // ?? what should we do ???
     std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
   }
 
-  ierr = mat_inv(ltaili_reduced, colL);
+  ierr = mat_inv(m2_reduced, colBreduced);
   if(ierr) { // ?? what should we do ???
     std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
   }
 
-  std::ofstream fout12("test/ltaili_full.txt");
-  for(int j = 0; j < colL; j++) {
-    for(int i = 0; i < colL; i++) {
-      fout12 << ltaili_full[i + colL*j] << "\t";
-    }
-    if (j < colL - 1) fout12 << "\n";
-  }
+  // Calculate m3 = B^{T} A^{-1} L
 
+  std::vector<double> m3_full_vector(colBfull*colL,0);
+  double* m3_full = m3_full_vector.data();
+  std::vector<double> m3_reduced_vector(colBreduced*colL,0);
+  double* m3_reduced = m3_reduced_vector.data();
 
-  // Calculate L^{T} A^{-1} * B and store in mat_b_c
+  // We already have btai, we just time it with L to get m3
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colBfull, colL,
+              dimAfull, 1.0, btai_full, dimAfull, mat_L_full, colL,
+              0.0, m3_full, colL);
 
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colL, colBfull,
-              dimAfull, 1, ltai_full, dimAfull, mat_B_full, colBfull,
-              0, mat_b_c_full, colBfull);
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colBreduced, colL,
+              dimAreduced, 1.0, btai_reduced, dimAreduced, mat_L_reduced, colL,
+              0.0, m3_reduced, colL);
 
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colL, colBreduced,
-              dimAreduced, 1, ltai_reduced, dimAfull, mat_B_reduced, colBreduced,
-              0, mat_b_c_reduced, colBreduced);
+  // Calculate and store B(m2)
 
+  std::vector<double> bm2_full_vector(dimAfull*colBfull,0);
+  double* bm2_full = bm2_full_vector.data();
+  std::vector<double> bm2_reduced_vector(dimAreduced*colBreduced,0);
+  double* bm2_reduced = bm2_reduced_vector.data();
 
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAfull, colBfull,
+              colBfull, 1.0, mat_B_full, colBfull, m2_full, colBfull,
+              0.0, bm2_full, colBfull);
 
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAreduced, colBreduced,
+              colBreduced, 1.0, mat_B_reduced, colBreduced, m2_reduced, colBreduced,
+              0.0, bm2_reduced, colBreduced);
 
+  // Calculate and store m4 = B m2 m3 - L
 
-  // Multiply (L^{T} A^{-1} L)^{-1} and (L^{T} A^{-1} B)
-  // Store in mat_b_c
+  std::vector<double> m4_full_vector(dimAfull*colL,0);
+  double* m4_full = m4_full_vector.data();
+  std::vector<double> m4_reduced_vector(dimAreduced*colL,0);
+  double* m4_reduced = m4_reduced_vector.data();  
 
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colL, colBfull,
-              colL, 1, ltaili_full, colL, mat_b_c_full, colBfull,
-              0, mat_b_c_full, colBfull);
-
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colL, colBreduced,
-              colL, 1, ltaili_reduced, colL, mat_b_c_reduced, colBreduced,
-              0, mat_b_c_reduced, colBreduced);
-
-
-  std::ofstream fout13("test/mat_b_c_full.txt");
-  for(int j = 0; j < colL; j++) {
-    for(int i = 0; i < colBfull; i++) {
-      fout13 << ltaili_full[i + colBfull*j] << "\t";
-    }
-    if (j < colL - 1) fout13 << "\n";
-  }
-
-
-  // -L * mat_b_c + B -> workmat
-
-  std::vector<double> workmat_full_vector(dimAfull*colBfull,0);
-  double* workmat_full = workmat_full_vector.data();
-  std::vector<double> workmat_reduced_vector(dimAreduced*colBreduced,0);
-  double* workmat_reduced = workmat_reduced_vector.data();
-
-  // We first update workmat to be B
-
+  // We first evaluate m4 as L
   for (int j = 0; j < dimAfull; j++) {
-    for (int i = 0; i < colBfull; i++) {
-      workmat_full[j * colBfull + i] = mat_B_full[j * colBfull + i];
-      if (j < dimAreduced && i < colBreduced) {
-        workmat_reduced[j * colBreduced + i] = mat_B_reduced[j * colBreduced + i];
+    for (int i = 0; i < colL; i++) {
+      m4_full[j * colL + i] = mat_L_full[j * colL + i];
+      if (j < dimAreduced) {
+        m4_reduced[j * colL + i] = mat_L_reduced[j * colL + i];
       }
     }
   }
 
-  // Calculate -L * mat_b_c + B
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAfull, colL,
+              colBfull, 1.0, bm2_full, colBfull, m3_full, colL,
+              -1.0, m4_full, colL);
 
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAfull, colBfull,
-              colL, -1, mat_L_full, colL, mat_b_c_full, colBfull,
-              1, workmat_full, colBfull);
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAreduced, colL,
+              colBreduced, 1.0, bm2_reduced, colBreduced, m3_reduced, colL,
+              -1.0, m4_reduced, colL);
 
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAreduced, colBreduced,
-              colL, -1, mat_L_reduced, colL, mat_b_c_reduced, colBreduced,
-              1, workmat_reduced, colBreduced);
+  // Finally, we have mat = m1 m4
+  std::vector<double> mat_full_vector(colL*colL,0);
+  double* mat_full = mat_full_vector.data();
+  std::vector<double> mat_reduced_vector(colL*colL,0);
+  double* mat_reduced = mat_reduced_vector.data();
 
-  std::ofstream fout14("test/workmat_full.txt");
-  for(int j = 0; j < dimAfull; j++) {
-    for(int i = 0; i < colBfull; i++) {
-      fout14 << workmat_full[i + colBfull*j] << "\t";
-    }
-    if (j < dimAfull - 1) fout14 << "\n";
-  }
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colL, colL,
+              dimAfull, 1.0, m1_full, dimAfull, m4_full, colL,
+              0.0, mat_full, colL);          
 
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colL, colL,
+              dimAreduced, 1.0, m1_reduced, dimAreduced, m4_reduced, colL,
+              0.0, mat_reduced, colL);  
 
+  // We get rhs1 = B (m2) rhs
+  std::vector<double> rhs1_full_vector(dimAfull,0); // row number = dimAfull, col number = 1
+  double* rhs1_full = rhs1_full_vector.data();
+  std::vector<double> rhs1_reduced_vector(dimAreduced,0);
+  double* rhs1_reduced = rhs1_reduced_vector.data();
 
-  // Do multiplication A^{-1} * workmat and update workmat as this
-  // Then workmat = A^{-1} [B - L * (L^{T} A^{-1} L)^{-1} * (L^{T} A^{-1} B)]
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAfull, 1,
+              colBfull, 1.0, bm2_full, colBfull, rhs_full, 1,
+              0.0, rhs1_full, 1);
 
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAfull, colBfull,
-              dimAfull, 1, A_full_inv, dimAfull, workmat_full, colBfull,
-              0, workmat_full, colBfull);
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAreduced, 1,
+              colBreduced, 1.0, bm2_reduced, colBreduced, rhs_reduced, 1,
+              0.0, rhs1_reduced, 1);
 
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAreduced, colBreduced,
-              dimAreduced, 1, A_reduced_inv, dimAreduced, workmat_reduced, colBreduced,
-              0, workmat_reduced, colBreduced);
+  // Now we initialize c with -(m1)(rhs1) and solve the linear system
+  // Notice that mat*c = -(m1)(rhs1)
 
-  std::ofstream fout16("test/Aiworkmat_full.txt");
-  for(int j = 0; j < dimAfull; j++) {
-    for(int i = 0; i < colBfull; i++) {
-      fout16 << workmat_full[i + colBfull*j] << "\t";
-    }
-    if (j < dimAfull - 1) fout16 << "\n";
-  }
+  std::vector<double> c_full_vector(colL,0);
+  double* c_full = c_full_vector.data();
+  std::vector<double> c_reduced_vector(colL,0);
+  double* c_reduced = c_reduced_vector.data();
 
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colL, 1,
+              dimAfull, -1.0, m1_full, dimAfull, rhs1_full, 1,
+              0.0, c_full, 1);
 
-  // Now we initialize mat_b_rhs and evaluate it as B^{T} * workmat
-  // Then mat_b_rhs * b = rhs
-
-  std::vector<double> mat_b_rhs_full_vector(colBfull*colBfull,0);
-  double* mat_b_rhs_full = mat_b_rhs_full_vector.data();
-  std::vector<double> mat_b_rhs_reduced_vector(colBreduced*colBreduced,0);
-  double* mat_b_rhs_reduced = mat_b_rhs_reduced_vector.data();
-
-  cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, colBfull, colBfull,
-              dimAfull, 1, mat_B_full, colBfull, workmat_full, colBfull,
-              0, mat_b_rhs_full, colBfull);  
-
-  cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, colBreduced, colBreduced,
-              dimAreduced, 1, mat_B_reduced, colBreduced, workmat_reduced, colBreduced,
-              0, mat_b_rhs_reduced, colBreduced);
-
-
-  std::ofstream fout9("test/mat_b_rhs_full.txt");
-  for(int j = 0; j < colBfull; j++) {
-    for(int i = 0; i < colBfull; i++) {
-      fout9 << mat_b_rhs_full[i + colBfull*j] << "\t";
-    }
-    if (j < colBfull - 1) fout9 << "\n";
-  }
-
-  std::ofstream fout10("test/mat_b_rhs_reduced.txt");
-  for(int j = 0; j < colBreduced; j++) {
-    for(int i = 0; i < colBreduced; i++) {
-      fout10 << mat_b_rhs_reduced[i + colBreduced*j] << "\t";
-    }
-    if (j < colBreduced - 1) fout10 << "\n";
-  }
-
-
-
-
-
-
-  // Now we initialize b with rhs and solve the linear system
-
-  std::vector<double> b_full_vector(colBfull,0);
-  double* b_full = b_full_vector.data();
-  std::vector<double> b_reduced_vector(colBreduced,0);
-  double* b_reduced = b_reduced_vector.data();
-
-  for (int i = 0; i < colBfull; i++) {
-    b_full[i] = rhs_full[i];
-    if (i < colBreduced) b_reduced[i] = rhs_reduced[i];
-  }
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colL, 1,
+              dimAreduced, -1.0, m1_reduced, dimAreduced, rhs1_reduced, 1,
+              0.0, c_reduced, 1);
 
 
   lapack_int* ipiv; char norm = 'I'; 
-  ipiv = (lapack_int*)malloc(colBfull * sizeof(lapack_int));
-  double anorm = LAPACKE_dlange(LAPACK_ROW_MAJOR, norm, colBfull, colBfull, mat_b_rhs_full, colBfull);
-  ierr = LAPACKE_dgesv(LAPACK_ROW_MAJOR, colBfull, 1, mat_b_rhs_full, colBfull, ipiv, b_full, 1); //mat updated to be LU
+  ipiv = (lapack_int*)malloc(colL * sizeof(lapack_int));
+  double anorm = LAPACKE_dlange(LAPACK_ROW_MAJOR, norm, colL, colL, mat_full, colL);
+  ierr = LAPACKE_dgesv(LAPACK_ROW_MAJOR, colL, 1, mat_full, colL, ipiv, c_full, 1); //mat updated to be LU
   if(ierr) { // ?? what should we do ???
     std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
   }
   double rcond = 0;
-  ierr = LAPACKE_dgecon(LAPACK_ROW_MAJOR, norm, colBfull, mat_b_rhs_full, colBfull, anorm, &rcond);
+  ierr = LAPACKE_dgecon(LAPACK_ROW_MAJOR, norm, colL, mat_full, colL, anorm, &rcond);
   if(ierr) { // ?? what should we do ???
     std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
   }
   rcond = 1/rcond;
 
-  ipiv = (lapack_int*)malloc(colBreduced * sizeof(lapack_int));
-  double anorm_r = LAPACKE_dlange(LAPACK_ROW_MAJOR, norm, colBreduced, colBreduced, mat_b_rhs_reduced, colBreduced);
-  ierr = LAPACKE_dgesv(LAPACK_ROW_MAJOR, colBreduced, 1, mat_b_rhs_reduced, colBreduced, ipiv, b_reduced, 1); //mat updated to be LU
+
+  double anorm_r = LAPACKE_dlange(LAPACK_ROW_MAJOR, norm, colL, colL, mat_reduced, colL);
+  ierr = LAPACKE_dgesv(LAPACK_ROW_MAJOR, colL, 1, mat_reduced, colL, ipiv, c_reduced, 1); //mat updated to be LU
   if(ierr) { // ?? what should we do ???
     std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
   }
   double rcond_r = 0;
-  ierr = LAPACKE_dgecon(LAPACK_ROW_MAJOR, norm, colBreduced, mat_b_rhs_reduced, colBreduced, anorm_r, &rcond_r);
+  ierr = LAPACKE_dgecon(LAPACK_ROW_MAJOR, norm, colL, mat_reduced, colL, anorm_r, &rcond_r);
   if(ierr) { // ?? what should we do ???
     std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
   }
@@ -660,34 +596,129 @@ int MixedPDE::solve(Monitor& monitor) {
   std::cout << "\tNorm of mat:\t" << "full:\t" << anorm << "\treduced:\t"<< anorm_r << std::endl;
   std::cout << "\tCond number:\t" << "full:\t" << rcond << "\treduced:\t"<< rcond_r  << std::endl;
 
+  std::ofstream fout17("test/c_full.txt");
+  for(int i = 0; i < colL; i++) {
+    fout17 << c_full[i];
+    if (i < colL - 1) fout17 << "\n";
+  }
 
+  std::ofstream fout18("test/c_reduced.txt");
+  for(int i = 0; i < colL; i++) {
+    fout18 << c_reduced[i];
+    if (i < colL - 1) fout18 << "\n";
+  }
 
+  // Calculate b = (m2) [ (m3) c + rhs ]
 
+  std::vector<double> b0_full_vector(colBfull,0);
+  double* b0_full = b0_full_vector.data();
+  std::vector<double> b0_reduced_vector(colBreduced,0);
+  double* b0_reduced = b0_reduced_vector.data();
+
+  std::vector<double> b_full_vector(colBfull,0);
+  double* b_full = b_full_vector.data();
+  std::vector<double> b_reduced_vector(colBreduced,0);
+  double* b_reduced = b_reduced_vector.data();
+
+  // We first initialize b0 as rhs and calculate b0 = (m3) c + rhs
+  for (int j = 0; j < colBfull; j++) {
+    b0_full[j] = rhs_full[j];
+    if (j < colBreduced) b0_reduced[j] = rhs_reduced[j];
+  }
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colBfull, 1,
+              colL, 1.0, m3_full, colL, c_full, 1,
+              1.0, b0_full, 1);  
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colBreduced, 1,
+              colL, 1.0, m3_reduced, colL, c_reduced, 1,
+              1.0, b0_reduced, 1);
+
+  // Calculate b = m2(b0)
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colBfull, 1,
+              colBfull, 1.0, m2_full, colBfull, b0_full, 1,
+              0.0, b_full, 1);
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colBreduced, 1,
+              colBreduced, 1.0, m2_reduced, colBreduced, b0_reduced, 1,
+              0.0, b_reduced, 1);
+
+  // Calculate a = A^{-1} [Bb-Lc]
+
+  // We first initialize and calculate a0 = Lc, and then a1 = Bb - a0
+
+  std::vector<double> a0_full_vector(dimAfull,0);
+  double* a0_full = a0_full_vector.data();
+  std::vector<double> a0_reduced_vector(dimAreduced,0);
+  double* a0_reduced = a0_reduced_vector.data();
+
+  std::vector<double> a1_full_vector(dimAfull,0);
+  double* a1_full = a1_full_vector.data();
+  std::vector<double> a1_reduced_vector(dimAreduced,0);
+  double* a1_reduced = a1_reduced_vector.data();
+
+  std::vector<double> a_full_vector(dimAfull,0);
+  double* a_full = a_full_vector.data();
+  std::vector<double> a_reduced_vector(dimAreduced,0);
+  double* a_reduced = a_reduced_vector.data();
+
+  // a0 = Lc
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAfull, 1,
+              colL, 1.0, mat_L_full, colL, c_full, 1,
+              0.0, a0_full, 1);
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAreduced, 1,
+              colL, 1.0, mat_L_reduced, colL, c_reduced, 1,
+              0.0, a0_reduced, 1);
+
+  // a1 = Bb - a0
+  for (int j = 0; j < dimAfull; j++) {
+    a1_full[j] = a0_full[j];
+    if (j < dimAreduced) a1_reduced[j] = a0_reduced[j];
+  }
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAfull, 1,
+              colBfull, 1.0, mat_B_full, colBfull, b_full, 1,
+              -1.0, a1_full, 1);
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAreduced, 1,
+              colBreduced, 1.0, mat_B_reduced, colBreduced, b_reduced, 1,
+              -1.0, a1_reduced, 1);
+
+  // a = A^{-1}(a1)
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAfull, 1,
+              dimAfull, 1.0, A_full_inv, dimAfull, a1_full, 1,
+              0.0, a_full, 1);
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAreduced, 1,
+              dimAreduced, 1.0, A_reduced_inv, dimAreduced, a1_reduced, 1,
+              0.0, a_reduced, 1);
+
+  std::ofstream fout19("test/b_vec_full.txt");
+  for(int i = 0; i < colBfull; i++) {
+    fout19 << b_full[i];
+    if (i < colBfull - 1) fout19 << "\n";
+  }
+
+  std::ofstream fout20("test/b_vec_reduced.txt");
+  for(int i = 0; i < colBreduced; i++) {
+    fout20 << b_reduced[i];
+    if (i < colBreduced - 1) fout20 << "\n";
+  }
+
+  std::ofstream fout21("test/a_vec_full.txt");
+  for(int i = 0; i < dimAfull; i++) {
+    fout21 << a_full[i];
+    if (i < dimAfull - 1) fout21 << "\n";
+  }
+
+  std::ofstream fout22("test/a_vec_reduced.txt");
+  for(int i = 0; i < dimAreduced; i++) {
+    fout22 << a_reduced[i];
+    if (i < dimAreduced - 1) fout22 << "\n";
+  }
+  
 /*
-
-  
-  
-  //Solve the matrix, result would be stored in rhs
-  lapack_int* ipiv; char norm = 'I'; 
-  ipiv = (lapack_int*)malloc(nn * sizeof(lapack_int));
-  double anorm = LAPACKE_dlange(LAPACK_ROW_MAJOR, norm, nn, nn, mat, nn);
-  int ierr = LAPACKE_dgesv(LAPACK_ROW_MAJOR, nn, 1, mat, nn, ipiv, rhs, 1); //mat updated to be LU
-  if(ierr) { // ?? what should we do ???
-    std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
-  }
-  double rcond = 0;
-  ierr = LAPACKE_dgecon(LAPACK_ROW_MAJOR, norm, nn, mat, nn, anorm, &rcond);
-  if(ierr) { // ?? what should we do ???
-    std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
-  }
-  rcond = 1/rcond;
-
-  //Calculate inf condition number
-  std::cout << "\tNorm Format:\t" << norm << std::endl;
-  std::cout << "\tNorm of mat:\t" << anorm << std::endl;
-  std::cout << "\tCond number:\t" << rcond << std::endl;
-
-
   for(int i=0; i<solution.size(); i++) {
     if(index_correction[i] == -1) {
       double x = param.dsSpace.nodePtr(i)->val(0);
