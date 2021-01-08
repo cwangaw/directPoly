@@ -63,3 +63,9 @@ Tensor1 trueGradSoln(double x, double y) {
   //return Tensor1(2*x,2*y);
   //return Tensor1(0,0);
 }
+
+Tensor1 trueUSoln(double x, double y) {
+  Tensor2 negd(-1,0,0,-1);
+  Tensor1 grad(PI*cos(PI*x)*sin(PI*y),PI*sin(PI*x)*cos(PI*y));
+  return negd*grad;
+}

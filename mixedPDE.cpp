@@ -114,7 +114,8 @@ int MixedPDE::solve(Monitor& monitor) {
   DirectMixedArray solution_u_r(&(param.dmSpace),'r');
   DirectDGArray solution_p_f(&(param.dmSpace),'f');
   DirectDGArray solution_p_r(&(param.dmSpace),'r');
-  DirectEdgeDGArray solution_l(&(param.dmSpace));
+  DirectEdgeDGArray solution_l_f(&(param.dmSpace));
+  DirectEdgeDGArray solution_l_r(&(param.dmSpace));
 
   // Initialize matrix A for both full and reduced space
   int dimAfull = param.dmSpace.nMixedDoFs('f');
@@ -718,17 +719,66 @@ int MixedPDE::solve(Monitor& monitor) {
     if (i < dimAreduced - 1) fout22 << "\n";
   }
   
-/*
-  for(int i=0; i<solution.size(); i++) {
-    if(index_correction[i] == -1) {
-      double x = param.dsSpace.nodePtr(i)->val(0);
-      double y = param.dsSpace.nodePtr(i)->val(1);
-      solution[i] = bcVal(x,y);
-    } else {
-      solution[i] = rhs[index_correction[i]];
-    }
+
+  for(int i=0; i<solution_p_f.size(); i++) {
+    solution_p_f[i] = b_full[i];
   }
 
+  for(int i=0; i<solution_p_r.size(); i++) {
+    solution_p_r[i] = b_reduced[i];
+  }
+
+  
+  if(trueSolnKnown()) {
+    monitor(0,"\nError estimate\n"); ///////////////////////////////////////////////
+  
+    double h = param.dsSpace.mesh()->maxElementDiameter();
+    
+    double l2Error_f = 0, l2UError_f = 0, l2Norm_f = 0, l2UNorm_f = 0;
+    double l2Error_r = 0, l2UError_r = 0, l2Norm_r = 0, l2UNorm_r = 0;
+    solution_p_f.l2normError(l2Error_f, l2Norm_f, trueSoln);
+    solution_p_r.l2normError(l2Error_r, l2Norm_r, trueSoln);
+    
+    std::cout << "  Max Element Diameter h:  " << h << std::endl;
+    std::cout << "  L_2 Error full:      " << l2Error_f << std::endl;
+    std::cout << "  L_2 Error reduced:      " << l2Error_r << std::endl;
+  //  std::cout << "  L_2 Grad Error: " << l2GradError << std::endl;
+    std::cout << std::endl;
+  //  std::cout << "  Relative L_2 Error:      " << l2Error/l2Norm << std::endl;
+  //  std::cout << "  Relative L_2 Grad Error: " << l2GradError/l2GradNorm << std::endl;
+    std::cout << std::endl;
+/*
+    if(param.output_soln_DS_format > 0) {
+      monitor(1,"Write True Solution"); ////////////////////////////////////////////
+
+      DirectSerendipityArray u(&(param.dsSpace));
+
+      for(int i=0; i<u.size(); i++) {
+        double x = param.dsSpace.nodePtr(i)->val(0);
+        double y = param.dsSpace.nodePtr(i)->val(1);
+        u[i] = trueSoln(x,y);
+      }
+
+      switch(param.output_soln_DS_format) {
+      case 1: {
+        std::string fileName(param.directory_name);
+        fileName += "true_solution_raw";
+        u.write_raw(fileName);
+        break;
+      }
+      case 2: {
+        std::string fileName(param.directory_name);
+        fileName += "true_solution_mesh";
+        std::string fileNameGrad(param.directory_name);
+        fileNameGrad += "true_solution_grad_mesh";
+        u.write_matlab_mesh(fileName,fileNameGrad,
+        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y);
+        break;
+      }
+      }
+    }
 */
+  }  
+
   return 0;
 } 
