@@ -21,9 +21,15 @@
 //
 //    Setting u = - D grad p + b p,
 //    find (u, p, l) in V^s_r x W_s x L_r such that
-//      (D^{-1} u , v) - (p , div v) + (D^{-1} b p, v) + Sum_E (l , v.nu)_{delta E} = 0 for all v in V^s_r
+//
+//      (D^{-1} u , v) - (p , div v) + (D^{-1} b p, v)
+//                     + Sum_E (l , v.nu)_{delta E \ delta Omega} 
+//                     + Sum_E (p_D , v.nu)_{delta E \Cap delta Omega} = 0 for all v in V^s_r
+//
 //      (div u, q) + (a p, q) = (f , q) for all q in W_s
+//
 //      Sum_E (u.nu , l)_{delta E} = 0 for all l in L_r
+//
 //    where 
 //      V^s_r is the direct sum of V^s_r(E), which is 
 //        a full / reduced direct mixed space on element E for s = r, r - 1

@@ -21,5 +21,7 @@ double bcVal(double x, double y);
 bool trueSolnKnown();
 double trueSoln(double x, double y);
 Tensor1 trueGradSoln(double x, double y);
+Tensor2 trueHessianSoln(double x, double y);
+Tensor1 trueUSoln(double x, double y);
 
 #endif
