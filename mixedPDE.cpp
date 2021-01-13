@@ -447,14 +447,6 @@ int MixedPDE::solve(Monitor& monitor) {
               0.0, m1_reduced, dimAreduced);
 
 
-  std::ofstream fout11("test/m1_full.txt");
-  for(int j = 0; j < colL; j++) {
-    for(int i = 0; i < dimAfull; i++) {
-      fout11 << m1_full[i + dimAfull*j] << "\t";
-    }
-    if (j < colL - 1) fout11 << "\n";
-  }
-
   // Calculate m2 = ( B^{T} A^{-1} B )^{-1}
 
   std::vector<double> m2_full_vector(colBfull*colBfull,0);
@@ -793,6 +785,14 @@ int MixedPDE::solve(Monitor& monitor) {
     solution_p_r[i] = b_reduced[i];
   }
 
+  for(int i=0; i<solution_u_f.size(); i++) {
+    solution_u_f[i] = a_full[i];
+  }
+
+  for(int i=0; i<solution_u_r.size(); i++) {
+    solution_u_r[i] = a_reduced[i];
+  }
+
 if(param.output_soln_Mixed_format > 0) {
   
     monitor(1,"Write Solution"); //////////////////////////////////////////////////
@@ -808,13 +808,14 @@ if(param.output_soln_Mixed_format > 0) {
       std::string fileName_p_r = fileName + "_p_r";
       solution_p_r.write_raw(fileName_p_r);
 
-      /* 
+       
       std::string fileName_u_f = fileName + "_u_f";
       solution_u_f.write_raw(fileName_u_f);
 
       std::string fileName_u_r = fileName + "_u_r";
       solution_u_r.write_raw(fileName_u_r);
 
+      /*
       std::string fileName_l_f = fileName + "_l_f";
       solution_l_f.write_raw(fileName_l_f);
 
@@ -836,7 +837,7 @@ if(param.output_soln_Mixed_format > 0) {
       solution_p_r.write_matlab_mesh(fileName_p_r, 
                     param.output_mesh_numPts_Mixed_x,param.output_mesh_numPts_Mixed_y);
 
-      /* 
+       
       std::string fileName_u_f = fileName + "_u_f";
       solution_u_f.write_matlab_mesh(fileName_u_f, 
                     param.output_mesh_numPts_Mixed_x,param.output_mesh_numPts_Mixed_y);
@@ -845,6 +846,7 @@ if(param.output_soln_Mixed_format > 0) {
       solution_u_r.write_matlab_mesh(fileName_u_r, 
                     param.output_mesh_numPts_Mixed_x,param.output_mesh_numPts_Mixed_y);
 
+      /*
       std::string fileName_l_f = fileName + "_l_f";
       solution_l_f.write_matlab_mesh(fileName_l_f, 
                     param.output_mesh_numPts_Mixed_x,param.output_mesh_numPts_Mixed_y);
@@ -867,46 +869,22 @@ if(param.output_soln_Mixed_format > 0) {
     double l2Error_r = 0, l2UError_r = 0, l2Norm_r = 0, l2UNorm_r = 0;
     solution_p_f.l2normError(l2Error_f, l2Norm_f, trueSoln);
     solution_p_r.l2normError(l2Error_r, l2Norm_r, trueSoln);
+    solution_u_f.l2normError(l2UError_f, l2UNorm_f, trueUSoln);
+    solution_u_r.l2normError(l2UError_r, l2UNorm_r, trueUSoln);
     
     std::cout << "  Max Element Diameter h:  " << h << std::endl;
+    std::cout << "  === p ===  " << std::endl;
     std::cout << "  L_2 Error full:      " << l2Error_f << std::endl;
     std::cout << "  L_2 Error reduced:      " << l2Error_r << std::endl;
-  //  std::cout << "  L_2 Grad Error: " << l2GradError << std::endl;
+    std::cout << "  Relative L_2 Error full:      " << l2Error_f/l2Norm_f << std::endl;
+    std::cout << "  Relative L_2 Error reduced:      " << l2Error_r/l2Norm_r << std::endl;
     std::cout << std::endl;
-  //  std::cout << "  Relative L_2 Error:      " << l2Error/l2Norm << std::endl;
-  //  std::cout << "  Relative L_2 Grad Error: " << l2GradError/l2GradNorm << std::endl;
+    std::cout << "  === u ===  " << std::endl;
+    std::cout << "  L_2 Error full:      " << l2UError_f << std::endl;
+    std::cout << "  L_2 Error reduced:      " << l2UError_r << std::endl;
+    std::cout << "  Relative L_2 Error full:      " << l2UError_f/l2UNorm_f << std::endl;
+    std::cout << "  Relative L_2 Error reduced:      " << l2UError_r/l2UNorm_r << std::endl;
     std::cout << std::endl;
-/*
-    if(param.output_soln_Mixed_format > 0) {
-      monitor(1,"Write True Solution"); ////////////////////////////////////////////
-
-      DirectSerendipityArray u(&(param.dsSpace));
-
-      for(int i=0; i<u.size(); i++) {
-        double x = param.dsSpace.nodePtr(i)->val(0);
-        double y = param.dsSpace.nodePtr(i)->val(1);
-        u[i] = trueSoln(x,y);
-      }
-
-      switch(param.output_soln_Mixed_format) {
-      case 1: {
-        std::string fileName(param.directory_name);
-        fileName += "true_solution_raw";
-        u.write_raw(fileName);
-        break;
-      }
-      case 2: {
-        std::string fileName(param.directory_name);
-        fileName += "true_solution_mesh";
-        std::string fileNameGrad(param.directory_name);
-        fileNameGrad += "true_solution_grad_mesh";
-        u.write_matlab_mesh(fileName,fileNameGrad,
-        param.output_mesh_numPts_Mixed_x,param.output_mesh_numPts_Mixed_y);
-        break;
-      }
-      }
-    }
-*/
   }  
 
   return 0;
