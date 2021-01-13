@@ -399,6 +399,7 @@ namespace polyquadrature {
   //    num = number of points in the rule = degree of precision of the rule
   //    pts = quadrature points (using double)
   //    wts = quadrature weights
+  //    Note that pts are on (-1,1), but wts are for pts scaling to (0,1)
   ////////////////////////////////////////////////////////////////////////////////
 
   static struct {
@@ -597,11 +598,11 @@ namespace polyquadrature {
     // Reference edge
     int num_pts;
     double* my_pts_ref;
-    double* my_wts;
+    double* my_wts_ref;
 
     // Edge
     Point* my_pts = nullptr;
-
+    double* my_wts = nullptr;
     void set_rule(int desired_dop);
     void set_edge(polymesh::Edge* edge);
     

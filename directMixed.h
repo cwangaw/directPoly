@@ -341,6 +341,10 @@ namespace directserendipity {
       return interior_edge_indexing[my_mesh->elementPtr(iElement)->edgePtr(iEdge)->meshIndex()]; 
     };
 
+    int globalEdgeIndex(int iElement, int iEdge) const {
+      return my_mesh->elementPtr(iElement)->edgePtr(iEdge)->meshIndex();
+    }
+
     // Return the number of global dofs of spaces
     int nMixedDoFs(char type) const;
     int nDGDoFs(char type) const;
@@ -355,6 +359,10 @@ namespace directserendipity {
     // Return the edge from interior edge index
     polymesh::Edge* edgeInteriorPtr(int i) const {
       return my_mesh -> edgePtr(int_to_glob(i));
+    };
+
+    polymesh::Edge* edgePtr(int i) const {
+      return my_mesh -> edgePtr(i);
     };
 
     void write_raw(std::ofstream& fout) const;

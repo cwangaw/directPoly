@@ -39,7 +39,7 @@ lapack_int mat_inv(double *A, int n)
 }
 
 int MixedPDE::solve(Monitor& monitor) {
-  monitor(0,"Polynomial Degree = ", parameterDataPtr()->dsSpace.degPolyn());
+  monitor(0,"Polynomial Degree = ", parameterDataPtr()->dmSpace.degPolyn());
 
   ParameterData& param = *parameterDataPtr();
 
@@ -110,12 +110,15 @@ int MixedPDE::solve(Monitor& monitor) {
 
   monitor(0,"\nSolve the PDE\n");
 
+  // Only when r > 0, we calculate reduced space
+
   DirectMixedArray solution_u_f(&(param.dmSpace),'f');
   DirectMixedArray solution_u_r(&(param.dmSpace),'r');
   DirectDGArray solution_p_f(&(param.dmSpace),'f');
   DirectDGArray solution_p_r(&(param.dmSpace),'r');
   DirectEdgeDGArray solution_l_f(&(param.dmSpace));
   DirectEdgeDGArray solution_l_r(&(param.dmSpace));
+
 
   // Initialize matrix A for both full and reduced space
   int dimAfull = param.dmSpace.nMixedDoFs('f');
@@ -145,6 +148,13 @@ int MixedPDE::solve(Monitor& monitor) {
   std::vector<double> mat_L_reduced_vector(rowLreduced*colL,0);
   double* mat_L_reduced = mat_L_reduced_vector.data();
 
+  // Initialize right hand side (Dirichlet BC)
+  std::vector<double> rhs_bc_full_vector(dimAfull,0);
+  double* rhs_bc_full = rhs_bc_full_vector.data();   
+
+  std::vector<double> rhs_bc_reduced_vector(dimAreduced,0);
+  double* rhs_bc_reduced = rhs_bc_reduced_vector.data();   
+
   // Initialize right hand side (W_s coefficients only)
   std::vector<double> rhs_full_vector(colBfull,0);
   double* rhs_full = rhs_full_vector.data();
@@ -156,12 +166,13 @@ int MixedPDE::solve(Monitor& monitor) {
   // quadrature points
   // Note that we update quadRule in each iElement loop
   // But we define quadEdgeRule for all edges at once
-  // and get them by interior edge indexing
 
-  polyquadrature::PolyQuadrature quadRule(2*param.dmSpace.degPolyn()+3);
-  std::vector<polyquadrature::PolyEdgeQuadrature> quadEdgeRule(param.dmSpace.nInteriorEdges());
-  for (int i = 0; i < param.dmSpace.nInteriorEdges(); i++) {
-    quadEdgeRule[i].set(param.dmSpace.degPolyn()+1, param.dmSpace.edgeInteriorPtr(i));
+  polyquadrature::PolyQuadrature quadRule(13);
+
+  std::vector<polyquadrature::PolyEdgeQuadrature> quadEdgeRule(param.dmSpace.nEdges());
+
+  for (int i = 0; i < param.dmSpace.nEdges(); i++) {
+    quadEdgeRule[i].set(13, param.dmSpace.edgePtr(i));
   }
 
   monitor(1,"Matrix and RHS Assembly"); ////////////////////////////////////////
@@ -173,14 +184,14 @@ int MixedPDE::solve(Monitor& monitor) {
 
   int curr_full_index, curr_reduced_index;
   double evaluation;
-  int numEdges = 0, loc_to_int = 0;
+  int numEdges = 0, loc_to_int = 0, loc_to_glob;
 
   // We construct an array of pointer to all the DirectEdgeDGFE
   // and get them by interior edge indexing
 
-  std::vector<DirectEdgeDGFE*> eePtr(param.dmSpace.nInteriorEdges());
-  for (int i = 0; i < param.dmSpace.nInteriorEdges(); i++) {
-    eePtr[i] = param.dmSpace.DGEdgeInteriorPtr(i);
+  std::vector<DirectEdgeDGFE*> eePtr(param.dmSpace.nEdges());
+  for (int i = 0; i < param.dmSpace.nEdges(); i++) {
+    eePtr[i] = param.dmSpace.DGEdgePtr(i);
     eePtr[i] -> initBasis(quadEdgeRule[i].pts(), quadEdgeRule[i].num());
   }
 
@@ -241,7 +252,7 @@ int MixedPDE::solve(Monitor& monitor) {
         }
       }
 
-      // Assemble RHS
+      // Assemble RHS (W_s coefficients only)
       double f_wted = sourceVal(quadRule.pt(iPt)[0],quadRule.pt(iPt)[1]) * quadRule.wt(iPt);
       for (int j = 0; j < loc_colBfull; j++) {
         curr_full_index = starting_colBfull + j;
@@ -254,29 +265,38 @@ int MixedPDE::solve(Monitor& monitor) {
       }
     }
 
-    // Matrix L assembly over elements
+    // Matrix L and rhs (Direchlet BC) assembly over elements
 
-     numEdges = param.mesh.elementPtr(iElement) -> nVertices();
+    numEdges = param.mesh.elementPtr(iElement) -> nVertices();
 
-      // Column indexing of L: (global edge indexed by interior)
-      // {edge(0),Func(0)}, {edge(0),Func(1)}, ..., {edge(0),Func(eePtr[0]->dim()-1)},
-      // {edge(1),Func(0)}, {edge(1),Func(1)}, ..., {edge(1),Func(eePtr[1]->dim()-1)},
-      // ..., {edge(nInteriorEdge()-1),Func(eePtr[nInteriorEdge()-1]->dim()-1)} 
+    // Column indexing of L: (global edge indexed by interior)
+    // {edge(0),Func(0)}, {edge(0),Func(1)}, ..., {edge(0),Func(eePtr[0]->dim()-1)},
+    // {edge(1),Func(0)}, {edge(1),Func(1)}, ..., {edge(1),Func(eePtr[1]->dim()-1)},
+    // ..., {edge(nInteriorEdge()-1),Func(eePtr[nInteriorEdge()-1]->dim()-1)} 
 
-      for (int iEdge = 0; iEdge < numEdges; iEdge ++) {
-        loc_to_int = param.dmSpace.interiorEdgeIndex(iElement,iEdge);
-        if (loc_to_int == -1) continue; // If the edge is on boundary, we skip the loop
+    for (int iEdge = 0; iEdge < numEdges; iEdge ++) {
+      loc_to_glob = param.dmSpace.globalEdgeIndex(iElement,iEdge);
+      loc_to_int = param.dmSpace.interiorEdgeIndex(iElement,iEdge);
+      mePtr->initBasis(quadEdgeRule[loc_to_glob].pts(), quadEdgeRule[loc_to_glob].num());
 
-        mePtr->initBasis(quadEdgeRule[loc_to_int].pts(), quadEdgeRule[loc_to_int].num());
-
-        for (int iPt = 0; iPt < quadEdgeRule[loc_to_int].num(); iPt++) {
-          for (int i = 0; i < eePtr[loc_to_int]->dim(); i++){
-            double l_i = eePtr[loc_to_int]->basis(i,iPt);
-            for (int j = 0; j < loc_dimAfull; j++) {
-              double v_jdotNu = mePtr->basisDotNu(j,iEdge,iPt);
-              // Here we use the property that eePtr[loc_to_int]->dim() is the same (degPolyn()+1)for every edge in our mesh
+      for (int iPt = 0; iPt < quadEdgeRule[loc_to_glob].num(); iPt++) {
+        for (int j = 0; j < loc_dimAfull; j++) {
+          double v_jdotNu = mePtr->basisDotNu(j,iEdge,iPt);
+          if (loc_to_int == -1) { // If the edge is on boundary, we add eval to rhs (Dirichlet BC)
+            double bc = bcVal(quadEdgeRule[loc_to_glob].pt(iPt)[0],quadEdgeRule[loc_to_glob].pt(iPt)[1]);
+            curr_full_index = starting_Afull + j;
+            evaluation = bc * v_jdotNu * quadEdgeRule[loc_to_glob].wt(iPt);
+            rhs_bc_full[curr_full_index] -= evaluation;
+            if (j < loc_dimAreduced) {
+              curr_reduced_index = starting_Areduced + j;
+              rhs_bc_reduced[curr_reduced_index] -= evaluation;
+            }
+          } else { // If the edge is interior, we add eval to matrix L
+            for (int i = 0; i < eePtr[loc_to_glob]->dim(); i++){
+              double l_i = eePtr[loc_to_glob]->basis(i,iPt);
+              // Here we use the property that eePtr[loc_to_glob]->dim() is the same (degPolyn()+1)for every edge in our mesh
               curr_full_index = colL * (starting_Afull + j) + (loc_to_int*(param.dmSpace.degPolyn()+1)+i);
-              evaluation = l_i * v_jdotNu * quadEdgeRule[loc_to_int].wt(iPt);
+              evaluation = l_i * v_jdotNu * quadEdgeRule[loc_to_glob].wt(iPt);
               mat_L_full[curr_full_index] += evaluation;
 //              assert(curr_full_index < dimAfull*colL);
               if (j < loc_dimAreduced) {
@@ -284,11 +304,11 @@ int MixedPDE::solve(Monitor& monitor) {
                 mat_L_reduced[curr_reduced_index] += evaluation;
 //                assert(curr_reduced_index < dimAreduced*colL);
               }
-            } 
+            }
           }
-        }
-      
+        }  
       }
+    }
 
     starting_Afull += loc_dimAfull;
     starting_Areduced += loc_dimAreduced;
@@ -358,6 +378,18 @@ int MixedPDE::solve(Monitor& monitor) {
   for(int i = 0; i < colBreduced; i++) {
     fout8 << rhs_reduced[i];
     if (i < colBreduced - 1) fout8 << "\n";
+  }
+
+  std::ofstream fout9("test/rhs_bc_full.txt");
+  for(int i = 0; i < dimAfull; i++) {
+    fout9 << rhs_bc_full[i];
+    if (i < dimAfull - 1) fout9 << "\n";
+  }
+
+  std::ofstream fout10("test/rhs_bc_reduced.txt");
+  for(int i = 0; i < dimAreduced; i++) {
+    fout10 << rhs_bc_reduced[i];
+    if (i < dimAreduced - 1) fout10 << "\n";
   }
 
   }
@@ -534,22 +566,47 @@ int MixedPDE::solve(Monitor& monitor) {
               dimAreduced, 1.0, m1_reduced, dimAreduced, m4_reduced, colL,
               0.0, mat_reduced, colL);  
 
-  // We get rhs1 = B (m2) rhs
-  std::vector<double> rhs1_full_vector(dimAfull,0); // row number = dimAfull, col number = 1
+  // We get rhs1 = B^T A^{-1} rhs_bc - rhs
+  std::vector<double> rhs1_full_vector(colBfull,0); // row number = dimAfull, col number = 1
   double* rhs1_full = rhs1_full_vector.data();
-  std::vector<double> rhs1_reduced_vector(dimAreduced,0);
+  std::vector<double> rhs1_reduced_vector(colBreduced,0);
   double* rhs1_reduced = rhs1_reduced_vector.data();
 
+  for (int j = 0; j < colBfull; j++) {
+    rhs1_full[j] = rhs_full[j];
+    if (j < colBreduced) rhs1_reduced[j] = rhs_reduced[j];
+  }
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colBfull, 1,
+              dimAfull, 1.0, btai_full, dimAfull, rhs_bc_full, 1,
+              -1.0, rhs1_full, 1);
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colBreduced, 1,
+              dimAreduced, 1.0, btai_reduced, dimAreduced, rhs_bc_reduced, 1,
+              -1.0, rhs1_reduced, 1);  
+
+
+  // rhs2 = B (m2) rhs1 - rhs_bc
+  std::vector<double> rhs2_full_vector(dimAfull,0); // row number = dimAfull, col number = 1
+  double* rhs2_full = rhs2_full_vector.data();
+  std::vector<double> rhs2_reduced_vector(dimAreduced,0);
+  double* rhs2_reduced = rhs2_reduced_vector.data();
+
+  for (int j = 0; j < dimAfull; j++) {
+    rhs2_full[j] = rhs_bc_full[j];
+    if (j < dimAreduced) rhs2_reduced[j] = rhs_bc_reduced[j];
+  }
+
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAfull, 1,
-              colBfull, 1.0, bm2_full, colBfull, rhs_full, 1,
-              0.0, rhs1_full, 1);
+              colBfull, 1.0, bm2_full, colBfull, rhs1_full, 1,
+              -1.0, rhs2_full, 1);
 
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAreduced, 1,
-              colBreduced, 1.0, bm2_reduced, colBreduced, rhs_reduced, 1,
-              0.0, rhs1_reduced, 1);
+              colBreduced, 1.0, bm2_reduced, colBreduced, rhs1_reduced, 1,
+              -1.0, rhs2_reduced, 1);
 
-  // Now we initialize c with -(m1)(rhs1) and solve the linear system
-  // Notice that mat*c = -(m1)(rhs1)
+  // Now we initialize c with (m1)(rhs2) and solve the linear system
+  // Notice that mat*c = (m1)(rhs2)
 
   std::vector<double> c_full_vector(colL,0);
   double* c_full = c_full_vector.data();
@@ -557,11 +614,11 @@ int MixedPDE::solve(Monitor& monitor) {
   double* c_reduced = c_reduced_vector.data();
 
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colL, 1,
-              dimAfull, -1.0, m1_full, dimAfull, rhs1_full, 1,
+              dimAfull, 1.0, m1_full, dimAfull, rhs2_full, 1,
               0.0, c_full, 1);
 
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colL, 1,
-              dimAreduced, -1.0, m1_reduced, dimAreduced, rhs1_reduced, 1,
+              dimAreduced, 1.0, m1_reduced, dimAreduced, rhs2_reduced, 1,
               0.0, c_reduced, 1);
 
 
@@ -609,7 +666,9 @@ int MixedPDE::solve(Monitor& monitor) {
     if (i < colL - 1) fout18 << "\n";
   }
 
-  // Calculate b = (m2) [ (m3) c + rhs ]
+  // Calculate b = (m2) [ (m3) c - B^T A^{-1} rhs_bc + rhs ]
+  // Note that rhs1 = B^T A^{-1} rhs_bc - rhs
+  // So b = (m2) [ (m3) c - rhs1 ]
 
   std::vector<double> b0_full_vector(colBfull,0);
   double* b0_full = b0_full_vector.data();
@@ -621,19 +680,19 @@ int MixedPDE::solve(Monitor& monitor) {
   std::vector<double> b_reduced_vector(colBreduced,0);
   double* b_reduced = b_reduced_vector.data();
 
-  // We first initialize b0 as rhs and calculate b0 = (m3) c + rhs
+  // We first initialize b0 as rhs1 and calculate b0 = (m3) c - rhs1
   for (int j = 0; j < colBfull; j++) {
-    b0_full[j] = rhs_full[j];
-    if (j < colBreduced) b0_reduced[j] = rhs_reduced[j];
+    b0_full[j] = rhs1_full[j];
+    if (j < colBreduced) b0_reduced[j] = rhs1_reduced[j];
   }
 
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colBfull, 1,
               colL, 1.0, m3_full, colL, c_full, 1,
-              1.0, b0_full, 1);  
+              -1.0, b0_full, 1);  
 
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colBreduced, 1,
               colL, 1.0, m3_reduced, colL, c_reduced, 1,
-              1.0, b0_reduced, 1);
+              -1.0, b0_reduced, 1);
 
   // Calculate b = m2(b0)
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, colBfull, 1,
@@ -644,9 +703,9 @@ int MixedPDE::solve(Monitor& monitor) {
               colBreduced, 1.0, m2_reduced, colBreduced, b0_reduced, 1,
               0.0, b_reduced, 1);
 
-  // Calculate a = A^{-1} [Bb-Lc]
+  // Calculate a = A^{-1} [Bb-Lc+rhs_bc]
 
-  // We first initialize and calculate a0 = Lc, and then a1 = Bb - a0
+  // We first initialize and calculate a0 = Lc, and then a1 = Bb - a0, then a1 = a1 + rhs_bc
 
   std::vector<double> a0_full_vector(dimAfull,0);
   double* a0_full = a0_full_vector.data();
@@ -685,6 +744,12 @@ int MixedPDE::solve(Monitor& monitor) {
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAreduced, 1,
               colBreduced, 1.0, mat_B_reduced, colBreduced, b_reduced, 1,
               -1.0, a1_reduced, 1);
+
+  // a1 = a1 + rhs_bc
+  for (int j = 0; j < dimAfull; j++) {
+    a1_full[j] += rhs_bc_full[j];
+    if (j < dimAreduced) a1_reduced[j] += rhs_bc_reduced[j];
+  }
 
   // a = A^{-1}(a1)
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimAfull, 1,
@@ -728,7 +793,71 @@ int MixedPDE::solve(Monitor& monitor) {
     solution_p_r[i] = b_reduced[i];
   }
 
+if(param.output_soln_Mixed_format > 0) {
   
+    monitor(1,"Write Solution"); //////////////////////////////////////////////////
+
+    switch(param.output_soln_Mixed_format) {
+    case 1: {
+      std::string fileName(param.directory_name);
+      fileName += "solution_raw";
+
+      std::string fileName_p_f = fileName + "_p_f";
+      solution_p_f.write_raw(fileName_p_f);
+
+      std::string fileName_p_r = fileName + "_p_r";
+      solution_p_r.write_raw(fileName_p_r);
+
+      /* 
+      std::string fileName_u_f = fileName + "_u_f";
+      solution_u_f.write_raw(fileName_u_f);
+
+      std::string fileName_u_r = fileName + "_u_r";
+      solution_u_r.write_raw(fileName_u_r);
+
+      std::string fileName_l_f = fileName + "_l_f";
+      solution_l_f.write_raw(fileName_l_f);
+
+      std::string fileName_l_r = fileName + "_l_r";
+      solution_l_r.write_raw(fileName_l_r);      
+      */
+
+      break;
+    }
+    case 2: {
+      std::string fileName(param.directory_name);
+      fileName += "solution_mesh";
+
+      std::string fileName_p_f = fileName + "_p_f";
+      solution_p_f.write_matlab_mesh(fileName_p_f, 
+                    param.output_mesh_numPts_Mixed_x,param.output_mesh_numPts_Mixed_y);
+
+      std::string fileName_p_r = fileName + "_p_r";
+      solution_p_r.write_matlab_mesh(fileName_p_r, 
+                    param.output_mesh_numPts_Mixed_x,param.output_mesh_numPts_Mixed_y);
+
+      /* 
+      std::string fileName_u_f = fileName + "_u_f";
+      solution_u_f.write_matlab_mesh(fileName_u_f, 
+                    param.output_mesh_numPts_Mixed_x,param.output_mesh_numPts_Mixed_y);
+
+      std::string fileName_u_r = fileName + "_u_r";
+      solution_u_r.write_matlab_mesh(fileName_u_r, 
+                    param.output_mesh_numPts_Mixed_x,param.output_mesh_numPts_Mixed_y);
+
+      std::string fileName_l_f = fileName + "_l_f";
+      solution_l_f.write_matlab_mesh(fileName_l_f, 
+                    param.output_mesh_numPts_Mixed_x,param.output_mesh_numPts_Mixed_y);
+
+      std::string fileName_l_r = fileName + "_l_r";
+      solution_l_r.write_matlab_mesh(fileName_l_r, 
+                    param.output_mesh_numPts_Mixed_x,param.output_mesh_numPts_Mixed_y);    
+      */
+      break;
+    }
+    }
+  }
+
   if(trueSolnKnown()) {
     monitor(0,"\nError estimate\n"); ///////////////////////////////////////////////
   
@@ -748,7 +877,7 @@ int MixedPDE::solve(Monitor& monitor) {
   //  std::cout << "  Relative L_2 Grad Error: " << l2GradError/l2GradNorm << std::endl;
     std::cout << std::endl;
 /*
-    if(param.output_soln_DS_format > 0) {
+    if(param.output_soln_Mixed_format > 0) {
       monitor(1,"Write True Solution"); ////////////////////////////////////////////
 
       DirectSerendipityArray u(&(param.dsSpace));
@@ -759,7 +888,7 @@ int MixedPDE::solve(Monitor& monitor) {
         u[i] = trueSoln(x,y);
       }
 
-      switch(param.output_soln_DS_format) {
+      switch(param.output_soln_Mixed_format) {
       case 1: {
         std::string fileName(param.directory_name);
         fileName += "true_solution_raw";
@@ -772,7 +901,7 @@ int MixedPDE::solve(Monitor& monitor) {
         std::string fileNameGrad(param.directory_name);
         fileNameGrad += "true_solution_grad_mesh";
         u.write_matlab_mesh(fileName,fileNameGrad,
-        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y);
+        param.output_mesh_numPts_Mixed_x,param.output_mesh_numPts_Mixed_y);
         break;
       }
       }

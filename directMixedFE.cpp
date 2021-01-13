@@ -134,8 +134,12 @@ void DirectMixedFE::initBasis(const Point* pt, int num_pts) {
         if ((nEdge == higher_order - 1) || (nEdge == higher_order)) continue;
 
         for (int pt_index = 0; pt_index < num_pts; pt_index++) {
-          v_value_n[pt_index * dim_v + curr_index] = Tensor1(high_order_ds_space->finiteElementPtr(0)->gradEdgeBasis(nEdge,jNode,pt_index).val(1), 
-                                                            -high_order_ds_space->finiteElementPtr(0)->gradEdgeBasis(nEdge,jNode,pt_index).val(0));
+          result.set(high_order_ds_space->finiteElementPtr(0)->gradEdgeBasis(nEdge,jNode,pt_index).val(1), 
+                                          -high_order_ds_space->finiteElementPtr(0)->gradEdgeBasis(nEdge,jNode,pt_index).val(0));
+          v_value_n[pt_index * dim_v + curr_index] = result;
+          for ( int iEdge = 0; iEdge < num_vertices; iEdge++ ) {
+            v_edge_value_n[pt_index * dim_v * num_vertices + dim_v * iEdge + curr_index] = result * my_poly_element -> edgePtr(iEdge) -> normal();
+          }
         }
 
         curr_index += 1;
@@ -148,16 +152,20 @@ void DirectMixedFE::initBasis(const Point* pt, int num_pts) {
 
       // Initialization of variables for calling phi_k_l
       Tensor1 gradresult;
-      double result;
+      double result_of_no_use;
 
       for (int k=0; k <= num_vertices-3; k++) {
         for (int l=k+2; l <= num_vertices-1; l++) {
           if (k==0 && l==num_vertices-1) { continue; }
           for (int pt_index = 0; pt_index < num_pts; pt_index++) {
             // Update gradresult to evaluate phi_k_l at pt[pt_index]
-            high_order_ds_space->finiteElementPtr(0)->phi_k_l(k,l,pt[pt_index],result,gradresult);
+            high_order_ds_space->finiteElementPtr(0)->phi_k_l(k,l,pt[pt_index],result_of_no_use,gradresult);
             // Store value of curl of phi_k_l
-            v_value_n[pt_index * dim_v + curr_index] = Tensor1(gradresult.val(1),-gradresult.val(0));
+            result.set(gradresult.val(1),-gradresult.val(0));
+            v_value_n[pt_index * dim_v + curr_index] = result;
+            for ( int nEdge = 0; nEdge < num_vertices; nEdge++ ) {
+              v_edge_value_n[pt_index * dim_v * num_vertices + dim_v * nEdge + curr_index] = result * my_poly_element -> edgePtr(nEdge) -> normal();
+            }
           }
           curr_index += 1;
         }
@@ -412,7 +420,7 @@ void DirectEdgeDGFE::initBasis(const Point* pt, int num_pts) {
 
 double DirectEdgeDGFE::projToEdge(const Point& p) const {
   Tensor1 tau(my_edge->tangent());
-  return (p[0] - (my_edge->vertexPtr(0)->val(0))*tau[0] + (p[1] - (my_edge->vertexPtr(0)->val(1))*tau[1])) ;
+  return (p[0] - my_edge->vertexPtr(0)->val(0))*tau[0] + (p[1] - (my_edge->vertexPtr(0)->val(1)))*tau[1];
 };
 
 // Eval for DirectEdgeDGFE

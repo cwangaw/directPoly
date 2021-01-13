@@ -103,16 +103,17 @@ void polyquadrature::testPolyQuadrature(polymesh::PolyMesh* mesh, double eps, in
 
 void PolyEdgeQuadrature::set_rule(int desired_dop) {
   my_desired_dop = desired_dop;
-  my_rule = ruleForEdge.size()-1;
 
-  for(unsigned long int i=0; i<ruleForEdge.size(); i++) {
-    if(ruleForEdge[i].num >= desired_dop) { my_rule = i; break; }
-  }
-  my_dop  = ruleForEdge[my_rule].num;
+    my_rule = ruleForEdge.size()-1;
 
-  num_pts = ruleForEdge[my_rule].num;
-  my_pts_ref  = ruleForEdge[my_rule].pts;
-  my_wts  = ruleForEdge[my_rule].wts;
+    for(unsigned long int i=0; i<ruleForEdge.size(); i++) {
+      if(ruleForEdge[i].num >= desired_dop) { my_rule = i; break; }
+    }
+
+    my_dop  = ruleForEdge[my_rule].num;
+    num_pts = ruleForEdge[my_rule].num;
+    my_pts_ref  = ruleForEdge[my_rule].pts;
+    my_wts_ref  = ruleForEdge[my_rule].wts;
 }
 
 void PolyEdgeQuadrature::set_edge(polymesh::Edge* edge) {
@@ -121,20 +122,26 @@ void PolyEdgeQuadrature::set_edge(polymesh::Edge* edge) {
 
   // Quadrature points and weights
 
-  if(my_pts) delete[] my_pts;
+  if (my_pts) delete[] my_pts;
   my_pts = new Point[num_pts];
+
+  if (my_wts) delete[] my_wts;
+  my_wts = new double[num_pts];
 
   Point v0(*(my_edge->vertexPtr(0)));
   Point v1(*(my_edge->vertexPtr(1)));
+  Tensor1 vec(v1-v0);
 
   for (int i = 0; i < num_pts; i++) {
     my_pts[i].set(v0);
     my_pts[i] += (my_pts_ref[i]+1)/2 * (v1 - v0);
+    my_wts[i] = my_wts_ref[i] * vec.norm()/ 2;
   }
 
 }
 
 PolyEdgeQuadrature::~PolyEdgeQuadrature() {
-  if(my_pts) delete[] my_pts;
+  if (my_pts) delete[] my_pts;
+  if (my_wts) delete[] my_wts;
 }
 

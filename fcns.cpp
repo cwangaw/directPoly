@@ -36,18 +36,18 @@ void coefD_inv(double x, double y, Tensor2& d) {
 double sourceVal(double x, double y) {
   //return 2*pow(PI,2)*sin(PI*x)*sin(PI*y); 
   //return pow(x,2)+pow(y,2);
-  //return 0;
+  return 0;
 
   //Id D=I, a=b=0
-  Tensor2 h = trueHessianSoln(x,y);
-  return - h(1,1) - h(2,2);
+  //Tensor2 h = trueHessianSoln(x,y);
+  //return - h(1,1) - h(2,2);
 }
 
 // BC values g
 double bcVal(double x, double y) {
-  return 0; 
+  //return 0; 
   //return pow(x,2)+pow(y,2);
-  //return 1;
+  return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -59,22 +59,22 @@ bool trueSolnKnown() { return true; }
 double trueSoln(double x, double y) {
   //return sin(PI*x)*sin(PI*y); 
   //return pow(x,2)+pow(y,2);
-  //return 1;
-  return x*(1-x)*y*(1-y);
+  return 1;
+  //return x*(1-x)*y*(1-y);
 }
 
 Tensor1 trueGradSoln(double x, double y) {
   //return Tensor1(PI*cos(PI*x)*sin(PI*y),PI*sin(PI*x)*cos(PI*y));
   //return Tensor1(2*x,2*y);
-  //return Tensor1(0,0);
-  return Tensor1((1-2*x)*y*(1-y),x*(1-x)*(1-2*y));
+  return Tensor1(0,0);
+  //return Tensor1((1-2*x)*y*(1-y),x*(1-x)*(1-2*y));
 }
 
 Tensor2 trueHessianSoln(double x, double y) {
   //return Tensor1(PI*cos(PI*x)*sin(PI*y),PI*sin(PI*x)*cos(PI*y));
   //return Tensor1(2*x,2*y);
-  //return Tensor1(0,0);
-  return Tensor2( -2*y*(1-y), (1-2*x)*(1-2*y) , (1-2*x)*(1-2*y), -2*x*(1-x) );
+  return Tensor2(0,0,0,0);
+  //return Tensor2( -2*y*(1-y), (1-2*x)*(1-2*y) , (1-2*x)*(1-2*y), -2*x*(1-x) );
 }
 
 Tensor1 trueUSoln(double x, double y) {

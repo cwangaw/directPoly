@@ -20,23 +20,23 @@ $END_COMMENT
 q		# meshType (quads, deviated, triangles, or general)
 0,1        	# xMin,xMax
 0,1        	# yMin,yMax 
-2,2     	# nx,ny
-0         # distortion factor
+2,2    	# nx,ny
+0.2         # distortion factor
 # $END_COMMENT
 
 ### FINITE ELEMENTS ###########################################################
 
-3          	        # polynomial degree
+1          	        # polynomial degree
 
 ### ALGORITHM PARAMETERS ######################################################
 
-#2000			# maxIterations
+#2000			# maxIterations 
 #0                   	# absTolerance
 #1e-8                	# relTolerance
 
 ### OUTPUT PARAMETERS ########################################################
 
--1 #2			# Output DS solution (-1=omit, 0=none, 1=raw, 2=matlab)
+-1			# Output DS solution (-1=omit, 0=none, 1=raw, 2=matlab)
 101,101              	# numPtsDS_x,numPtsDS_y, number of x,y points for matlab
 
 2			# Output Mixed solution (-1=omit, 0=none, 1=raw, 2=matlab)
