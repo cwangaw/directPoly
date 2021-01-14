@@ -23,5 +23,6 @@ double trueSoln(double x, double y);
 Tensor1 trueGradSoln(double x, double y);
 Tensor2 trueHessianSoln(double x, double y);
 Tensor1 trueUSoln(double x, double y);
+double trueDivUSoln(double x, double y);
 
 #endif

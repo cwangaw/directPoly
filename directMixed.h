@@ -106,6 +106,23 @@ namespace directserendipity {
     void eval(const Point& pt, Tensor1& fullResult, Tensor1& reducedResult, 
               double* full_dofs=nullptr, double* reduced_dofs=nullptr) {
       eval(&pt, &fullResult, &reducedResult, 1, full_dofs, reduced_dofs); };
+
+    // Evaluation div \u in full or reduced space or both at a point
+    void eval_div(const Point* pt, double* result, int num_pts, char type, double* dofs=nullptr);
+    void eval_div(const Point& pt, double& result, char type, double* dofs=nullptr) {
+      eval_div(&pt, &result, 1, type, dofs); };
+
+    double eval_div(const Point& pt, char type, double* dofs=nullptr) { 
+      double result;
+      eval_div(&pt, &result, 1, type, dofs); 
+      return result; 
+    }
+
+    void eval_div(const Point* pt, double* fullResult, double* reducedResult, int num_pts, 
+              double* full_dofs=nullptr, double* reduced_dofs=nullptr);
+    void eval_div(const Point& pt, double& fullResult, double& reducedResult, 
+              double* full_dofs=nullptr, double* reduced_dofs=nullptr) {
+      eval_div(&pt, &fullResult, &reducedResult, 1, full_dofs, reduced_dofs); };
     
     // Output functions
     void write_raw(std::ofstream& fout) const;
@@ -423,9 +440,20 @@ namespace directserendipity {
       Tensor1 result; eval(pt, result); return result;
     };
 
+    void eval_div(const Point* pts, double* result, int num_pts) const;
+    void eval_div(const Point& pt, double& result) const;
+    double eval_div(const Point& pt) const {
+      double result; eval_div(pt, result); return result;
+    };
+
     void l2normError(double& l2Error, double& l2Norm, Tensor1 (*referenceFcn)(double,double) = nullptr);
     void l2norm(double& l2Norm) {
       double null; l2normError(l2Norm,null); };
+
+    // Reference function should be
+    void l2normError_div(double& l2Error, double& l2Norm, double (*referenceFcn)(double,double) = nullptr);
+    void l2norm_div(double& l2Norm) {
+      double null; l2normError_div(l2Norm,null); };
 
     void write_matlab_mesh(std::ofstream* fout, int num_pts_x, int num_pts_y) const;
     void write_matlab_mesh(std::ofstream& fout, int num_pts_x, int num_pts_y) const {

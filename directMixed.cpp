@@ -386,6 +386,87 @@ void DirectMixedArray::eval(const Point& pt, Tensor1& result) const {
   elem->eval(pt, result, space_type, dofs);
 };
 
+void DirectMixedArray::eval_div(const Point* pts, 
+	                          double* result, int num_pts) const {
+  bool ptEvaluated[num_pts];
+  for(int i=0; i<num_pts; i++) ptEvaluated[i] = false;
+
+  // Loop through the elements
+  std::vector<Point> elementPts;
+  std::vector<int> elementPtsIndex;
+  int global_index = 0;
+  for(int iElement=0; iElement < num_elements; iElement++) {
+    DirectMixedFE* mixedElement = my_dm_space->MixedElementPtr(iElement);
+    PolyElement* element = mixedElement->elementPtr();
+    
+
+    // Set list of points in element
+    elementPts.clear();
+    elementPtsIndex.clear();
+    for(int i=0; i<num_pts; i++) {
+      if(ptEvaluated[i]) continue;
+      
+      if(element->isInElement(pts[i])) {
+	      elementPts.push_back(pts[i]);
+	      elementPtsIndex.push_back(i);
+	      ptEvaluated[i] = true;
+      }
+    }
+    if(elementPts.size() == 0) continue;
+    
+    // SET DoFs for element
+    int nDoFs = ( space_type == 'f' ) ? mixedElement -> dimVFull() : mixedElement -> dimVReduced();
+
+    double dofs[nDoFs];
+    for(int i=0; i<nDoFs; i++) {
+      dofs[i] = the_array[global_index];
+      global_index ++;
+    }
+
+    // Evaluate array at points on element
+    double* elementResult = new double[elementPts.size()];
+    mixedElement->eval_div(elementPts.data(), elementResult, elementPts.size(), space_type, dofs);
+    // Place results in global array
+    for(unsigned long int i=0; i<elementPts.size(); i++) {
+      result[elementPtsIndex[i]] = elementResult[i];
+    }
+
+    delete[] elementResult;
+  }
+
+  // Attend to unset points (outside the mesh)
+  for(int i=0; i<num_pts; i++) {
+    if(!ptEvaluated[i]) {
+      result[i] = 0;
+    }
+  }  
+}
+
+void DirectMixedArray::eval_div(const Point& pt, double& result) const {
+  int iElement = my_dm_space->my_mesh->elementIndex(pt);
+  if(iElement < 0) {
+    result = 0;
+    return;
+  }
+  DirectMixedFE* elem = my_dm_space->MixedElementPtr(iElement);
+
+  // SET DoFs for element
+  int nDoFs = ( space_type == 'f' ) ? elem -> dimVFull() : elem -> dimVReduced();
+
+  // Find corresponding global index of first local dof
+  int global_index = my_dm_space->mixed_Elem_First_To_Global_Dof(iElement, space_type);
+
+  double dofs[nDoFs];
+  for(int i=0; i<nDoFs; i++) {
+    dofs[i] = the_array[global_index];
+    global_index ++;
+  }
+
+  // Evaluate
+  elem->eval_div(pt, result, space_type, dofs);
+};
+
+
 void DirectMixedArray::l2normError(double& l2Error, double& l2Norm, Tensor1 (*referenceFcn)(double,double)) {
   l2Error = 0, l2Norm = 0;
   PolyQuadrature quadRule(13); //2*my_ds_space->degPolyn()+3
@@ -411,6 +492,33 @@ void DirectMixedArray::l2normError(double& l2Error, double& l2Norm, Tensor1 (*re
   l2Error = sqrt(l2Error);
   l2Norm = sqrt(l2Norm);
 }
+
+void DirectMixedArray::l2normError_div(double& l2Error, double& l2Norm, double (*referenceFcn)(double,double)) {
+  l2Error = 0, l2Norm = 0;
+  PolyQuadrature quadRule(13); //2*my_ds_space->degPolyn()+3
+
+  for(int iElement=0; iElement < num_elements; iElement++) {
+    DirectMixedFE* mixedPtr = my_dm_space->MixedElementPtr(iElement);
+    quadRule.setElement(mixedPtr->elementPtr());
+    
+    for(int iPt=0; iPt<quadRule.num(); iPt++) {
+      double x = quadRule.pt(iPt).val(0);
+      double y = quadRule.pt(iPt).val(1);
+      
+      double result;
+      eval_div(quadRule.pt(iPt), result);
+
+      double diff = (referenceFcn == nullptr) ? result : (result - referenceFcn(x,y));
+      
+      l2Error += diff * diff * quadRule.wt(iPt);
+      l2Norm += result * result * quadRule.wt(iPt);
+    }
+  }
+  
+  l2Error = sqrt(l2Error);
+  l2Norm = sqrt(l2Norm);
+}
+
 
 void DirectMixedArray::write_matlab_mesh(std::ofstream* fout, int num_pts_x, int num_pts_y) const {
   if(num_pts_x <= 1) num_pts_x = 2;

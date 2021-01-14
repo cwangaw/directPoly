@@ -332,3 +332,7 @@ test/solution_mesh_p_f.m
 test/solution_mesh_p_r.m
 test/test.m
 test/workmat_full.txt
+test/solution_mesh_u_f.m
+test/solution_mesh_u_r.m
+.vscode/settings.json
+.vscode/settings.json

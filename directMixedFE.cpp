@@ -209,8 +209,6 @@ void DirectMixedFE::eval(const Point* pt, Tensor1* result, int num_pts, char typ
   int dim = (type == 'f') ? dimVFull() : dimVReduced();
   for(int n=0; n<num_pts; n++) { 
     result[n].set(0,0);
-    Point p(pt[n]);
-
     for(int i=0; i<dim; i++) {
       result[n] += dofs[i]*basis(i,n);
     }
@@ -224,7 +222,6 @@ void DirectMixedFE::eval(const Point* pt, Tensor1* fullResult, Tensor1* reducedR
   for (int n=0; n<num_pts; n++) {
     fullResult[n].set(0,0);
     reducedResult[n].set(0,0);
-    Point p(pt[n]);
 
     for(int i=0; i<dimVFull(); i++) {
       fullResult[n] += full_dofs[i]*basis(i,n);
@@ -232,6 +229,34 @@ void DirectMixedFE::eval(const Point* pt, Tensor1* fullResult, Tensor1* reducedR
     }
   }
 };
+
+void DirectMixedFE::eval_div(const Point* pt, double* result, int num_pts, char type, double* dofs) {
+  initBasis(pt,num_pts);
+  int dim = (type == 'f') ? dimXPoFull() : dimXPoReduced();
+  for(int n=0; n<num_pts; n++) { 
+    result[n] = 0;
+
+    for(int i=0; i<dim; i++) {
+      result[n] += dofs[dimCurlPart()+i]*basisdivXPo(i,n);
+    }
+  }
+}
+
+
+void DirectMixedFE::eval_div(const Point* pt, double* fullResult, double* reducedResult, int num_pts, 
+              double* full_dofs, double* reduced_dofs) {
+  initBasis(pt,num_pts);
+  for (int n=0; n<num_pts; n++) {
+    fullResult[n] = 0;
+    reducedResult[n] = 0;
+
+    for(int i=0; i<dimXPoFull(); i++) {
+      fullResult[n] += full_dofs[dimCurlPart()+i]*basisdivXPo(i,n);
+      if (i<dimXPoReduced()) reducedResult[n] += reduced_dofs[dimCurlPart()+i]*basisdivXPo(i,n);
+    }
+  }
+};
+
 
 // Output for DirectMixedFE
 

@@ -47,7 +47,7 @@ double sourceVal(double x, double y) {
 double bcVal(double x, double y) {
   //return 0; 
   //return pow(x,2)+pow(y,2);
-  return 1;
+  return x;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -59,15 +59,17 @@ bool trueSolnKnown() { return true; }
 double trueSoln(double x, double y) {
   //return sin(PI*x)*sin(PI*y); 
   //return pow(x,2)+pow(y,2);
-  return 1;
+  //return 1;
   //return x*(1-x)*y*(1-y);
+  return x;
 }
 
 Tensor1 trueGradSoln(double x, double y) {
   //return Tensor1(PI*cos(PI*x)*sin(PI*y),PI*sin(PI*x)*cos(PI*y));
   //return Tensor1(2*x,2*y);
-  return Tensor1(0,0);
+  //return Tensor1(0,0);
   //return Tensor1((1-2*x)*y*(1-y),x*(1-x)*(1-2*y));
+  return Tensor1(1,0);
 }
 
 Tensor2 trueHessianSoln(double x, double y) {
@@ -85,3 +87,9 @@ Tensor1 trueUSoln(double x, double y) {
   
   return -1*(d*trueGradSoln(x,y)) + trueSoln(x,y)*b;
 }
+
+
+double trueDivUSoln(double x, double y) {
+  return sourceVal(x,y)-coefA(x,y)*trueSoln(x,y);
+}
+
