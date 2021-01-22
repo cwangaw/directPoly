@@ -639,6 +639,164 @@ int DirectMixedArray::write_raw(std::string& filename) const {
   return 0;
 }
 
+void DirectMixedArray::write_matlab_mesh_div(std::ofstream* fout, int num_pts_x, int num_pts_y) const {
+  if(num_pts_x <= 1) num_pts_x = 2;
+  if(num_pts_y <= 1) num_pts_y = 2;
+
+  // Determine mesh of points
+  double xMin = my_dm_space->my_mesh->minX();
+  double xMax = my_dm_space->my_mesh->maxX();
+  double yMin = my_dm_space->my_mesh->minY();
+  double yMax = my_dm_space->my_mesh->maxY();
+
+  double dx = (xMax - xMin)/(num_pts_x-1);
+  double dy = (yMax - yMin)/(num_pts_y-1);
+
+  Point* pts = new Point[num_pts_x*num_pts_y];
+  
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      pts[j + num_pts_y*i].set(xMin+i*dx, yMin+j*dy);
+    }
+  }
+
+  // Evaluate
+  double result[num_pts_x*num_pts_y];
+  eval_div(pts, result, num_pts_x*num_pts_y);
+
+  // Write file  
+  *fout << "mesh(" << xMin << ":" << dx << ":" << xMax << ","
+	<< yMin << ":" << dy << ":" << yMax <<",[ ";
+
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      *fout << result[i + num_pts_x*j] << " ";
+    }
+    *fout << "; ";
+  }
+  *fout << "]);\n";
+  *fout << "xlabel('x'); ylabel('y');\n";
+
+  delete[] pts;
+}
+
+int DirectMixedArray::write_matlab_mesh_div(std::string& filename, int num_pts_x, int num_pts_y) const {
+  std::ofstream fout(filename+".m");
+  if( !fout ) return 1;
+  write_matlab_mesh_div(&fout, num_pts_x, num_pts_y);
+  return 0;
+}
+
+void DirectMixedArray::write_matlab_mesh_error(std::ofstream* fout, int num_pts_x, int num_pts_y, 
+                                                Tensor1 (*referenceFcn)(double,double)) const {
+  if(num_pts_x <= 1) num_pts_x = 2;
+  if(num_pts_y <= 1) num_pts_y = 2;
+
+  // Determine mesh of points
+  double xMin = my_dm_space->my_mesh->minX();
+  double xMax = my_dm_space->my_mesh->maxX();
+  double yMin = my_dm_space->my_mesh->minY();
+  double yMax = my_dm_space->my_mesh->maxY();
+
+  double dx = (xMax - xMin)/(num_pts_x-1);
+  double dy = (yMax - yMin)/(num_pts_y-1);
+
+  Point* pts = new Point[num_pts_x*num_pts_y];
+  
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      pts[j + num_pts_y*i].set(xMin+i*dx, yMin+j*dy);
+    }
+  }
+
+  // Evaluate
+  Tensor1* result = new Tensor1[num_pts_x*num_pts_y];
+  eval(pts, result, num_pts_x*num_pts_y);
+
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      result[j + num_pts_y*i] -= referenceFcn(xMin+i*dx, yMin+j*dy);
+    }
+  }
+
+  // Write file  
+  *fout << "mesh(" << xMin << ":" << dx << ":" << xMax << ","
+	<< yMin << ":" << dy << ":" << yMax <<",[ ";
+
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      *fout << result[i + num_pts_x*j].norm() << " ";
+    }
+    *fout << "; ";
+  }
+  *fout << "]);\n";
+  *fout << "xlabel('x'); ylabel('y');\n";
+
+
+  delete[] result;
+  delete[] pts;  
+}
+
+int DirectMixedArray::write_matlab_mesh_error(std::string& filename, int num_pts_x, int num_pts_y, Tensor1 (*referenceFcn)(double,double)) const {
+  std::ofstream fout(filename+".m");
+  if( !fout ) return 1;
+  write_matlab_mesh_error(&fout, num_pts_x, num_pts_y, referenceFcn);
+  return 0;
+}
+
+void DirectMixedArray::write_matlab_mesh_div_error(std::ofstream* fout, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double)) const {
+  if(num_pts_x <= 1) num_pts_x = 2;
+  if(num_pts_y <= 1) num_pts_y = 2;
+
+  // Determine mesh of points
+  double xMin = my_dm_space->my_mesh->minX();
+  double xMax = my_dm_space->my_mesh->maxX();
+  double yMin = my_dm_space->my_mesh->minY();
+  double yMax = my_dm_space->my_mesh->maxY();
+
+  double dx = (xMax - xMin)/(num_pts_x-1);
+  double dy = (yMax - yMin)/(num_pts_y-1);
+
+  Point* pts = new Point[num_pts_x*num_pts_y];
+  
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      pts[j + num_pts_y*i].set(xMin+i*dx, yMin+j*dy);
+    }
+  }
+
+  // Evaluate
+  double result[num_pts_x*num_pts_y];
+  eval_div(pts, result, num_pts_x*num_pts_y);
+
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      result[j + num_pts_y*i] -= referenceFcn(xMin+i*dx, yMin+j*dy);
+    }
+  }
+
+  // Write file  
+  *fout << "mesh(" << xMin << ":" << dx << ":" << xMax << ","
+	<< yMin << ":" << dy << ":" << yMax <<",[ ";
+
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      *fout << fabs(result[i + num_pts_x*j]) << " ";
+    }
+    *fout << "; ";
+  }
+  *fout << "]);\n";
+  *fout << "xlabel('x'); ylabel('y');\n";
+
+  delete[] pts;
+}
+
+int DirectMixedArray::write_matlab_mesh_div_error(std::string& filename, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double)) const {
+  std::ofstream fout(filename+".m");
+  if( !fout ) return 1;
+  write_matlab_mesh_div_error(&fout, num_pts_x, num_pts_y, referenceFcn);
+  return 0;
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -863,7 +1021,59 @@ int DirectDGArray::write_raw(std::string& filename) const {
   return 0;
 }
 
+void DirectDGArray::write_matlab_mesh_error(std::ofstream* fout, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double)) const {
+  if(num_pts_x <= 1) num_pts_x = 2;
+  if(num_pts_y <= 1) num_pts_y = 2;
 
+  // Determine mesh of points
+  double xMin = my_dm_space->my_mesh->minX();
+  double xMax = my_dm_space->my_mesh->maxX();
+  double yMin = my_dm_space->my_mesh->minY();
+  double yMax = my_dm_space->my_mesh->maxY();
+
+  double dx = (xMax - xMin)/(num_pts_x-1);
+  double dy = (yMax - yMin)/(num_pts_y-1);
+
+  Point* pts = new Point[num_pts_x*num_pts_y];
+  
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      pts[j + num_pts_y*i].set(xMin+i*dx, yMin+j*dy);
+    }
+  }
+
+  // Evaluate
+  double result[num_pts_x*num_pts_y];
+  eval(pts, result, num_pts_x*num_pts_y);
+
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      result[j + num_pts_y*i] -= referenceFcn(xMin+i*dx, yMin+j*dy);
+    }
+  }
+
+  // Write file  
+  *fout << "mesh(" << xMin << ":" << dx << ":" << xMax << ","
+	<< yMin << ":" << dy << ":" << yMax <<",[ ";
+
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      *fout << fabs(result[i + num_pts_x*j]) << " ";
+    }
+    *fout << "; ";
+  }
+  *fout << "]);\n";
+  *fout << "xlabel('x'); ylabel('y');\n";
+
+  delete[] pts;  
+}
+
+int DirectDGArray::write_matlab_mesh_error(std::string& filename, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double)) const {
+  std::ofstream fout(filename+".m");
+  if( !fout ) return 1;
+  write_matlab_mesh_error(&fout, num_pts_x, num_pts_y, referenceFcn);
+  return 0;
+}
 ////////////////////////////////////////////////////////////////////////////////
 // class DirectEdgeDGArray
 
@@ -1091,6 +1301,8 @@ void DirectEdgeDGArray::write_raw(std::ofstream& fout) const {
     if( !(i%10) ) fout << "\n";
   }
 };
+
+
 int DirectEdgeDGArray::write_raw(std::string& filename) const {
   std::ofstream fout(filename);
   if( !fout ) return 1;

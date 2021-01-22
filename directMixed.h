@@ -466,6 +466,24 @@ namespace directserendipity {
 
     void write_raw(std::ofstream& fout) const;
     int write_raw(std::string& filename) const;
+
+    void write_matlab_mesh_div(std::ofstream* fout, int num_pts_x, int num_pts_y) const;
+    void write_matlab_mesh_div(std::ofstream& fout, int num_pts_x, int num_pts_y) const {
+      write_matlab_mesh_div(&fout, num_pts_x, num_pts_y); };
+
+    int write_matlab_mesh_div(std::string& filename, int num_pts_x, int num_pts_y) const;
+
+    void write_matlab_mesh_error(std::ofstream* fout, int num_pts_x, int num_pts_y, Tensor1 (*referenceFcn)(double,double) = nullptr) const;
+    void write_matlab_mesh_error(std::ofstream& fout, int num_pts_x, int num_pts_y, Tensor1 (*referenceFcn)(double,double) = nullptr) const {
+      write_matlab_mesh_error(&fout, num_pts_x, num_pts_y, referenceFcn); };
+
+    int write_matlab_mesh_error(std::string& filename, int num_pts_x, int num_pts_y, Tensor1 (*referenceFcn)(double,double) = nullptr) const;
+
+    void write_matlab_mesh_div_error(std::ofstream* fout, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double) = nullptr) const;
+    void write_matlab_mesh_div_error(std::ofstream& fout, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double) = nullptr) const {
+      write_matlab_mesh_div_error(&fout, num_pts_x, num_pts_y, referenceFcn); };
+
+    int write_matlab_mesh_div_error(std::string& filename, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double) = nullptr) const;
   };
 
 
@@ -527,6 +545,12 @@ namespace directserendipity {
 
     void write_raw(std::ofstream& fout) const;
     int write_raw(std::string& filename) const;
+
+    void write_matlab_mesh_error(std::ofstream* fout, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double) = nullptr) const;
+    void write_matlab_mesh_error(std::ofstream& fout, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double) = nullptr) const {
+      write_matlab_mesh_error(&fout, num_pts_x, num_pts_y, referenceFcn); };
+
+    int write_matlab_mesh_error(std::string& filename, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double) = nullptr) const;
   };
 
   ////////////////////////////////////////////////////////////////////////////////

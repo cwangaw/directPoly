@@ -336,3 +336,11 @@ test/solution_mesh_u_f.m
 test/solution_mesh_u_r.m
 .vscode/settings.json
 .vscode/settings.json
+test/solution_mesh_l_f.m
+test/solution_mesh_l_r.m
+test/solution_mesh_p_f_error.m
+test/solution_mesh_p_r_error.m
+test/solution_mesh_u_f_error_div.m
+test/solution_mesh_u_f_error.m
+test/solution_mesh_u_r_error_div.m
+test/solution_mesh_u_r_error.m
