@@ -31,6 +31,7 @@ namespace directserendipity {
     int dim_v;
     int dim_curlpart;
     int dim_v_div;
+    int dim_supp;
 
     int num_vertices; // Redundant with my_poly_element
     int polynomial_degree; // Redundant with my_ds_space
@@ -86,6 +87,8 @@ namespace directserendipity {
     int dimVReduced() const { return dim_v - polynomial_degree - 1; };
 
     int dimCurlPart() const { return dim_curlpart; }
+    int dimCurlPoly() const { return dim_curlpart - dim_supp;}
+    int dimCurlSupp() const { return dim_supp; }
 
     int dimXPoFull() const { return dim_v_div; };
     int dimXPoReduced() const { return polynomial_degree * (polynomial_degree + 1)/2; };

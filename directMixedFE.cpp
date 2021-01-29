@@ -26,8 +26,6 @@ void DirectMixedFE::
   num_vertices = element->nVertices();
   polynomial_degree = my_dm_space->degPolyn();
 
-
-  int dim_supp;
   if (polynomial_degree >= num_vertices - 3) {
     dim_supp = num_vertices * (num_vertices - 3) / 2;
   } else {
