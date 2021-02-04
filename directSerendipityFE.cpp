@@ -211,17 +211,24 @@ double DirectSerendipityFE::r_supp(int i, int j, const Point& p) const {
 
 
 void DirectSerendipityFE::lambda_supp (int i, int j, const Point& p, double& result, Tensor1& gradresult) const {
-    Vertex v_j = Vertex(vertexNodePtr(j));
-    Vertex v_im1 = Vertex(vertexNodePtr((i+num_vertices-1)%num_vertices));
-    Vertex v_i = Vertex(vertexNodePtr(i));
-    Vertex v_jm1 = Vertex(vertexNodePtr((j+num_vertices-1)%num_vertices));
-    Edge e1(&v_j,&v_im1);
-    Edge e2(&v_i,&v_jm1);
-    Tensor1 normal_vec = e1.normal()-e2.normal();
+  if (i > j) {
+    int m = i;
+    i = j;
+    j = m;
+  } // We must have i < j
+  assert(i<j);
 
-    result = (e1.lambda(p)-e2.lambda(p))/normal_vec.norm();
-    gradresult(0) = (e1.dLambda(0)-e2.dLambda(0))/normal_vec.norm();
-    gradresult(1) = (e1.dLambda(1)-e2.dLambda(1))/normal_vec.norm();
+  Vertex v_j = Vertex(vertexNodePtr(j));
+  Vertex v_im1 = Vertex(vertexNodePtr((i+num_vertices-1)%num_vertices));
+  Vertex v_i = Vertex(vertexNodePtr(i));
+  Vertex v_jm1 = Vertex(vertexNodePtr((j+num_vertices-1)%num_vertices));
+  Edge e1(&v_j,&v_im1);
+  Edge e2(&v_i,&v_jm1);
+  Tensor1 normal_vec = e1.normal()-e2.normal();
+
+  result = (e1.lambda(p)-e2.lambda(p))/normal_vec.norm();
+  gradresult(0) = (e1.dLambda(0)-e2.dLambda(0))/normal_vec.norm();
+  gradresult(1) = (e1.dLambda(1)-e2.dLambda(1))/normal_vec.norm();
 }
 
 double DirectSerendipityFE::lambda_supp (int i, int j, const Point& p) const{

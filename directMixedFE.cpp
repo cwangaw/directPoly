@@ -25,6 +25,7 @@ void DirectMixedFE::
 
   num_vertices = element->nVertices();
   polynomial_degree = my_dm_space->degPolyn();
+  center = Point(my_poly_element->vertexPtr(num_vertices-1)->val(0), my_poly_element->vertexPtr(num_vertices-1)->val(1));
 
   if (polynomial_degree >= num_vertices - 3) {
     dim_supp = num_vertices * (num_vertices - 3) / 2;
@@ -77,8 +78,8 @@ void DirectMixedFE::initBasis(const Point* pt, int num_pts) {
   for (int k = 1; k <= polynomial_degree + 1; k++) {
     for (int m = 0; m <= k; m++) {
       for (int pt_index = 0; pt_index < num_pts; pt_index++) {
-        x = pt[pt_index].val(0);
-        y = pt[pt_index].val(1);
+        x = pt[pt_index].val(0)-center.val(0);
+        y = pt[pt_index].val(1)-center.val(1);
         if (m == 0) {
           result.set( (k-m)*pow(y,k-m-1) ,0);
         } else if (m == k) {
@@ -160,6 +161,7 @@ void DirectMixedFE::initBasis(const Point* pt, int num_pts) {
             high_order_ds_space->finiteElementPtr(0)->phi_k_l(k,l,pt[pt_index],result_of_no_use,gradresult_k_l);
             high_order_ds_space->finiteElementPtr(0)->phi_k_l(l,k,pt[pt_index],result_of_no_use,gradresult_l_k);
             // Store value of curl of phi_k_l
+            //result.set(gradresult_k_l.val(1),-gradresult_k_l.val(0));
             result.set(gradresult_k_l.val(1)-gradresult_l_k.val(1),-gradresult_k_l.val(0)+gradresult_l_k.val(0));
             v_value_n[pt_index * dim_v + curr_index] = result;
             for ( int nEdge = 0; nEdge < num_vertices; nEdge++ ) {
@@ -181,8 +183,8 @@ void DirectMixedFE::initBasis(const Point* pt, int num_pts) {
   for (int k=0; k<= polynomial_degree; k++) {
     for (int m=0; m <= k; m++) {
       for (int pt_index = 0; pt_index < num_pts; pt_index++) {
-        x = pt[pt_index].val(0);
-        y = pt[pt_index].val(1);
+        x = pt[pt_index].val(0)-center.val(0);
+        y = pt[pt_index].val(1)-center.val(1);
 
         v_div_value_n[pt_index * dim_v_div + curr_v_div_index] = (k+2)*pow(x,m)*pow(y,k-m);
         result.set( pow(x,m+1)*pow(y,k-m), pow(x,m)*pow(y,k-m+1) );
@@ -296,6 +298,8 @@ void DirectDGFE::
   my_poly_element = element;
   num_vertices = element->nVertices();
   polynomial_degree = my_dm_space->degPolyn();
+  center = Point(my_poly_element->vertexPtr(num_vertices-1)->val(0), my_poly_element->vertexPtr(num_vertices-1)->val(1));
+//my_poly_element -> center();
 
   dim_w = (polynomial_degree+2) * (polynomial_degree+1) /2;
 };
@@ -324,8 +328,8 @@ void DirectDGFE::initBasis(const Point* pt, int num_pts) {
   for (int k=0; k<= polynomial_degree; k++) {
     for (int m=0; m <= k; m++) {
       for (int pt_index = 0; pt_index < num_pts; pt_index++) {
-        x = pt[pt_index].val(0);
-        y = pt[pt_index].val(1);
+        x = pt[pt_index].val(0)-center.val(0);
+        y = pt[pt_index].val(1)-center.val(1);
         value_n[pt_index * dim_w + curr_index] = pow(x,m)*pow(y,k-m);
       }
       curr_index += 1;
