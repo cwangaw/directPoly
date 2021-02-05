@@ -35,7 +35,7 @@ namespace directserendipity {
 
     int num_vertices; // Redundant with my_poly_element
     int polynomial_degree; // Redundant with my_ds_space
-    Point center; // Redundant with my_poly_element
+    Point ref_origin;
 
     // If necessary (degPolyn small), the bigger space within which we construct the basis
     polymesh::PolyMesh* one_element_mesh = nullptr;
@@ -158,7 +158,7 @@ namespace directserendipity {
 
     int num_vertices; // Redundant with my_poly_element
     int polynomial_degree; // Redundant with my_ds_space
-    Point center; // Redundant with my_poly_element
+    Point ref_origin;
     
     // Pointer to Evaluation storage
     int num_eval_pts;

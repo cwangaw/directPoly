@@ -697,14 +697,14 @@ int MixedPDE::solve(Monitor& monitor) {
 
   // Update A^{-1} to be the inverse matrix A^{-1} 
 
-  //lapack_int ierr = block_mat_inv(A_full_inv, dimAfull, locdim_full, param.mesh.nElements());
-  lapack_int ierr = mat_inv(A_full_inv, dimAfull);
+  lapack_int ierr = block_mat_inv(A_full_inv, dimAfull, locdim_full, param.mesh.nElements());
+  //lapack_int ierr = mat_inv(A_full_inv, dimAfull);
   if(ierr) { // ?? what should we do ???
     std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
   }
 
-  //ierr = block_mat_inv(A_reduced_inv, dimAreduced, locdim_reduced, param.mesh.nElements());
-  ierr = mat_inv(A_reduced_inv, dimAreduced);
+  ierr = block_mat_inv(A_reduced_inv, dimAreduced, locdim_reduced, param.mesh.nElements());
+  //ierr = mat_inv(A_reduced_inv, dimAreduced);
   if(ierr) { // ?? what should we do ???
     std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
   }

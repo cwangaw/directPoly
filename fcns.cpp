@@ -48,7 +48,7 @@ double sourceVal(double x, double y) {
 double bcVal(double x, double y) {
   return x; 
   //return pow(x,2)+pow(y,2);
-  //return 1;
+  //return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
