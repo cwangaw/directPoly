@@ -275,7 +275,7 @@ namespace directserendipity {
     int nCellNodes() const { return num_cell_nodes; }
     int nNodes() const { return num_nodes; }
 
-    Node* vertexNodePtr(int i) const { return the_vertex_nodes[i]; };
+    Node* vertexNodePtr(int i) const { return the_vertex_nodes[i%num_vertices]; };
     Node* edgeNodePtr(int k)   const { return the_edge_nodes[k];   };
     Node* edgeNodePtr(int i, int j) const { return the_edge_nodes[i*(polynomial_degree - 1) + j]; };
     Node* cellNodePtr(int k)   const { return the_cell_nodes[k];   };

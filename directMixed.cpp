@@ -20,9 +20,10 @@ using namespace polyquadrature;
 ////////////////////////////////////////////////////////////////////////////////
 // Class DirectMixed
 
-void DirectMixed::set_directmixed(int polyDeg, PolyMesh* mesh) {
+void DirectMixed::set_directmixed(int polyDeg, PolyMesh* mesh, bool conforming) {
   polynomial_degree = polyDeg;
   my_mesh = mesh;
+  my_conformity = conforming;
   num_edges = my_mesh -> nEdges();
 
   int index = 0;
@@ -106,7 +107,7 @@ void DirectMixed::set_directmixed(int polyDeg, PolyMesh* mesh) {
 
     PolyElement* element = my_mesh->elementPtr(iElement);
 
-    the_dm_elements[iElement].set(this, element);
+    the_dm_elements[iElement].set(this, element, my_conformity);
     the_dg_elements[iElement].set(this, element);
 
     mixed_dofs_full += the_dm_elements[iElement].dimVFull();
@@ -308,6 +309,7 @@ DirectMixedArray::~DirectMixedArray() {
 
 void DirectMixedArray::eval(const Point* pts, 
 	                          Tensor1* result, int num_pts) const {
+
   bool ptEvaluated[num_pts];
   for(int i=0; i<num_pts; i++) ptEvaluated[i] = false;
 
@@ -333,7 +335,7 @@ void DirectMixedArray::eval(const Point* pts,
       }
     }
     if(elementPts.size() == 0) continue;
-    
+
     // SET DoFs for element
     int nDoFs = ( space_type == 'f' ) ? mixedElement -> dimVFull() : mixedElement -> dimVReduced();
 
@@ -342,10 +344,12 @@ void DirectMixedArray::eval(const Point* pts,
       dofs[i] = the_array[global_index];
       global_index ++;
     }
-
     // Evaluate array at points on element
     Tensor1* elementResult = new Tensor1[elementPts.size()];
+    
+
     mixedElement->eval(elementPts.data(), elementResult, elementPts.size(), space_type, dofs);
+
     // Place results in global array
     for(unsigned long int i=0; i<elementPts.size(); i++) {
       result[elementPtsIndex[i]] = elementResult[i];
@@ -521,6 +525,7 @@ void DirectMixedArray::l2normError_div(double& l2Error, double& l2Norm, double (
 
 
 void DirectMixedArray::write_matlab_mesh(std::ofstream* fout, int num_pts_x, int num_pts_y) const {
+
   if(num_pts_x <= 1) num_pts_x = 2;
   if(num_pts_y <= 1) num_pts_y = 2;
 
@@ -534,7 +539,7 @@ void DirectMixedArray::write_matlab_mesh(std::ofstream* fout, int num_pts_x, int
   double dy = (yMax - yMin)/(num_pts_y-1);
 
   Point* pts = new Point[num_pts_x*num_pts_y];
-  
+
   for(int i=0; i<num_pts_x; i++) {
     for(int j=0; j<num_pts_y; j++) {
       pts[j + num_pts_y*i].set(xMin+i*dx, yMin+j*dy);
@@ -543,6 +548,7 @@ void DirectMixedArray::write_matlab_mesh(std::ofstream* fout, int num_pts_x, int
 
   // Evaluate
   Tensor1* result = new Tensor1[num_pts_x*num_pts_y];
+
   eval(pts, result, num_pts_x*num_pts_y);
 
   // Write file  

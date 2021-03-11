@@ -13,7 +13,11 @@ namespace directserendipity {
   // class DirectMixedFE
   //    Defined on a poly-element (class PolyElement)
   //    
-  //    Gives basis functions separated into curl(\cDS_{r+1}) part and \x\Po_s(E) part
+  //    Gives basis functions that
+  //          1. initBasis()
+  //              separated into curl(\cDS_{r+1}) part and \x\Po_s(E) part
+  //          2. initConfBasis()
+  //              has H(div)-conforming properties ordered as in paper
   //      First call initBasis to evaluate all basis functions at a given set of points
   //      Then access the basis functions by function index and pt number
   //
@@ -27,6 +31,7 @@ namespace directserendipity {
   private:
     DirectMixed* my_dm_space;
     polymesh::PolyElement* my_poly_element;
+    bool my_conformity;
 
     int dim_v;
     int dim_curlpart;
@@ -48,25 +53,39 @@ namespace directserendipity {
     double* v_div_value_n = nullptr;
     double* v_edge_value_n = nullptr;
 
+    // Binomial coefficients
+    int* binomCoeff = nullptr;
 
-    double* w_value_n = nullptr;
-    double* lag_value_n = nullptr;
-
-    void set_directmixedfe(DirectMixed* dmSpace, polymesh::PolyElement* element);
+    void set_directmixedfe(DirectMixed* dmSpace, polymesh::PolyElement* element, bool conforming);
 
   public:
-    DirectMixedFE() : my_dm_space(nullptr), my_poly_element(nullptr) {};
-    DirectMixedFE( DirectMixed* dmSpace, polymesh::PolyElement* element) { 
-      set_directmixedfe(dmSpace, element); };
+    DirectMixedFE() : my_dm_space(nullptr), my_poly_element(nullptr), my_conformity(false) {};
+    DirectMixedFE( DirectMixed* dmSpace, polymesh::PolyElement* element, bool conforming) { 
+      set_directmixedfe(dmSpace, element, conforming); };
     
     ~DirectMixedFE();
 
-    void set(DirectMixed* dmSpace, polymesh::PolyElement* element) {
-      set_directmixedfe(dmSpace, element); };
+    void set(DirectMixed* dmSpace, polymesh::PolyElement* element, bool conforming) {
+      set_directmixedfe(dmSpace, element, conforming); };
 
-    void initBasis(const Point* pt, int num_pts); // (re)evaluate all basis fcns at the points
+    // Get binomial coefficients from stored array
+    int binomialCoefficient(int n, int k) const {
+      return binomCoeff[n*(n+1)/2+k];
+    };
+
+    // Integration of x^m*y^n from 0 to t, 
+    // on a line parametrized by \x = (1-t)*\v0 + t*\v1
+    double integralPolyEdge(const Point v0, const Point v1, int m, int n, double t) const;
+
+    void initHybridBasis(const Point* pt, int num_pts); // (re)evaluate all basis fcns at the points
+    void initConfBasis(const Point* pt, int num_pts); // (re)evaluate all basis fcns at the points
+    void initBasis(const Point* pt, int num_pts) {
+      if (my_conformity) initConfBasis(pt,num_pts);
+      else initHybridBasis(pt,num_pts);
+    }
 
     polymesh::PolyElement* elementPtr() const { return my_poly_element; };
+    bool isConforming() const { return my_conformity; }
 
     // Access basis functions evaluated at pt[iPt]
     Tensor1 basis(int iFunc, int iPt) const {
@@ -297,6 +316,7 @@ namespace directserendipity {
   private:
     int polynomial_degree;
     polymesh::PolyMesh* my_mesh;
+    bool my_conformity;
     //DirectSerendipity my_high_order_ds_space;
 
     int num_edges; //redundant with my_mesh
@@ -323,22 +343,23 @@ namespace directserendipity {
     int dg_edge_dofs; // Here we also include DoFs on the boundary
     int dg_int_edge_dofs;
 
-    void set_directmixed(int polyDeg, polymesh::PolyMesh* mesh);
+    void set_directmixed(int polyDeg, polymesh::PolyMesh* mesh, bool conforming);
     
   public:
-    DirectMixed() : polynomial_degree(0), my_mesh(nullptr), num_edges(0), num_interior_edges(0),
-                    the_dm_edges(nullptr), the_bc_type(nullptr), interior_edge_indexing(nullptr),
-                    global_edge_indexing(nullptr), the_dm_elements(nullptr), the_dg_elements(nullptr),
-                    the_dg_edge_elements(nullptr), mixed_elem_first_to_global_dof_full(nullptr),
+    DirectMixed() : polynomial_degree(0), my_mesh(nullptr), my_conformity(false), num_edges(0), 
+                    num_interior_edges(0), the_dm_edges(nullptr), the_bc_type(nullptr), 
+                    interior_edge_indexing(nullptr), global_edge_indexing(nullptr), the_dm_elements(nullptr), 
+                    the_dg_elements(nullptr), the_dg_edge_elements(nullptr), 
+                    mixed_elem_first_to_global_dof_full(nullptr),
                     mixed_elem_first_to_global_dof_reduced(nullptr), dg_elem_first_to_global_dof_full(nullptr),
-                    dg_elem_first_to_global_dof_reduced(nullptr), edge_elem_first_to_global_dof(nullptr),
-                    mixed_dofs_full(0), mixed_dofs_reduced(0),
+                    dg_elem_first_to_global_dof_reduced(nullptr), 
+                    edge_elem_first_to_global_dof(nullptr), mixed_dofs_full(0), mixed_dofs_reduced(0),
                     dg_dofs_full(0), dg_dofs_reduced(0), dg_edge_dofs(0), dg_int_edge_dofs(0) {};
-    DirectMixed(int polyDeg, polymesh::PolyMesh* mesh) {
-      set_directmixed(polyDeg, mesh); };
+    DirectMixed(int polyDeg, polymesh::PolyMesh* mesh, bool conforming) {
+      set_directmixed(polyDeg, mesh, conforming); };
     ~DirectMixed();
 
-    void set(int polyDeg, polymesh::PolyMesh* mesh) { set_directmixed(polyDeg, mesh); };
+    void set(int polyDeg, polymesh::PolyMesh* mesh, bool conforming) { set_directmixed(polyDeg, mesh, conforming); };
     
     int nEdges() const { return num_edges; };
     int nInteriorEdges() const { return num_interior_edges; };
@@ -346,11 +367,14 @@ namespace directserendipity {
     polymesh::PolyMesh* mesh() const { return my_mesh; };
     polymesh::PolyElement* elementPtr(int i) const {return my_mesh->elementPtr(i); };
 
+    bool isConforming() const { return my_conformity; }
+
     DirectMixedFE* MixedElementPtr(int i) const { return &the_dm_elements[i]; };
     DirectDGFE* DGElementPtr(int i) const { return &the_dg_elements[i]; };
     DirectEdgeDGFE* DGEdgePtr(int i) const { return &the_dg_edge_elements[i]; };
     DirectEdgeDGFE* DGEdgeInteriorPtr(int i) const { return &the_dg_edge_elements[int_to_glob(i)]; };
     EdgeBCType bcType(int i) const { return the_bc_type[i]; }; //Boundary type for each edge
+
     
     // Return the interior edge indexing from global edge indexing
     int glob_to_int(int i) const { return interior_edge_indexing[i]; };

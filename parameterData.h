@@ -66,6 +66,7 @@ public:
 
   // FINITE ELEMENTS
   int polynomial_degree;
+  int conforming;
   directserendipity::DirectSerendipity dsSpace;
   directserendipity::DirectMixed dmSpace;
   

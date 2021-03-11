@@ -8,12 +8,13 @@ test/   	# dirName, output directory (preamble)
 #{ 0,0 1,0 1,0.5 0.6,0.5 0.5,0.8 0,1 0.5,0.3 1,1 }	# mesh_vertices
 #{ [ 1 2 7 ] [ 3 4 7 2 ] [ 5 8 6 ] [ 5 6 1 7 4 ] [ 8 5 4 3 ] } 	# mesh_elements
 
+# Pattern: 4_10 16_34 36_74 64_130 100_202 144_290 196_394 256_514
 $BEGIN_COMMENT
 g
-36  	   # nVertices;
-25     	   # nElements;
-{ $INCLUDE testingMeshes/BadQuad/Quad_25_36/Node.txt }    # mesh_vertices file
-{ $INCLUDE testingMeshes/BadQuad/Quad_25_36/Element.txt } # mesh_elements file name
+514  	   # nVertices;
+256     	   # nElements;
+{ $INCLUDE testingMeshes/Pattern/Pattern_256_514/Node.txt }    # mesh_vertices file
+{ $INCLUDE testingMeshes/Pattern/Pattern_256_514/Element.txt } # mesh_elements file name
 $END_COMMENT
 
 # $BEGIN_COMMENT
@@ -27,6 +28,8 @@ q		# meshType (quads, deviated, triangles, or general)
 ### FINITE ELEMENTS ###########################################################
 
 2          	        # polynomial degree
+1                   # Use hybrid or H(div)-conforming element for mixed method 
+                    # (0 = hybrid, 1 = conforming)
 
 ### ALGORITHM PARAMETERS ######################################################
 
