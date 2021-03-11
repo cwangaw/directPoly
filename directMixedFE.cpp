@@ -475,7 +475,8 @@ void DirectMixedFE::initConfBasis(const Point* pt, int num_pts) {
         y = pt[pt_index].val(1);
         result.set(x,y);
         result *= pow(x - ref_origin.val(0),m)*pow(y - ref_origin.val(1),s-m);
-        div_result = (s+2)*pow(x,m)*pow(y,s-m);
+        div_result = pow(y-ref_origin.val(1),s-m) * (pow(x-ref_origin.val(0),m) + x*m*pow(x-ref_origin.val(0),m-1)) // d/dx
+                      + pow(x-ref_origin.val(0),m) * (pow(y-ref_origin.val(1),s-m) + y*(s-m)*pow(y-ref_origin.val(1),s-m-1));
 
         // Use \psi_{e,j,k} and \psi_{e,j,paf} to cancel the normal fluxes on the boundary
         for (int index = 0; index < num_vertices * (polynomial_degree+1); index++) {

@@ -108,7 +108,7 @@ int MixedPDE::solve(Monitor& monitor) {
     for(int i=0; i<u.size(); i++) {
       u[i]=0;
     }
-    u[9]=1;
+    u[19]=1;
 
     for(int i=0; i<p.size(); i++) {
       p[i]=0;
