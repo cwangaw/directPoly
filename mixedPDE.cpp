@@ -145,7 +145,12 @@ int MixedPDE::solve(Monitor& monitor) {
   }
   
   // SOLVE THE PDE ///////////////////////////////////////////////////////////
+if ( param.conforming ) {
+  // SOLVE THE PDE WITH CONFORMING ELEMENT ///////////////////////////////////
 
+} else {
+  // SOLVE THE PDE WITH HYBRID METHOD ////////////////////////////////////////
+}
   monitor(0,"\nSolve the PDE\n");
 
   // Only when r > 0, we calculate reduced space
@@ -842,46 +847,6 @@ int MixedPDE::solve(Monitor& monitor) {
   for(int i=0; i<solution_u_r.size(); i++) {
     solution_u_r[i] = a_reduced[i];
   }
-
-
-
-/*
-  starting_Afull = 0;
-  starting_Areduced = 0;
-  int loc_dimAfull_a, loc_dimAreduced_a;
-  int starting_Afull_a = 0;
-  int starting_Areduced_a = 0;
-
-  for(int iElement=0; iElement<param.mesh.nElements(); iElement++) {
-    DirectMixedFE* mePtr = param.dmSpace.MixedElementPtr(iElement);
-    loc_dimAfull = mePtr -> dimVFull();
-    loc_dimAreduced = mePtr -> dimVReduced();
-    loc_dimAfull_a = mePtr -> dimVFull() - mePtr -> dimCurlSupp();
-    loc_dimAreduced_a = mePtr -> dimVReduced() - mePtr -> dimCurlSupp();
-
-    for (int j = 0; j < loc_dimAfull; j++) {
-      if (j < mePtr -> dimCurlPoly()) {
-        solution_u_f[starting_Afull + j] = a_full[starting_Afull_a + j];
-        solution_u_r[starting_Areduced + j] = a_reduced[starting_Areduced_a + j];
-      } else if ( j < mePtr -> dimCurlPart())
-      {
-        solution_u_f[starting_Afull + j] = 0;
-        solution_u_r[starting_Areduced + j] = 0;
-      } else {
-        solution_u_f[starting_Afull + j] = a_full[starting_Afull_a + j - mePtr -> dimCurlSupp()];
-        if (j < loc_dimAreduced) {
-          solution_u_r[starting_Areduced + j] = a_reduced[starting_Areduced_a + j - mePtr -> dimCurlSupp()];
-        }
-      }
-    }
-
-    starting_Afull += loc_dimAfull;
-    starting_Areduced += loc_dimAreduced;
-    starting_Afull_a += loc_dimAfull_a;
-    starting_Areduced_a += loc_dimAreduced_a;
-
-  }
-*/
 
   if(trueSolnKnown()) {
     monitor(0,"\nError estimate\n"); ///////////////////////////////////////////////

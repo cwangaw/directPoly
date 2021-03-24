@@ -40,27 +40,7 @@ void DirectMixedFE::
   dim_v_div = (my_conformity)? (num_vertices + (polynomial_degree + 2)*(polynomial_degree + 1)/2 - 1) 
                                 : (polynomial_degree+2) * (polynomial_degree+1) /2;
   dim_curlpart = dim_v - dim_v_div;
-
-  // Set up binomial coefficients array
-  if (binomCoeff) delete[] binomCoeff;
-  binomCoeff = new int[((polynomial_degree+2) * (polynomial_degree+1))/2];
-
-  int curr_index = 0;
-  int curr_binom = 1;
   
-  for (int n = 0; n <= polynomial_degree; n++) {
-    curr_binom = 1;
-    for (int k = 0; k <= n; k++) {
-      if (k == 0) {
-        binomCoeff[curr_index] = 1;
-      } else {
-        curr_binom *= (n-k+1);
-        curr_binom /= k;
-        binomCoeff[curr_index] = curr_binom;
-      }
-      curr_index += 1;
-    }
-  }  
 };
 
 DirectMixedFE::~DirectMixedFE() {
@@ -69,31 +49,70 @@ DirectMixedFE::~DirectMixedFE() {
   if (v_value_n) delete[] v_value_n;
   if (v_div_value_n) delete[] v_div_value_n;
   if (v_edge_value_n) delete[] v_edge_value_n;
-  if (binomCoeff) delete[] binomCoeff;
 }
 
+// Eval for DirectMixedFE
 
-// Integration of x^m*y^n from 0 to t, 
-// on a line parametrized by \x = (1-t)*\v0 + t*\v1
-double DirectMixedFE::integralPolyEdge(const Point v0, const Point v1, int m, int n, double t) const {
-  double x0 = v0.val(0);
-  double y0 = v0.val(1);
-  double x1 = v1.val(0);
-  double y1 = v1.val(1);
-
-  double result = 0;
-  double curr_coefficient = 0;
-
-  for (int k = 0; k <= m; k++) {
-    for (int l = 0; l <= n; l++) {
-      curr_coefficient = binomialCoefficient(m,k)*pow(x1-x0,k)*pow(x0,m-k)*binomialCoefficient(n,l)*pow(y1-y0,l)*pow(y0,n-l);
-      result += curr_coefficient / (k+l+1) * pow(t,k+l+1);
+void DirectMixedFE::eval(const Point* pt, Tensor1* result, int num_pts, char type, double* dofs) {
+  initBasis(pt,num_pts);
+  int dim = (type == 'f') ? dimVFull() : dimVReduced();
+  for(int n=0; n<num_pts; n++) { 
+    result[n].set(0,0);
+    for(int i=0; i<dim; i++) {
+      result[n] += dofs[i]*basis(i,n);
     }
   }
-  return result;
+
+}
+
+void DirectMixedFE::eval(const Point* pt, Tensor1* fullResult, Tensor1* reducedResult, int num_pts, 
+              double* full_dofs, double* reduced_dofs) {
+  initBasis(pt,num_pts);
+  for (int n=0; n<num_pts; n++) {
+    fullResult[n].set(0,0);
+    reducedResult[n].set(0,0);
+
+    for(int i=0; i<dimVFull(); i++) {
+      fullResult[n] += full_dofs[i]*basis(i,n);
+      if (i<dimVReduced()) reducedResult[n] += reduced_dofs[i]*basis(i,n);
+    }
+  }
 };
 
-void DirectMixedFE::initHybridBasis(const Point* pt, int num_pts) {
+
+// Output for DirectMixedFE
+
+void DirectMixedFE::write_raw(std::ofstream& fout) const {
+  fout << "    DIRECT MIXED FE\n";
+  fout << "    my_dm_space       = " << my_dm_space << "\n";
+  fout << "    my_poly_element   = " << my_poly_element << "\n";
+  fout << "    num_vertices      = " << num_vertices << "\n";
+  fout << "    polynomial_degree = " << polynomial_degree << "\n";
+  fout << "    dimension of V_full = " << dim_v << "\n";
+  fout << "    dimension of V_reduced = " << dimVReduced() << "\n";
+  fout << "    dimension of Curl part = " << dim_curlpart << "\n";
+  fout << "    dimension of xPo_full = " << dim_v_div << "\n";
+  fout << "    dimension of xPo_reduced = " << dimXPoReduced() << "\n";
+
+  fout << "    vertex nodes:";
+  for(int i=0; i< my_poly_element->nVertices(); i++) {
+    fout << " " << my_poly_element->vertexPtr(i)
+	 << " (" << i << ")";
+  }
+  fout << "\n";
+}
+
+int DirectMixedFE::write_raw(std::string& filename) const {
+  std::ofstream fout(filename);
+  if( !fout ) return 1;
+  write_raw(fout);
+  return 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// class DirectMixedHybridFE
+
+void DirectMixedHybridFE::initBasis(const Point* pt, int num_pts) {
 
   if(num_pts <= 0) return;
   num_eval_pts = num_pts;
@@ -251,7 +270,86 @@ void DirectMixedFE::initHybridBasis(const Point* pt, int num_pts) {
   assert(curr_v_div_index == dim_v_div);
 };
 
-void DirectMixedFE::initConfBasis(const Point* pt, int num_pts) {
+void DirectMixedHybridFE::eval_div(const Point* pt, double* result, int num_pts, char type, double* dofs) {
+  initBasis(pt,num_pts);
+  int dim = (type == 'f') ? dimXPoFull() : dimXPoReduced();
+  for(int n=0; n<num_pts; n++) { 
+    result[n] = 0;
+
+    for(int i=0; i<dim; i++) {
+      result[n] += dofs[dimCurlPart()+i]*basisdivXPo(i,n);
+    }
+  }
+}
+
+void DirectMixedHybridFE::eval_div(const Point* pt, double* fullResult, double* reducedResult, int num_pts, 
+              double* full_dofs, double* reduced_dofs) {
+  initBasis(pt,num_pts);
+  for (int n=0; n<num_pts; n++) {
+    fullResult[n] = 0;
+    reducedResult[n] = 0;
+
+    for(int i=0; i<dimXPoFull(); i++) {
+      fullResult[n] += full_dofs[dimCurlPart()+i]*basisdivXPo(i,n);
+      if (i<dimXPoReduced()) reducedResult[n] += reduced_dofs[dimCurlPart()+i]*basisdivXPo(i,n);
+    }
+  }
+};
+
+
+////////////////////////////////////////////////////////////////////////////////
+// class DirectMixedConfFE
+
+void DirectMixedConfFE::set_directmixedconffe(DirectMixedConf* dmSpace, polymesh::PolyElement* element) { 
+  set_directmixedfe(dmSpace, element, true);
+
+  // Set up binomial coefficients array
+  if (binomCoeff) delete[] binomCoeff;
+  binomCoeff = new int[((polynomial_degree+2) * (polynomial_degree+1))/2];
+
+  int curr_index = 0;
+  int curr_binom = 1;
+  
+  for (int n = 0; n <= polynomial_degree; n++) {
+    curr_binom = 1;
+    for (int k = 0; k <= n; k++) {
+      if (k == 0) {
+        binomCoeff[curr_index] = 1;
+      } else {
+        curr_binom *= (n-k+1);
+        curr_binom /= k;
+        binomCoeff[curr_index] = curr_binom;
+      }
+      curr_index += 1;
+    }
+  }
+} 
+
+DirectMixedConfFE::~DirectMixedConfFE() {
+  if (binomCoeff) delete[] binomCoeff;
+}
+
+// Integration of x^m*y^n from 0 to t, 
+// on a line parametrized by \x = (1-t)*\v0 + t*\v1
+double DirectMixedConfFE::integralPolyEdge(const Point v0, const Point v1, int m, int n, double t) const {
+  double x0 = v0.val(0);
+  double y0 = v0.val(1);
+  double x1 = v1.val(0);
+  double y1 = v1.val(1);
+
+  double result = 0;
+  double curr_coefficient = 0;
+
+  for (int k = 0; k <= m; k++) {
+    for (int l = 0; l <= n; l++) {
+      curr_coefficient = binomialCoefficient(m,k)*pow(x1-x0,k)*pow(x0,m-k)*binomialCoefficient(n,l)*pow(y1-y0,l)*pow(y0,n-l);
+      result += curr_coefficient / (k+l+1) * pow(t,k+l+1);
+    }
+  }
+  return result;
+};
+
+void DirectMixedConfFE::initBasis(const Point* pt, int num_pts) {
 
   if(num_pts <= 0) return;
   num_eval_pts = num_pts;
@@ -503,92 +601,45 @@ void DirectMixedFE::initConfBasis(const Point* pt, int num_pts) {
   assert(curr_div_index == dim_v_div);
 };
 
-// Eval for DirectMixedFE
-
-void DirectMixedFE::eval(const Point* pt, Tensor1* result, int num_pts, char type, double* dofs) {
+void DirectMixedConfFE::eval_div(const Point* pt, double* result, int num_pts, char type, double* dofs) {
   initBasis(pt,num_pts);
-  int dim = (type == 'f') ? dimVFull() : dimVReduced();
-  for(int n=0; n<num_pts; n++) { 
-    result[n].set(0,0);
-    for(int i=0; i<dim; i++) {
-      result[n] += dofs[i]*basis(i,n);
-    }
-  }
 
-}
-
-
-void DirectMixedFE::eval(const Point* pt, Tensor1* fullResult, Tensor1* reducedResult, int num_pts, 
-              double* full_dofs, double* reduced_dofs) {
-  initBasis(pt,num_pts);
-  for (int n=0; n<num_pts; n++) {
-    fullResult[n].set(0,0);
-    reducedResult[n].set(0,0);
-
-    for(int i=0; i<dimVFull(); i++) {
-      fullResult[n] += full_dofs[i]*basis(i,n);
-      if (i<dimVReduced()) reducedResult[n] += reduced_dofs[i]*basis(i,n);
-    }
-  }
-};
-
-void DirectMixedFE::eval_div(const Point* pt, double* result, int num_pts, char type, double* dofs) {
-  initBasis(pt,num_pts);
-  int dim = (type == 'f') ? dimXPoFull() : dimXPoReduced();
   for(int n=0; n<num_pts; n++) { 
     result[n] = 0;
 
-    for(int i=0; i<dim; i++) {
-      result[n] += dofs[dimCurlPart()+i]*basisdivXPo(i,n);
+    for (int i=0; i<num_vertices; i++) {
+      result[n] += dofs[i]*vertexBasisDiv(i,n);
+    }
+
+    for (int i=0; i<dimPolyBasis(type); i++) {
+      result[n] += dofs[num_vertices*(polynomial_degree+1)+dimCellBasis()+i]*polyBasisDiv(i,n);
     }
   }
 }
 
-
-void DirectMixedFE::eval_div(const Point* pt, double* fullResult, double* reducedResult, int num_pts, 
+void DirectMixedConfFE::eval_div(const Point* pt, double* fullResult, double* reducedResult, int num_pts, 
               double* full_dofs, double* reduced_dofs) {
   initBasis(pt,num_pts);
+
   for (int n=0; n<num_pts; n++) {
     fullResult[n] = 0;
     reducedResult[n] = 0;
 
-    for(int i=0; i<dimXPoFull(); i++) {
-      fullResult[n] += full_dofs[dimCurlPart()+i]*basisdivXPo(i,n);
-      if (i<dimXPoReduced()) reducedResult[n] += reduced_dofs[dimCurlPart()+i]*basisdivXPo(i,n);
+    for (int i=0; i<num_vertices; i++) {
+      fullResult[n] += full_dofs[i]*vertexBasisDiv(i,n);
+      reducedResult[n] += reduced_dofs[i]*vertexBasisDiv(i,n);
+    }
+
+    for (int i=0; i<dimPolyBasis('r'); i++) {
+      fullResult[n] +=  full_dofs[num_vertices*(polynomial_degree+1)+dimCellBasis()+i]*polyBasisDiv(i,n);
+      reducedResult[n] +=  reduced_dofs[num_vertices*(polynomial_degree+1)+dimCellBasis()+i]*polyBasisDiv(i,n);
+    }
+
+    for (int i=dimPolyBasis('r'); i<dimPolyBasis('f'); i++) {
+      fullResult[n] +=  full_dofs[num_vertices*(polynomial_degree+1)+dimCellBasis()+i]*polyBasisDiv(i,n);
     }
   }
 };
-
-
-// Output for DirectMixedFE
-
-void DirectMixedFE::write_raw(std::ofstream& fout) const {
-  fout << "    DIRECT MIXED FE\n";
-  fout << "    my_dm_space       = " << my_dm_space << "\n";
-  fout << "    my_poly_element   = " << my_poly_element << "\n";
-  fout << "    num_vertices      = " << num_vertices << "\n";
-  fout << "    polynomial_degree = " << polynomial_degree << "\n";
-  fout << "    dimension of V_full = " << dim_v << "\n";
-  fout << "    dimension of V_reduced = " << dimVReduced() << "\n";
-  fout << "    dimension of Curl part = " << dim_curlpart << "\n";
-  fout << "    dimension of xPo_full = " << dim_v_div << "\n";
-  fout << "    dimension of xPo_reduced = " << dimXPoReduced() << "\n";
-
-  fout << "    vertex nodes:";
-  for(int i=0; i< my_poly_element->nVertices(); i++) {
-    fout << " " << my_poly_element->vertexPtr(i)
-	 << " (" << i << ")";
-  }
-  fout << "\n";
-}
-
-int DirectMixedFE::write_raw(std::string& filename) const {
-  std::ofstream fout(filename);
-  if( !fout ) return 1;
-  write_raw(fout);
-  return 0;
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Class DirectDGFE
@@ -746,9 +797,6 @@ void DirectEdgeDGFE::initBasis(const Point* pt, int num_pts) {
   //Check if our indexing is working as expected
   assert(curr_index == dim_l);
 };
-
-
-
 
 double DirectEdgeDGFE::projToEdge(const Point& p) const {
   Tensor1 tau(my_edge->tangent());

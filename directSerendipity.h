@@ -332,6 +332,8 @@ namespace directserendipity {
     int write_raw(std::string& filename) const;
 
     friend class DirectMixedFE;
+    friend class DirectMixedHybridFE;
+    friend class DirectMixedConfFE;
   };
 
   void lambda_for_two_points(const Point& pt0, const Point& pt1, double x, double y, double& result, Tensor1& gradresult);
