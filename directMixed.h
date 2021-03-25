@@ -2,6 +2,9 @@
 #define __directmixed_h_included__
 
 #include "directSerendipity.h"
+#include <algorithm>
+
+using namespace std;
 
 namespace directserendipity {
 
@@ -10,6 +13,8 @@ namespace directserendipity {
   enum class MixedDoFBCType { interior, boundary };
   class DirectSerendipity;
   class DirectMixed;
+  class DirectMixedHybrid;
+  class DirectMixedConf;
   
   ////////////////////////////////////////////////////////////////////////////////
   // class DirectMixedFE
@@ -69,7 +74,7 @@ namespace directserendipity {
   
   public:
  
-    virtual void initBasis(const Point* pt, int num_pts);
+    virtual void initBasis(const Point* pt, int num_pts) { };
 
     DirectMixed* spacePtr() const { return my_dm_space; };
     polymesh::PolyElement* elementPtr() const { return my_poly_element; };
@@ -99,7 +104,7 @@ namespace directserendipity {
     int dimCurlPoly() const { return dim_curlpart - dim_supp;}
     int dimCurlSupp() const { return dim_supp; }
 
-    int dimXPoFull() const { return dim_v_div; };
+    int dimXPoFull() const { return (polynomial_degree+2) * (polynomial_degree+1) /2; };
     int dimXPoReduced() const { return polynomial_degree * (polynomial_degree + 1)/2; };
 
     // Evaluation \u in full or reduced space or both at a point
@@ -120,7 +125,7 @@ namespace directserendipity {
       eval(&pt, &fullResult, &reducedResult, 1, full_dofs, reduced_dofs); };
 
     // Evaluation div \u in full or reduced space or both at a point
-    virtual void eval_div(const Point* pt, double* result, int num_pts, char type, double* dofs=nullptr);
+    virtual void eval_div(const Point* pt, double* result, int num_pts, char type, double* dofs=nullptr) { };
     void eval_div(const Point& pt, double& result, char type, double* dofs=nullptr) {
       eval_div(&pt, &result, 1, type, dofs); };
 
@@ -131,7 +136,7 @@ namespace directserendipity {
     }
 
     virtual void eval_div(const Point* pt, double* fullResult, double* reducedResult, int num_pts, 
-              double* full_dofs=nullptr, double* reduced_dofs=nullptr);
+              double* full_dofs=nullptr, double* reduced_dofs=nullptr) { };
     void eval_div(const Point& pt, double& fullResult, double& reducedResult, 
               double* full_dofs=nullptr, double* reduced_dofs=nullptr) {
       eval_div(&pt, &fullResult, &reducedResult, 1, full_dofs, reduced_dofs); };
@@ -146,19 +151,19 @@ namespace directserendipity {
 
   class DirectMixedHybridFE : public DirectMixedFE
   {
+    private:
+    void set_directmixedhybridfe(DirectMixedHybrid* dmSpace, polymesh::PolyElement* element);
     public:
     DirectMixedHybridFE() { DirectMixedFE(); };
-    DirectMixedHybridFE(const DirectMixedFE& fe) { set_directmixedfe(fe.spacePtr(),fe.elementPtr(),false); }
-    DirectMixedHybridFE(const DirectMixedHybridFE& fe) { set_directmixedfe(fe.spacePtr(),fe.elementPtr(),false); }
     DirectMixedHybridFE(DirectMixedHybrid* dmSpace, polymesh::PolyElement* element) {
-      set_directmixedfe(dmSpace, element, false);
+      set_directmixedhybridfe(dmSpace, element);
     }
 
     void set() { DirectMixedFE(); };
     void set(const DirectMixedFE& fe) { set_directmixedfe(fe.spacePtr(),fe.elementPtr(),false); }
     void set(const DirectMixedHybridFE& fe) { set_directmixedfe(fe.spacePtr(),fe.elementPtr(),false); }
     void set(DirectMixedHybrid* dmSpace, polymesh::PolyElement* element) {
-      set_directmixedfe(dmSpace, element, false);
+      set_directmixedhybridfe(dmSpace, element);
     }
 
     void initBasis(const Point* pt, int num_pts);
@@ -207,8 +212,35 @@ namespace directserendipity {
 
 
     // Get dimension of cell and xPo part
-    int dimCellBasis() { return high_order_ds_space->finiteElementPtr(0)->nCellNodes(); };
+    int dimCellBasis() { return max( 0, ((polynomial_degree - num_vertices + 3)
+                            * (polynomial_degree - num_vertices + 2)) / 2); };
     int dimPolyBasis(char type) { return (type == 'f')? (dimXPoFull()-1):(dimXPoReduced()-1); };
+
+
+    // return true if the dof is a vertex dof
+    bool isVertexDoF(int i) {
+      if ( (i >= dimCellBasis() + num_vertices * polynomial_degree) 
+          && (i < dimCellBasis() + num_vertices * polynomial_degree + num_vertices)) {
+            return true;
+      } else { return false; }
+    };
+    // return the index of vertex corresponding to vertex dof
+    int mapDoFToVertex(int i) {
+      return (isVertexDoF(i))? (i - (dimCellBasis() + num_vertices * polynomial_degree)):-1;
+    }
+
+    // return true if the dof is an edge dof
+    bool isEdgeDoF(int i) {
+      if ( (i >= dimCellBasis()) 
+          && (i < dimCellBasis() + num_vertices * polynomial_degree)) {
+            return true;
+      } else { return false; }
+    };
+
+    // return the corresponding EDGE INDEX if the dof is an edge dof
+    int mapDoFToEdge(int i) {
+      return (isEdgeDoF(i))? ((i - dimCellBasis())/polynomial_degree):-1;
+    }
 
     // Access functions
 
@@ -555,6 +587,9 @@ namespace directserendipity {
     void set_directmixedhybrid(int polyDeg, polymesh::PolyMesh* mesh);
     
   public:
+    DirectMixedHybrid(const DirectMixed& dm) {
+      set_directmixedhybrid(dm.degPolyn(), dm.mesh());
+    }
     DirectMixedHybrid(int polyDeg, polymesh::PolyMesh* mesh) {
       set_directmixedhybrid(polyDeg, mesh); };
     ~DirectMixedHybrid();
@@ -606,9 +641,15 @@ namespace directserendipity {
     int** poly_loc_to_glob_full = nullptr;
     int** poly_loc_to_glob_reduced = nullptr;
 
+    int** loc_to_glob_full = nullptr;
+    int** loc_to_glob_reduced = nullptr;
+    
     void set_directmixedconf(int polyDeg, polymesh::PolyMesh* mesh);
     
     public:
+    DirectMixedConf(const DirectMixed& dm) {
+      set_directmixedconf(dm.degPolyn(), dm.mesh());
+    }
     DirectMixedConf(int polyDeg, polymesh::PolyMesh* mesh) {
       set_directmixedconf(polyDeg, mesh);
     }
@@ -660,6 +701,10 @@ namespace directserendipity {
       return (type == 'f')? poly_loc_to_glob_full[nElement][i] : poly_loc_to_glob_reduced[nElement][i];
     };
 
+    // Map local dof of an element to global dof index
+    int loc_to_glob(int nElement, int i, char type) const {
+      return (type == 'f')? loc_to_glob_full[nElement][i] : loc_to_glob_reduced[nElement][i];
+    };
 
     void write_raw(std::ofstream& fout) const;
     int write_raw(std::string& filename) const;
@@ -679,7 +724,7 @@ namespace directserendipity {
     char space_type; // either 'f' or 'r'
 
     double* the_array = nullptr;
-    PolyMesh* my_mesh = nullptr; // Redundant with my_dm_space
+    polymesh::PolyMesh* my_mesh = nullptr; // Redundant with my_dm_space
     DirectMixed* my_dm_space = nullptr;
 
     void set_directmixedarray(DirectMixed* dmSpace, char spacetype);
@@ -705,14 +750,14 @@ namespace directserendipity {
     double& operator[] (int i)       { return the_array[i]; }
     double  operator[] (int i) const { return the_array[i]; }
 
-    virtual void eval(const Point* pts, Tensor1* result, int num_pts) const;
-    virtual void eval(const Point& pt, Tensor1& result) const;
+    virtual void eval(const Point* pts, Tensor1* result, int num_pts) const { };
+    virtual void eval(const Point& pt, Tensor1& result) const { };
     Tensor1 eval(const Point& pt) const {
       Tensor1 result; eval(pt, result); return result;
     };
 
-    virtual void eval_div(const Point* pts, double* result, int num_pts) const;
-    virtual void eval_div(const Point& pt, double& result) const;
+    virtual void eval_div(const Point* pts, double* result, int num_pts) const { };
+    virtual void eval_div(const Point& pt, double& result) const { };
     double eval_div(const Point& pt) const {
       double result; eval_div(pt, result); return result;
     };
@@ -762,7 +807,6 @@ namespace directserendipity {
 
   class DirectMixedHybridArray : public DirectMixedArray {
   private:
-
     DirectMixedHybrid* my_dm_space;
 
     void set_directmixedhybridarray(DirectMixedHybrid* dmSpace, char spacetype);

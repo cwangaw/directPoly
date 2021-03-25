@@ -13,8 +13,7 @@
 #include "Utilities/monitor.h"
 #include "Utilities/debug.h"
 #include <complex.h>
-#include "lapacke.h"
-#include <cblas.h>
+
 
 using namespace directserendipity;
 using namespace polymesh;
@@ -75,11 +74,11 @@ lapack_int block_mat_inv(double *A, int n, int *m, int num)
 }
 
 
-int MixedPDE::solve(Monitor& monitor) {
+int MixedPDE::solve_hybrid(Monitor& monitor) {
   monitor(0,"Polynomial Degree = ", parameterDataPtr()->dmSpace.degPolyn());
 
   ParameterData& param = *parameterDataPtr();
-
+  DirectMixedHybrid dmSpace = DirectMixedHybrid(parameterDataPtr()->dmSpace);
   // TEST SINGLE ELEMENT MESH //////////////////////////////////////////////
 
   if(false) {
@@ -90,7 +89,7 @@ int MixedPDE::solve(Monitor& monitor) {
     fileName += "mesh_e4";
     s_mesh.write_matlab(fileName);
 
-    DirectMixed s_dmSpace(8,&s_mesh,false);
+    DirectMixedHybrid s_dmSpace(8,&s_mesh);
     fileName = parameterDataPtr()->directory_name;
     fileName += "dmSpace_e4";
     s_dmSpace.write_matlab(fileName);
@@ -101,9 +100,10 @@ int MixedPDE::solve(Monitor& monitor) {
   if(true) {
     monitor(0,"\nTest basis functions for element 0\n");
 
-    DirectMixedArray u(&(parameterDataPtr()->dmSpace), 'f');
+    
+    DirectMixedHybridArray u(&dmSpace, 'f');
     DirectDGArray p(&(parameterDataPtr()->dmSpace), 'f');
-    DirectEdgeDGArray l(&(parameterDataPtr()->dmSpace));
+    DirectEdgeDGArray l(&dmSpace);
 
     for(int i=0; i<u.size(); i++) {
       u[i]=0;
@@ -145,27 +145,22 @@ int MixedPDE::solve(Monitor& monitor) {
   }
   
   // SOLVE THE PDE ///////////////////////////////////////////////////////////
-if ( param.conforming ) {
-  // SOLVE THE PDE WITH CONFORMING ELEMENT ///////////////////////////////////
 
-} else {
-  // SOLVE THE PDE WITH HYBRID METHOD ////////////////////////////////////////
-}
   monitor(0,"\nSolve the PDE\n");
 
   // Only when r > 0, we calculate reduced space
 
-  DirectMixedArray solution_u_f(&(param.dmSpace),'f');
-  DirectMixedArray solution_u_r(&(param.dmSpace),'r');
-  DirectDGArray solution_p_f(&(param.dmSpace),'f');
-  DirectDGArray solution_p_r(&(param.dmSpace),'r');
-  DirectEdgeDGArray solution_l_f(&(param.dmSpace));
-  DirectEdgeDGArray solution_l_r(&(param.dmSpace));
+  DirectMixedHybridArray solution_u_f(&(dmSpace),'f');
+  DirectMixedHybridArray solution_u_r(&(dmSpace),'r');
+  DirectDGArray solution_p_f(&(dmSpace),'f');
+  DirectDGArray solution_p_r(&(dmSpace),'r');
+  DirectEdgeDGArray solution_l_f(&(dmSpace));
+  DirectEdgeDGArray solution_l_r(&(dmSpace));
 
 
   // Initialize matrix A for both full and reduced space
-  int dimAfull = param.dmSpace.nMixedDoFs('f');
-  int dimAreduced = param.dmSpace.nMixedDoFs('r');
+  int dimAfull = dmSpace.nMixedDoFs('f');
+  int dimAreduced = dmSpace.nMixedDoFs('r');
 
   std::vector<double> mat_A_full_vector(dimAfull*dimAfull,0);
   double* mat_A_full = mat_A_full_vector.data();
@@ -174,8 +169,8 @@ if ( param.conforming ) {
 
   // Initialize matrix B for both full and reduced space
   int rowBfull = dimAfull, rowBreduced = dimAreduced;
-  int colBfull = param.dmSpace.nDGDoFs('f');
-  int colBreduced = param.dmSpace.nDGDoFs('r');
+  int colBfull = dmSpace.nDGDoFs('f');
+  int colBreduced = dmSpace.nDGDoFs('r');
 
   std::vector<double> mat_B_full_vector(rowBfull*colBfull,0);
   double* mat_B_full = mat_B_full_vector.data();
@@ -184,7 +179,7 @@ if ( param.conforming ) {
 
   // Initialize matrix L
   int rowLfull = dimAfull, rowLreduced = dimAreduced;
-  int colL = param.dmSpace.nIntEdgeDGDoFs();
+  int colL = dmSpace.nIntEdgeDGDoFs();
 
   std::vector<double> mat_L_full_vector(rowLfull*colL,0);
   double* mat_L_full = mat_L_full_vector.data();
@@ -218,10 +213,10 @@ if ( param.conforming ) {
 
   polyquadrature::PolyQuadrature quadRule(13);
 
-  std::vector<polyquadrature::PolyEdgeQuadrature> quadEdgeRule(param.dmSpace.nEdges());
+  std::vector<polyquadrature::PolyEdgeQuadrature> quadEdgeRule(dmSpace.nEdges());
 
-  for (int i = 0; i < param.dmSpace.nEdges(); i++) {
-    quadEdgeRule[i].set(13, param.dmSpace.edgePtr(i));
+  for (int i = 0; i < dmSpace.nEdges(); i++) {
+    quadEdgeRule[i].set(13, dmSpace.edgePtr(i));
   }
 
   monitor(1,"Matrix and RHS Assembly"); ////////////////////////////////////////
@@ -238,16 +233,16 @@ if ( param.conforming ) {
   // We construct an array of pointer to all the DirectEdgeDGFE
   // and get them by interior edge indexing
 
-  std::vector<DirectEdgeDGFE*> eePtr(param.dmSpace.nEdges());
-  for (int i = 0; i < param.dmSpace.nEdges(); i++) {
-    eePtr[i] = param.dmSpace.DGEdgePtr(i);
+  std::vector<DirectEdgeDGFE*> eePtr(dmSpace.nEdges());
+  for (int i = 0; i < dmSpace.nEdges(); i++) {
+    eePtr[i] = dmSpace.DGEdgePtr(i);
     eePtr[i] -> initBasis(quadEdgeRule[i].pts(), quadEdgeRule[i].num());
   }
 
 
   for(int iElement=0; iElement<param.mesh.nElements(); iElement++) {
-    DirectMixedFE* mePtr = param.dmSpace.MixedElementPtr(iElement);
-    DirectDGFE* dgePtr = param.dmSpace.DGElementPtr(iElement);
+    DirectMixedHybridFE* mePtr = dmSpace.MixedElementPtr(iElement);
+    DirectDGFE* dgePtr = dmSpace.DGElementPtr(iElement);
 
     quadRule.setElement(mePtr->elementPtr());
     
@@ -327,8 +322,8 @@ if ( param.conforming ) {
     // ..., {edge(nInteriorEdge()-1),Func(eePtr[nInteriorEdge()-1]->dim()-1)} 
 
     for (int iEdge = 0; iEdge < numEdges; iEdge ++) {
-      loc_to_glob = param.dmSpace.globalEdgeIndex(iElement,iEdge);
-      loc_to_int = param.dmSpace.interiorEdgeIndex(iElement,iEdge);
+      loc_to_glob = dmSpace.globalEdgeIndex(iElement,iEdge);
+      loc_to_int = dmSpace.interiorEdgeIndex(iElement,iEdge);
       mePtr->initBasis(quadEdgeRule[loc_to_glob].pts(), quadEdgeRule[loc_to_glob].num());
 
       for (int iPt = 0; iPt < quadEdgeRule[loc_to_glob].num(); iPt++) {
@@ -347,12 +342,12 @@ if ( param.conforming ) {
             for (int i = 0; i < eePtr[loc_to_glob]->dim(); i++){
               double l_i = eePtr[loc_to_glob]->basis(i,iPt);
               // Here we use the property that eePtr[loc_to_glob]->dim() is the same (degPolyn()+1)for every edge in our mesh
-              curr_full_index = colL * (starting_Afull + j) + (loc_to_int*(param.dmSpace.degPolyn()+1)+i);
+              curr_full_index = colL * (starting_Afull + j) + (loc_to_int*(dmSpace.degPolyn()+1)+i);
               evaluation = l_i * v_jdotNu * quadEdgeRule[loc_to_glob].wt(iPt);
               mat_L_full[curr_full_index] += evaluation;
 //              assert(curr_full_index < dimAfull*colL);
               if (j < loc_dimAreduced) {
-                curr_reduced_index = colL * (starting_Areduced + j) + (loc_to_int*(param.dmSpace.degPolyn()+1)+i);
+                curr_reduced_index = colL * (starting_Areduced + j) + (loc_to_int*(dmSpace.degPolyn()+1)+i);
                 mat_L_reduced[curr_reduced_index] += evaluation;
 //                assert(curr_reduced_index < dimAreduced*colL);
               }
@@ -982,4 +977,4 @@ if ( param.conforming ) {
   }
 
   return 0;
-} 
+}; 

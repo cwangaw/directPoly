@@ -69,7 +69,6 @@ public:
   int conforming;
   directserendipity::DirectSerendipity dsSpace;
   directserendipity::DirectMixed dmSpace;
-  
   // ALGORITHM PARAMETERS
   /*
   int maximumIterations; // 2000

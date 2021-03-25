@@ -31,7 +31,7 @@ bool Vertex::isOnBoundary() const {
 }
 
 void Vertex::write_raw(std::ofstream& fout) const {
-  fout << "      VERTEX (" << *this << ")\n";
+  fout << "      VERTEX (" << val(0) << "," <<val(1) << ")\n";
   fout << "      my_mesh       = " << my_mesh << "\n";
   fout << "      my_mesh_index = " << my_mesh_index << "\n";
 }

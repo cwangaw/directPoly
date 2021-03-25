@@ -56,13 +56,13 @@ DirectMixedFE::~DirectMixedFE() {
 void DirectMixedFE::eval(const Point* pt, Tensor1* result, int num_pts, char type, double* dofs) {
   initBasis(pt,num_pts);
   int dim = (type == 'f') ? dimVFull() : dimVReduced();
+
   for(int n=0; n<num_pts; n++) { 
     result[n].set(0,0);
     for(int i=0; i<dim; i++) {
       result[n] += dofs[i]*basis(i,n);
     }
   }
-
 }
 
 void DirectMixedFE::eval(const Point* pt, Tensor1* fullResult, Tensor1* reducedResult, int num_pts, 
@@ -111,6 +111,10 @@ int DirectMixedFE::write_raw(std::string& filename) const {
 
 ////////////////////////////////////////////////////////////////////////////////
 // class DirectMixedHybridFE
+
+void DirectMixedHybridFE::set_directmixedhybridfe(DirectMixedHybrid* dmSpace, polymesh::PolyElement* element) {
+  set_directmixedfe(dmSpace, element, false);
+};
 
 void DirectMixedHybridFE::initBasis(const Point* pt, int num_pts) {
 
@@ -377,7 +381,15 @@ void DirectMixedConfFE::initBasis(const Point* pt, int num_pts) {
   high_order_ds_space = new DirectSerendipity(polynomial_degree+1,one_element_mesh);
   high_order_ds_space->finiteElementPtr(0)->initBasis(pt, num_pts);
   int higher_order = high_order_ds_space->finiteElementPtr(0)->polynomial_degree;
-
+/*
+cout << "Print the edge nodes of higher order ds space" << endl;
+  for (int iEdge = 0; iEdge < num_vertices; iEdge++) {
+    for (int jNode = 0; jNode < polynomial_degree; jNode++) {
+      cout << "("<<iEdge<<","<<jNode<<"): (" << high_order_ds_space->finiteElementPtr(0)->edgeNodePtr(iEdge,jNode)->val(0)<<","<<
+high_order_ds_space->finiteElementPtr(0)->edgeNodePtr(iEdge,jNode)->val(1)<<")"<<endl;
+    }
+  }
+*/
   ///////////////////////////////////////////////
   //                                           //
   // \psi_{b, E, i} :                          //
@@ -458,6 +470,7 @@ void DirectMixedConfFE::initBasis(const Point* pt, int num_pts) {
                               -high_order_ds_space->finiteElementPtr(0)->gradEdgeBasis((n+1)%num_vertices,m,pt_index).val(0));
           }
         }
+        result.set(psi_star_v[i]);
 
       // Evaluate \psi^{**}_{v,i} at pt, store in result
       result.set(pt[pt_index].val(0) - my_poly_element -> vertexPtr(i+num_vertices/2) -> val(0),
@@ -493,7 +506,6 @@ void DirectMixedConfFE::initBasis(const Point* pt, int num_pts) {
       for (int j = i + num_vertices/2 - 2; j >= i; j--) {
         flux_this = 1 / my_poly_element -> edgePtr(j) -> length();
         flux_next = -1 / my_poly_element -> edgePtr(j+1) -> length();
-
         result -= psi_star_star_on_edges[(j+1) % num_vertices] / flux_next * psi_star_v[j % num_vertices];
         psi_star_star_on_edges[j % num_vertices] -= psi_star_star_on_edges[(j+1) % num_vertices] / flux_next * flux_this;
         psi_star_star_on_edges[(j+1) % num_vertices] = 0;
@@ -503,7 +515,7 @@ void DirectMixedConfFE::initBasis(const Point* pt, int num_pts) {
       // The final step is to normalize the flux on e_i to 1
 
       result /= psi_star_star_on_edges[i];
-      
+
       // Store the evaluation
       v_value_n[pt_index * dim_v + curr_index] = result;
       v_div_value_n[pt_index * dim_v_div + curr_div_index] = 2 / psi_star_star_on_edges[i];
@@ -608,7 +620,7 @@ void DirectMixedConfFE::eval_div(const Point* pt, double* result, int num_pts, c
     result[n] = 0;
 
     for (int i=0; i<num_vertices; i++) {
-      result[n] += dofs[i]*vertexBasisDiv(i,n);
+      result[n] += dofs[num_vertices*polynomial_degree+dimCellBasis()+i]*vertexBasisDiv(i,n);
     }
 
     for (int i=0; i<dimPolyBasis(type); i++) {
@@ -626,8 +638,8 @@ void DirectMixedConfFE::eval_div(const Point* pt, double* fullResult, double* re
     reducedResult[n] = 0;
 
     for (int i=0; i<num_vertices; i++) {
-      fullResult[n] += full_dofs[i]*vertexBasisDiv(i,n);
-      reducedResult[n] += reduced_dofs[i]*vertexBasisDiv(i,n);
+      fullResult[n] += full_dofs[num_vertices*polynomial_degree+dimCellBasis()+i]*vertexBasisDiv(i,n);
+      reducedResult[n] += reduced_dofs[num_vertices*polynomial_degree+dimCellBasis()+i]*vertexBasisDiv(i,n);
     }
 
     for (int i=0; i<dimPolyBasis('r'); i++) {

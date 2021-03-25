@@ -8,7 +8,7 @@ PROG = directpoly
 
 SRC = main.cpp parameterData.cpp fcns.cpp directSerendipity.cpp \
       directSerendipityFE.cpp ellipticPDE.cpp polyQuadrature.cpp \
-			directMixedFE.cpp directMixed.cpp mixedPDE.cpp
+			directMixedFE.cpp directMixed.cpp mixedPDEHybrid.cpp mixedPDEConf.cpp
 INC = parameterData.h fcns.h directSerendipity.h directMixed.h ellipticPDE.h mixedPDE.h polyQuadrature.h
 
 MAIN_MODULE = $(PROG)_$(TARG).a
