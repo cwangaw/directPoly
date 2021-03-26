@@ -381,15 +381,17 @@ void DirectMixedConfFE::initBasis(const Point* pt, int num_pts) {
   high_order_ds_space = new DirectSerendipity(polynomial_degree+1,one_element_mesh);
   high_order_ds_space->finiteElementPtr(0)->initBasis(pt, num_pts);
   int higher_order = high_order_ds_space->finiteElementPtr(0)->polynomial_degree;
-/*
+
 cout << "Print the edge nodes of higher order ds space" << endl;
   for (int iEdge = 0; iEdge < num_vertices; iEdge++) {
+    cout << "Edge" <<iEdge<<" "<< my_poly_element -> edgePtr(iEdge) -> orientation() << endl;
     for (int jNode = 0; jNode < polynomial_degree; jNode++) {
+
       cout << "("<<iEdge<<","<<jNode<<"): (" << high_order_ds_space->finiteElementPtr(0)->edgeNodePtr(iEdge,jNode)->val(0)<<","<<
 high_order_ds_space->finiteElementPtr(0)->edgeNodePtr(iEdge,jNode)->val(1)<<")"<<endl;
     }
   }
-*/
+
   ///////////////////////////////////////////////
   //                                           //
   // \psi_{b, E, i} :                          //

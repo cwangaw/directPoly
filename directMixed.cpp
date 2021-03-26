@@ -480,15 +480,15 @@ void DirectMixedConf::set_directmixedconf(int polyDeg, polymesh::PolyMesh* mesh)
         }
 
         // Decide edge_loc_to_glob
-        if (local_edge_orientation) {
+        //if (local_edge_orientation) {
           edge_loc_to_glob_full[iElement][iVertex*polynomial_degree+j] = v_loc_to_glob + j + 1;
           loc_to_glob_full[iElement][local_num_cell_dofs+iVertex*polynomial_degree+j] = v_loc_to_glob + j + 1;
           loc_to_glob_reduced[iElement][local_num_cell_dofs+iVertex*polynomial_degree+j] = v_loc_to_glob + j + 1;
-        } else {
-          edge_loc_to_glob_full[iElement][iVertex*polynomial_degree+j] = v_loc_to_glob + polynomial_degree - j;
-          loc_to_glob_full[iElement][local_num_cell_dofs+iVertex*polynomial_degree+j] = v_loc_to_glob + polynomial_degree - j;
-          loc_to_glob_reduced[iElement][local_num_cell_dofs+iVertex*polynomial_degree+j] = v_loc_to_glob + polynomial_degree - j;
-        }
+        //} else {
+        //  edge_loc_to_glob_full[iElement][iVertex*polynomial_degree+j] = v_loc_to_glob + polynomial_degree - j;
+        //  loc_to_glob_full[iElement][local_num_cell_dofs+iVertex*polynomial_degree+j] = v_loc_to_glob + polynomial_degree - j;
+        //  loc_to_glob_reduced[iElement][local_num_cell_dofs+iVertex*polynomial_degree+j] = v_loc_to_glob + polynomial_degree - j;
+        //}
       }
 
     }
