@@ -10,7 +10,8 @@
 #include "parameterData.h"
 #include "Utilities/monitor.h"
 #include "debug.h"
-
+#include "lapacke.h"
+#include <cblas.h>
 //=============================================================================
 //  EQUATIONS
 //
@@ -52,7 +53,19 @@ public:
 
   ParameterData* parameterDataPtr() const { return my_param; };
   
-  int solve(Monitor& monitor);
+  int solve_conf(Monitor& monitor);
+
+  int solve_hybrid(Monitor& monitor);
+
+  int solve(Monitor& monitor) {
+    if (my_param->conforming) {
+      return solve_conf(monitor);
+    } else {
+      return solve_hybrid(monitor);
+    }
+  };
 };
 
+lapack_int mat_inv(double *A, int n);
+lapack_int block_mat_inv(double *A, int n, int *m, int num);
 #endif

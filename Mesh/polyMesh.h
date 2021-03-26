@@ -52,7 +52,7 @@ namespace polymesh {
 
     PolyMesh* mesh() const { return my_mesh; };
     int meshIndex() const { return my_mesh_index; };
-    
+     
     void nbrElements(std::vector<int>& theNbrIndices) const;
     void nbrEdges(std::vector<int>& theNbrIndices) const;
     bool isOnBoundary() const;

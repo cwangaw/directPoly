@@ -66,9 +66,9 @@ public:
 
   // FINITE ELEMENTS
   int polynomial_degree;
+  int conforming;
   directserendipity::DirectSerendipity dsSpace;
   directserendipity::DirectMixed dmSpace;
-  
   // ALGORITHM PARAMETERS
   /*
   int maximumIterations; // 2000

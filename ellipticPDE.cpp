@@ -51,13 +51,13 @@ int EllipticPDE::solve(Monitor& monitor) {
     double PI = 3.141592653589793238463;
     
     for(int i=0; i<u.size(); i++) {
-      double x = parameterDataPtr()->dsSpace.nodePtr(i)->val(0);
-      double y = parameterDataPtr()->dsSpace.nodePtr(i)->val(1);
-      u[i] = sin(PI*x)*sin(PI*y); //x*x+y*y;
-      //u[i]=0;
+      //double x = parameterDataPtr()->dsSpace.nodePtr(i)->val(0);
+      //double y = parameterDataPtr()->dsSpace.nodePtr(i)->val(1);
+      //u[i] = sin(PI*x)*sin(PI*y); //x*x+y*y;
+      u[i]=0;
       //if (fabs(x-5)<1e-6&&fabs(y-6)<1e-6) {u[i]=1;}
     }
-    //u[21]=1;
+    u[4]=1;
     monitor(1,"Write Array");
 
     std::string fileName = parameterDataPtr()->directory_name;
@@ -65,7 +65,7 @@ int EllipticPDE::solve(Monitor& monitor) {
     std::string fileName_grad = parameterDataPtr()->directory_name;
     fileName_grad += "basis_grad_mesh";
     //u.write_matlab_mesh_by_pt(fileName,fileName_grad,3,3);
-    u.write_matlab_mesh(fileName,fileName_grad,301,301);
+    u.write_matlab_mesh(fileName,fileName_grad,51,51);
   }
 
   // TEST QUADRATURE ///////////////////////////////////////////////////////

@@ -325,8 +325,11 @@ int ParameterData::read() {
   ERRCHK(readScalar(polynomial_degree));
   if(polynomial_degree < 1) polynomial_degree = 1;
 
+  ERRCHK(readScalar(conforming));
+  if(conforming < 0) conforming = 1;
+
   dsSpace.set(polynomial_degree,&mesh);
-  dmSpace.set(polynomial_degree,&mesh);
+  dmSpace.set(polynomial_degree,&mesh,(bool)conforming);
   
   // ALGORITHM PARAMETERS
 

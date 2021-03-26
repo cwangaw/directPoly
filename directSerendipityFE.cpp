@@ -551,8 +551,8 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
     //Update phi_{v,i} in A_\Supp
     for (int i = 0; i < num_vertices; i++) {
       //Exclude vertices in A_\Po
-      if ((i >= polynomial_degree - 2) && (i <= polynomial_degree)) continue;
-      if ((polynomial_degree == 1) && (i == num_vertices - 1)) continue;
+      //if ((i >= polynomial_degree - 2) && (i <= polynomial_degree)) continue;
+      //if ((polynomial_degree == 1) && (i == num_vertices - 1)) continue;
 
       //Define the array storing coefficients got by lagrange_v
       std::vector<double> coef_v_vector(2*(higher_order-1));
@@ -583,8 +583,8 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
     for (int nEdge = 0; nEdge < num_vertices; nEdge++) {
       for (int jNode = 0; jNode < (polynomial_degree - 1); jNode++) {
         //Exclude phi_{e,nEdge,jNode} in A_\Po
-        if ((nEdge <= polynomial_degree - 2) && (jNode <= nEdge)) continue;
-        if ((nEdge == polynomial_degree - 1) || (nEdge == polynomial_degree)) continue;
+        //if ((nEdge <= polynomial_degree - 2) && (jNode <= nEdge)) continue;
+        //if ((nEdge == polynomial_degree - 1) || (nEdge == polynomial_degree)) continue;
 
         //Define the array storing coefficients got by lagrange
         std::vector<double> coef_e_vector(num_vertices - 3);
@@ -609,7 +609,7 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
     }
 
     //Update phi in A_\Po
-
+/*
     //First update phi_{e,nEdge,jNode} for nEdge= 0, 1, ..., r-2
     for (int nEdge = 0; nEdge <= polynomial_degree-2; nEdge++) {
       for (int jNode = 0; jNode <= nEdge; jNode++) {
@@ -758,6 +758,8 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
 
 
     }
+  */
+  
   }
   else {
     //Cell Nodal Basis Functions

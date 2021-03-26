@@ -13,8 +13,7 @@
 #include "Utilities/monitor.h"
 #include "Utilities/debug.h"
 #include <complex.h>
-#include "lapacke.h"
-#include <cblas.h>
+
 
 using namespace directserendipity;
 using namespace polymesh;
@@ -75,11 +74,11 @@ lapack_int block_mat_inv(double *A, int n, int *m, int num)
 }
 
 
-int MixedPDE::solve(Monitor& monitor) {
+int MixedPDE::solve_hybrid(Monitor& monitor) {
   monitor(0,"Polynomial Degree = ", parameterDataPtr()->dmSpace.degPolyn());
 
   ParameterData& param = *parameterDataPtr();
-
+  DirectMixedHybrid dmSpace = DirectMixedHybrid(parameterDataPtr()->dmSpace);
   // TEST SINGLE ELEMENT MESH //////////////////////////////////////////////
 
   if(false) {
@@ -90,7 +89,7 @@ int MixedPDE::solve(Monitor& monitor) {
     fileName += "mesh_e4";
     s_mesh.write_matlab(fileName);
 
-    DirectMixed s_dmSpace(8,&s_mesh);
+    DirectMixedHybrid s_dmSpace(8,&s_mesh);
     fileName = parameterDataPtr()->directory_name;
     fileName += "dmSpace_e4";
     s_dmSpace.write_matlab(fileName);
@@ -101,14 +100,15 @@ int MixedPDE::solve(Monitor& monitor) {
   if(true) {
     monitor(0,"\nTest basis functions for element 0\n");
 
-    DirectMixedArray u(&(parameterDataPtr()->dmSpace), 'f');
+    
+    DirectMixedHybridArray u(&dmSpace, 'f');
     DirectDGArray p(&(parameterDataPtr()->dmSpace), 'f');
-    DirectEdgeDGArray l(&(parameterDataPtr()->dmSpace));
+    DirectEdgeDGArray l(&dmSpace);
 
     for(int i=0; i<u.size(); i++) {
       u[i]=0;
     }
-    u[9]=1;
+    u[19]=1;
 
     for(int i=0; i<p.size(); i++) {
       p[i]=0;
@@ -124,6 +124,7 @@ int MixedPDE::solve(Monitor& monitor) {
 
     std::string fileName = parameterDataPtr()->directory_name;
     fileName += "basis_mesh_mixed";
+
     u.write_matlab_mesh(fileName,51,51);
 
     fileName = parameterDataPtr()->directory_name;
@@ -144,252 +145,22 @@ int MixedPDE::solve(Monitor& monitor) {
   }
   
   // SOLVE THE PDE ///////////////////////////////////////////////////////////
-/*
-  monitor(0,"\nSolve the PDE without supplemental functions\n");
-
-  // Only when r > 0, we calculate reduced space
-
-  DirectMixedArray solution_u_f(&(param.dmSpace),'f');
-  DirectMixedArray solution_u_r(&(param.dmSpace),'r');
-  DirectDGArray solution_p_f(&(param.dmSpace),'f');
-  DirectDGArray solution_p_r(&(param.dmSpace),'r');
-  DirectEdgeDGArray solution_l_f(&(param.dmSpace));
-  DirectEdgeDGArray solution_l_r(&(param.dmSpace));
-
-
-  // Initialize matrix A for both full and reduced space
-  int dimAfull = param.dmSpace.nMixedDoFs('f');
-  int dimAreduced = param.dmSpace.nMixedDoFs('r');
-
-  for(int iElement=0; iElement<param.mesh.nElements(); iElement++) {
-    dimAfull -= param.dmSpace.MixedElementPtr(iElement)->dimCurlSupp();
-    dimAreduced -= param.dmSpace.MixedElementPtr(iElement)->dimCurlSupp();
-  }
-
-  std::vector<double> mat_A_full_vector(dimAfull*dimAfull,0);
-  double* mat_A_full = mat_A_full_vector.data();
-  std::vector<double> mat_A_reduced_vector(dimAreduced*dimAreduced,0);
-  double* mat_A_reduced = mat_A_reduced_vector.data();
-
-  // Initialize matrix B for both full and reduced space
-  int rowBfull = dimAfull, rowBreduced = dimAreduced;
-  int colBfull = param.dmSpace.nDGDoFs('f');
-  int colBreduced = param.dmSpace.nDGDoFs('r');
-
-  std::vector<double> mat_B_full_vector(rowBfull*colBfull,0);
-  double* mat_B_full = mat_B_full_vector.data();
-  std::vector<double> mat_B_reduced_vector(rowBreduced*colBreduced,0);
-  double* mat_B_reduced = mat_B_reduced_vector.data();
-
-  // Initialize matrix L
-  int rowLfull = dimAfull, rowLreduced = dimAreduced;
-  int colL = param.dmSpace.nIntEdgeDGDoFs();
-
-  std::vector<double> mat_L_full_vector(rowLfull*colL,0);
-  double* mat_L_full = mat_L_full_vector.data();
-  std::vector<double> mat_L_reduced_vector(rowLreduced*colL,0);
-  double* mat_L_reduced = mat_L_reduced_vector.data();
-
-  // Initialize right hand side (Dirichlet BC)
-  std::vector<double> rhs_bc_full_vector(dimAfull,0);
-  double* rhs_bc_full = rhs_bc_full_vector.data();   
-
-  std::vector<double> rhs_bc_reduced_vector(dimAreduced,0);
-  double* rhs_bc_reduced = rhs_bc_reduced_vector.data();   
-
-  // Initialize right hand side (W_s coefficients only)
-  std::vector<double> rhs_full_vector(colBfull,0);
-  double* rhs_full = rhs_full_vector.data();
-
-  std::vector<double> rhs_reduced_vector(colBreduced,0);
-  double* rhs_reduced = rhs_reduced_vector.data();
-
-  // Initialize an array storing local dimension of A
-  std::vector<int> locdim_full_vector(param.mesh.nElements(),0);
-  int* locdim_full = locdim_full_vector.data();
-
-  std::vector<int> locdim_reduced_vector(param.mesh.nElements(),0);
-  int* locdim_reduced = locdim_reduced_vector.data();
-
-  // quadrature points
-  // Note that we update quadRule in each iElement loop
-  // But we define quadEdgeRule for all edges at once
-
-  polyquadrature::PolyQuadrature quadRule(13);
-
-  std::vector<polyquadrature::PolyEdgeQuadrature> quadEdgeRule(param.dmSpace.nEdges());
-
-  for (int i = 0; i < param.dmSpace.nEdges(); i++) {
-    quadEdgeRule[i].set(13, param.dmSpace.edgePtr(i));
-  }
-
-  monitor(1,"Matrix and RHS Assembly"); ////////////////////////////////////////
-
-  int starting_Afull = 0, starting_Areduced = 0;
-  int starting_colBfull = 0, starting_colBreduced = 0;
-
-  int loc_dimAfull = 0, loc_dimAreduced = 0, loc_colBfull = 0, loc_colBreduced = 0;
-
-  int curr_full_index, curr_reduced_index;
-  double evaluation;
-  int numEdges = 0, loc_to_int = 0, loc_to_glob;
-
-
-  // We construct an array of pointer to all the DirectEdgeDGFE
-  // and get them by interior edge indexing
-
-  std::vector<DirectEdgeDGFE*> eePtr(param.dmSpace.nEdges());
-  for (int i = 0; i < param.dmSpace.nEdges(); i++) {
-    eePtr[i] = param.dmSpace.DGEdgePtr(i);
-    eePtr[i] -> initBasis(quadEdgeRule[i].pts(), quadEdgeRule[i].num());
-  }
-
-
-  for(int iElement=0; iElement<param.mesh.nElements(); iElement++) {
-    DirectMixedFE* mePtr = param.dmSpace.MixedElementPtr(iElement);
-    DirectDGFE* dgePtr = param.dmSpace.DGElementPtr(iElement);
-
-    quadRule.setElement(mePtr->elementPtr());
-    
-    mePtr->initBasis(quadRule.pts(), quadRule.num());
-    dgePtr->initBasis(quadRule.pts(), quadRule.num());
-
-    loc_dimAfull = mePtr -> dimVFull() - mePtr -> dimCurlSupp();
-    loc_dimAreduced = mePtr -> dimVReduced() - mePtr -> dimCurlSupp();
-    loc_colBfull = dgePtr -> dimFull();
-    loc_colBreduced = dgePtr -> dimReduced();
-
-    locdim_full[iElement] = loc_dimAfull;
-    locdim_reduced[iElement] = loc_dimAreduced;
-
-
-    // Matrix A, B and rhs assembly over elements
- 
-    for(int iPt=0; iPt<quadRule.num(); iPt++) {
-      double x = quadRule.pt(iPt)[0];
-      double y = quadRule.pt(iPt)[1];
-
-      Tensor2 valD;
-      coefD_inv(x,y,valD);
-  
-      // Assemble matrix A
-      for (int j = 0; j < loc_dimAfull; j++) {
-        Tensor1 v_j = ( j < mePtr -> dimCurlPoly() )? mePtr -> basis(j,iPt) : mePtr -> basis(j + mePtr -> dimCurlSupp(), iPt);
-        for (int i = 0; i < loc_dimAfull; i++) {
-          Tensor1 u_i = ( i < mePtr -> dimCurlPoly() )? mePtr -> basis(i,iPt) : mePtr -> basis(i + mePtr -> dimCurlSupp(), iPt);
-          curr_full_index = dimAfull * (starting_Afull + j) + (starting_Afull + i);
-          evaluation = ((valD*u_i)*v_j)*quadRule.wt(iPt);
-          mat_A_full[curr_full_index] += evaluation;
-          if (j < loc_dimAreduced && i < loc_dimAreduced) {
-            curr_reduced_index = dimAreduced * (starting_Areduced + j) + (starting_Areduced + i);
-            mat_A_reduced[curr_reduced_index] += evaluation;
-          }
-        }
-      }
-
-      // Assemble matrix B
-      // For first j = 0 -> dimCurlPoly()-1 rows, div(v_j) = 0, 
-      // so we only need to consider divXPo part
-
-      for (int j = mePtr -> dimCurlPoly(); j < loc_dimAfull; j++) {
-        double divv_j = mePtr -> basisdivXPo(j - mePtr -> dimCurlPoly(),iPt);
-        for (int i = 0; i < loc_colBfull; i++ ) {
-          double p_i = dgePtr -> basis(i,iPt);
-          curr_full_index = colBfull * (starting_Afull + j) + (starting_colBfull + i);
-          evaluation = divv_j * p_i * quadRule.wt(iPt);
-          mat_B_full[curr_full_index] += evaluation;
-          if (j < loc_dimAreduced && i < loc_colBreduced) {
-            curr_reduced_index = colBreduced * (starting_Areduced + j) + (starting_colBreduced + i);
-            mat_B_reduced[curr_reduced_index] += evaluation;
-          }
-        }
-      }
-
-      // Assemble RHS (W_s coefficients only)
-      double f_wted = sourceVal(quadRule.pt(iPt)[0],quadRule.pt(iPt)[1]) * quadRule.wt(iPt);
-      for (int j = 0; j < loc_colBfull; j++) {
-        curr_full_index = starting_colBfull + j;
-        evaluation = f_wted * dgePtr->basis(j,iPt);
-        rhs_full[curr_full_index] += evaluation;
-        if (j < loc_colBreduced) {
-          curr_reduced_index = starting_colBreduced + j;
-          rhs_reduced[curr_reduced_index] += evaluation;
-        }
-      }
-    }
-
-    // Matrix L and rhs (Direchlet BC) assembly over elements
-
-    numEdges = param.mesh.elementPtr(iElement) -> nVertices();
-
-    // Column indexing of L: (global edge indexed by interior)
-    // {edge(0),Func(0)}, {edge(0),Func(1)}, ..., {edge(0),Func(eePtr[0]->dim()-1)},
-    // {edge(1),Func(0)}, {edge(1),Func(1)}, ..., {edge(1),Func(eePtr[1]->dim()-1)},
-    // ..., {edge(nInteriorEdge()-1),Func(eePtr[nInteriorEdge()-1]->dim()-1)} 
-
-    for (int iEdge = 0; iEdge < numEdges; iEdge ++) {
-      loc_to_glob = param.dmSpace.globalEdgeIndex(iElement,iEdge);
-      loc_to_int = param.dmSpace.interiorEdgeIndex(iElement,iEdge);
-      mePtr->initBasis(quadEdgeRule[loc_to_glob].pts(), quadEdgeRule[loc_to_glob].num());
-
-      for (int iPt = 0; iPt < quadEdgeRule[loc_to_glob].num(); iPt++) {
-        for (int j = 0; j < loc_dimAfull; j++) {
-          double v_jdotNu = ( j < mePtr -> dimCurlPoly() )? mePtr -> basisDotNu(j,iEdge,iPt) : mePtr -> basisDotNu(j + mePtr -> dimCurlSupp(), iEdge, iPt);
-          if (loc_to_int == -1) { // If the edge is on boundary, we add eval to rhs (Dirichlet BC)
-            double bc = bcVal(quadEdgeRule[loc_to_glob].pt(iPt)[0],quadEdgeRule[loc_to_glob].pt(iPt)[1]);
-            curr_full_index = starting_Afull + j;
-            evaluation = bc * v_jdotNu * quadEdgeRule[loc_to_glob].wt(iPt);
-            rhs_bc_full[curr_full_index] -= evaluation;
-            if (j < loc_dimAreduced) {
-              curr_reduced_index = starting_Areduced + j;
-              rhs_bc_reduced[curr_reduced_index] -= evaluation;
-            }
-          } else { // If the edge is interior, we add eval to matrix L
-            for (int i = 0; i < eePtr[loc_to_glob]->dim(); i++){
-              double l_i = eePtr[loc_to_glob]->basis(i,iPt);
-              // Here we use the property that eePtr[loc_to_glob]->dim() is the same (degPolyn()+1)for every edge in our mesh
-              curr_full_index = colL * (starting_Afull + j) + (loc_to_int*(param.dmSpace.degPolyn()+1)+i);
-              evaluation = l_i * v_jdotNu * quadEdgeRule[loc_to_glob].wt(iPt);
-              mat_L_full[curr_full_index] += evaluation;
-//              assert(curr_full_index < dimAfull*colL);
-              if (j < loc_dimAreduced) {
-                curr_reduced_index = colL * (starting_Areduced + j) + (loc_to_int*(param.dmSpace.degPolyn()+1)+i);
-                mat_L_reduced[curr_reduced_index] += evaluation;
-//                assert(curr_reduced_index < dimAreduced*colL);
-              }
-            }
-          }
-        }  
-      }
-    }
-
-    starting_Afull += loc_dimAfull;
-    starting_Areduced += loc_dimAreduced;
-    starting_colBreduced += loc_colBreduced;
-    starting_colBfull += loc_colBfull;
-  }
-
-*/
-
-
-
-
 
   monitor(0,"\nSolve the PDE\n");
 
   // Only when r > 0, we calculate reduced space
 
-  DirectMixedArray solution_u_f(&(param.dmSpace),'f');
-  DirectMixedArray solution_u_r(&(param.dmSpace),'r');
-  DirectDGArray solution_p_f(&(param.dmSpace),'f');
-  DirectDGArray solution_p_r(&(param.dmSpace),'r');
-  DirectEdgeDGArray solution_l_f(&(param.dmSpace));
-  DirectEdgeDGArray solution_l_r(&(param.dmSpace));
+  DirectMixedHybridArray solution_u_f(&(dmSpace),'f');
+  DirectMixedHybridArray solution_u_r(&(dmSpace),'r');
+  DirectDGArray solution_p_f(&(dmSpace),'f');
+  DirectDGArray solution_p_r(&(dmSpace),'r');
+  DirectEdgeDGArray solution_l_f(&(dmSpace));
+  DirectEdgeDGArray solution_l_r(&(dmSpace));
 
 
   // Initialize matrix A for both full and reduced space
-  int dimAfull = param.dmSpace.nMixedDoFs('f');
-  int dimAreduced = param.dmSpace.nMixedDoFs('r');
+  int dimAfull = dmSpace.nMixedDoFs('f');
+  int dimAreduced = dmSpace.nMixedDoFs('r');
 
   std::vector<double> mat_A_full_vector(dimAfull*dimAfull,0);
   double* mat_A_full = mat_A_full_vector.data();
@@ -398,8 +169,8 @@ int MixedPDE::solve(Monitor& monitor) {
 
   // Initialize matrix B for both full and reduced space
   int rowBfull = dimAfull, rowBreduced = dimAreduced;
-  int colBfull = param.dmSpace.nDGDoFs('f');
-  int colBreduced = param.dmSpace.nDGDoFs('r');
+  int colBfull = dmSpace.nDGDoFs('f');
+  int colBreduced = dmSpace.nDGDoFs('r');
 
   std::vector<double> mat_B_full_vector(rowBfull*colBfull,0);
   double* mat_B_full = mat_B_full_vector.data();
@@ -408,7 +179,7 @@ int MixedPDE::solve(Monitor& monitor) {
 
   // Initialize matrix L
   int rowLfull = dimAfull, rowLreduced = dimAreduced;
-  int colL = param.dmSpace.nIntEdgeDGDoFs();
+  int colL = dmSpace.nIntEdgeDGDoFs();
 
   std::vector<double> mat_L_full_vector(rowLfull*colL,0);
   double* mat_L_full = mat_L_full_vector.data();
@@ -442,10 +213,10 @@ int MixedPDE::solve(Monitor& monitor) {
 
   polyquadrature::PolyQuadrature quadRule(13);
 
-  std::vector<polyquadrature::PolyEdgeQuadrature> quadEdgeRule(param.dmSpace.nEdges());
+  std::vector<polyquadrature::PolyEdgeQuadrature> quadEdgeRule(dmSpace.nEdges());
 
-  for (int i = 0; i < param.dmSpace.nEdges(); i++) {
-    quadEdgeRule[i].set(13, param.dmSpace.edgePtr(i));
+  for (int i = 0; i < dmSpace.nEdges(); i++) {
+    quadEdgeRule[i].set(13, dmSpace.edgePtr(i));
   }
 
   monitor(1,"Matrix and RHS Assembly"); ////////////////////////////////////////
@@ -462,16 +233,16 @@ int MixedPDE::solve(Monitor& monitor) {
   // We construct an array of pointer to all the DirectEdgeDGFE
   // and get them by interior edge indexing
 
-  std::vector<DirectEdgeDGFE*> eePtr(param.dmSpace.nEdges());
-  for (int i = 0; i < param.dmSpace.nEdges(); i++) {
-    eePtr[i] = param.dmSpace.DGEdgePtr(i);
+  std::vector<DirectEdgeDGFE*> eePtr(dmSpace.nEdges());
+  for (int i = 0; i < dmSpace.nEdges(); i++) {
+    eePtr[i] = dmSpace.DGEdgePtr(i);
     eePtr[i] -> initBasis(quadEdgeRule[i].pts(), quadEdgeRule[i].num());
   }
 
 
   for(int iElement=0; iElement<param.mesh.nElements(); iElement++) {
-    DirectMixedFE* mePtr = param.dmSpace.MixedElementPtr(iElement);
-    DirectDGFE* dgePtr = param.dmSpace.DGElementPtr(iElement);
+    DirectMixedHybridFE* mePtr = dmSpace.MixedElementPtr(iElement);
+    DirectDGFE* dgePtr = dmSpace.DGElementPtr(iElement);
 
     quadRule.setElement(mePtr->elementPtr());
     
@@ -551,8 +322,8 @@ int MixedPDE::solve(Monitor& monitor) {
     // ..., {edge(nInteriorEdge()-1),Func(eePtr[nInteriorEdge()-1]->dim()-1)} 
 
     for (int iEdge = 0; iEdge < numEdges; iEdge ++) {
-      loc_to_glob = param.dmSpace.globalEdgeIndex(iElement,iEdge);
-      loc_to_int = param.dmSpace.interiorEdgeIndex(iElement,iEdge);
+      loc_to_glob = dmSpace.globalEdgeIndex(iElement,iEdge);
+      loc_to_int = dmSpace.interiorEdgeIndex(iElement,iEdge);
       mePtr->initBasis(quadEdgeRule[loc_to_glob].pts(), quadEdgeRule[loc_to_glob].num());
 
       for (int iPt = 0; iPt < quadEdgeRule[loc_to_glob].num(); iPt++) {
@@ -571,12 +342,12 @@ int MixedPDE::solve(Monitor& monitor) {
             for (int i = 0; i < eePtr[loc_to_glob]->dim(); i++){
               double l_i = eePtr[loc_to_glob]->basis(i,iPt);
               // Here we use the property that eePtr[loc_to_glob]->dim() is the same (degPolyn()+1)for every edge in our mesh
-              curr_full_index = colL * (starting_Afull + j) + (loc_to_int*(param.dmSpace.degPolyn()+1)+i);
+              curr_full_index = colL * (starting_Afull + j) + (loc_to_int*(dmSpace.degPolyn()+1)+i);
               evaluation = l_i * v_jdotNu * quadEdgeRule[loc_to_glob].wt(iPt);
               mat_L_full[curr_full_index] += evaluation;
 //              assert(curr_full_index < dimAfull*colL);
               if (j < loc_dimAreduced) {
-                curr_reduced_index = colL * (starting_Areduced + j) + (loc_to_int*(param.dmSpace.degPolyn()+1)+i);
+                curr_reduced_index = colL * (starting_Areduced + j) + (loc_to_int*(dmSpace.degPolyn()+1)+i);
                 mat_L_reduced[curr_reduced_index] += evaluation;
 //                assert(curr_reduced_index < dimAreduced*colL);
               }
@@ -1072,46 +843,6 @@ int MixedPDE::solve(Monitor& monitor) {
     solution_u_r[i] = a_reduced[i];
   }
 
-
-
-/*
-  starting_Afull = 0;
-  starting_Areduced = 0;
-  int loc_dimAfull_a, loc_dimAreduced_a;
-  int starting_Afull_a = 0;
-  int starting_Areduced_a = 0;
-
-  for(int iElement=0; iElement<param.mesh.nElements(); iElement++) {
-    DirectMixedFE* mePtr = param.dmSpace.MixedElementPtr(iElement);
-    loc_dimAfull = mePtr -> dimVFull();
-    loc_dimAreduced = mePtr -> dimVReduced();
-    loc_dimAfull_a = mePtr -> dimVFull() - mePtr -> dimCurlSupp();
-    loc_dimAreduced_a = mePtr -> dimVReduced() - mePtr -> dimCurlSupp();
-
-    for (int j = 0; j < loc_dimAfull; j++) {
-      if (j < mePtr -> dimCurlPoly()) {
-        solution_u_f[starting_Afull + j] = a_full[starting_Afull_a + j];
-        solution_u_r[starting_Areduced + j] = a_reduced[starting_Areduced_a + j];
-      } else if ( j < mePtr -> dimCurlPart())
-      {
-        solution_u_f[starting_Afull + j] = 0;
-        solution_u_r[starting_Areduced + j] = 0;
-      } else {
-        solution_u_f[starting_Afull + j] = a_full[starting_Afull_a + j - mePtr -> dimCurlSupp()];
-        if (j < loc_dimAreduced) {
-          solution_u_r[starting_Areduced + j] = a_reduced[starting_Areduced_a + j - mePtr -> dimCurlSupp()];
-        }
-      }
-    }
-
-    starting_Afull += loc_dimAfull;
-    starting_Areduced += loc_dimAreduced;
-    starting_Afull_a += loc_dimAfull_a;
-    starting_Areduced_a += loc_dimAreduced_a;
-
-  }
-*/
-
   if(trueSolnKnown()) {
     monitor(0,"\nError estimate\n"); ///////////////////////////////////////////////
   
@@ -1246,4 +977,4 @@ int MixedPDE::solve(Monitor& monitor) {
   }
 
   return 0;
-} 
+}; 
