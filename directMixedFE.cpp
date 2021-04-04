@@ -381,7 +381,7 @@ void DirectMixedConfFE::initBasis(const Point* pt, int num_pts) {
   high_order_ds_space = new DirectSerendipity(polynomial_degree+1,one_element_mesh);
   high_order_ds_space->finiteElementPtr(0)->initBasis(pt, num_pts);
   int higher_order = high_order_ds_space->finiteElementPtr(0)->polynomial_degree;
-
+/*
 cout << "Print the edge nodes of higher order ds space" << endl;
   for (int iEdge = 0; iEdge < num_vertices; iEdge++) {
     cout << "Edge" <<iEdge<<" "<< my_poly_element -> edgePtr(iEdge) -> orientation() << endl;
@@ -391,7 +391,7 @@ cout << "Print the edge nodes of higher order ds space" << endl;
 high_order_ds_space->finiteElementPtr(0)->edgeNodePtr(iEdge,jNode)->val(1)<<")"<<endl;
     }
   }
-
+*/
   ///////////////////////////////////////////////
   //                                           //
   // \psi_{b, E, i} :                          //
@@ -420,7 +420,7 @@ high_order_ds_space->finiteElementPtr(0)->edgeNodePtr(iEdge,jNode)->val(1)<<")"<
   //                                           //
   ///////////////////////////////////////////////
 
-  int edge_funcs_starting_index = curr_index;
+
 
 
   for (int nEdge = 0; nEdge < num_vertices; nEdge++) {
@@ -445,6 +445,8 @@ high_order_ds_space->finiteElementPtr(0)->edgeNodePtr(iEdge,jNode)->val(1)<<")"<
   //                                                      //
   //////////////////////////////////////////////////////////
 
+  int edge_paf_funcs_starting_index = curr_index;
+
   // We first generate an array to store \psi^{*}_{v,n},
   // since it would be used repeatedly.
   std::vector<Tensor1> psi_star_v(num_vertices);
@@ -465,14 +467,13 @@ high_order_ds_space->finiteElementPtr(0)->edgeNodePtr(iEdge,jNode)->val(1)<<")"<
           // to make psi_star_v[n] linear on each edge 
           for (int m = 0; m < polynomial_degree; m++) {
             psi_star_v[n] += ((double)(m+1)/(double)(polynomial_degree+1)) * 
-                            Tensor1(high_order_ds_space->finiteElementPtr(0)->gradEdgeBasis(n,m,pt_index).val(1), 
-                              -high_order_ds_space->finiteElementPtr(0)->gradEdgeBasis(n,m,pt_index).val(0));
+                            Tensor1(high_order_ds_space->finiteElementPtr(0)->orientedGradEdgeBasis(n,m,pt_index).val(1), 
+                              -high_order_ds_space->finiteElementPtr(0)->orientedGradEdgeBasis(n,m,pt_index).val(0));
             psi_star_v[n] += (1-((double)(m+1)/(double)(polynomial_degree+1))) *
-                            Tensor1(high_order_ds_space->finiteElementPtr(0)->gradEdgeBasis((n+1)%num_vertices,m,pt_index).val(1), 
-                              -high_order_ds_space->finiteElementPtr(0)->gradEdgeBasis((n+1)%num_vertices,m,pt_index).val(0));
+                            Tensor1(high_order_ds_space->finiteElementPtr(0)->orientedGradEdgeBasis((n+1)%num_vertices,m,pt_index).val(1), 
+                              -high_order_ds_space->finiteElementPtr(0)->orientedGradEdgeBasis((n+1)%num_vertices,m,pt_index).val(0));
           }
         }
-        result.set(psi_star_v[i]);
 
       // Evaluate \psi^{**}_{v,i} at pt, store in result
       result.set(pt[pt_index].val(0) - my_poly_element -> vertexPtr(i+num_vertices/2) -> val(0),
@@ -567,17 +568,18 @@ high_order_ds_space->finiteElementPtr(0)->edgeNodePtr(iEdge,jNode)->val(1)<<")"<
       for (int j = 0; j < num_vertices; j++) { // Loop on each edge
         // Set up a_{j, paf}
         coefficients[num_vertices * polynomial_degree + j] = 
-          c_j[j] * integralPolyEdge(*my_poly_element->vertexPtr(j+num_vertices-1)-ref_origin,*my_poly_element->vertexPtr(j)-ref_origin, m, s-m, 1);
-        
+          c_j[j] * integralPolyEdge(*my_poly_element->vertexPtr(j+num_vertices-1),*my_poly_element->vertexPtr(j), m, s-m, 1);
+        //if (m==0 && s==1) cout << "coeff[" << j << "]: " << coefficients[num_vertices * polynomial_degree + j] << " ";
       
         for (int k = 0; k < polynomial_degree; k++) { // Loop at each edge node on e_j
           t = (double)(k+1)/(double)(polynomial_degree+1);
           // Set up a_{j,k}
           // a_{j,k} = c_j * Integral(0 to t) - a_{j,paf} * t
           coefficients[polynomial_degree * j + k] = 
-              c_j[j] * integralPolyEdge(*my_poly_element->vertexPtr(j+num_vertices-1)-ref_origin,*my_poly_element->vertexPtr(j)-ref_origin, m, s-m, t)
+              c_j[j] * integralPolyEdge(*my_poly_element->vertexPtr(j+num_vertices-1),*my_poly_element->vertexPtr(j), m, s-m, t)
                 - t * coefficients[num_vertices * polynomial_degree + j];
-          //if (m==0) cout << "coeff[" << j<<","<<k << "]: " << coefficients[polynomial_degree * j + k] << " ";
+          coefficients[polynomial_degree * j + k] *= my_poly_element -> edgePtr(j) -> length();
+          //if (m==0 && s==1) cout << "coeff[" << j<<","<<k << "]: " << coefficients[polynomial_degree * j + k] << " ";
         }
       }
 
@@ -586,15 +588,21 @@ high_order_ds_space->finiteElementPtr(0)->edgeNodePtr(iEdge,jNode)->val(1)<<")"<
         x = pt[pt_index].val(0);
         y = pt[pt_index].val(1);
         result.set(x,y);
-        result *= pow(x - ref_origin.val(0),m)*pow(y - ref_origin.val(1),s-m);
-        div_result = pow(y-ref_origin.val(1),s-m) * (pow(x-ref_origin.val(0),m) + x*m*pow(x-ref_origin.val(0),m-1)) // d/dx
-                      + pow(x-ref_origin.val(0),m) * (pow(y-ref_origin.val(1),s-m) + y*(s-m)*pow(y-ref_origin.val(1),s-m-1));
+        result *= pow(x,m)*pow(y,s-m);
+        div_result = (s+2)*pow(x,m)*pow(y,s-m);
 
         // Use \psi_{e,j,k} and \psi_{e,j,paf} to cancel the normal fluxes on the boundary
-        for (int index = 0; index < num_vertices * (polynomial_degree+1); index++) {
-          result -= coefficients[index] * v_value_n[pt_index * dim_v + edge_funcs_starting_index + index];
+
+        for (int iEdge = 0; iEdge < num_vertices; iEdge ++) {
+          for (int jNode = 0; jNode < polynomial_degree; jNode ++) {
+            int index = iEdge * polynomial_degree + jNode;
+            result -= coefficients[index]*Tensor1(high_order_ds_space->finiteElementPtr(0)->orientedGradEdgeBasis(iEdge,jNode,pt_index).val(1), 
+                              -high_order_ds_space->finiteElementPtr(0)->orientedGradEdgeBasis(iEdge,jNode,pt_index).val(0));
+          }
         }
+
         for (int j = 0; j < num_vertices; j++) {
+          result -= coefficients[num_vertices * polynomial_degree + j] * v_value_n[pt_index * dim_v + edge_paf_funcs_starting_index + j];
           div_result -= coefficients[num_vertices * polynomial_degree + j] * v_div_value_n[pt_index * dim_v_div + j];
         }
 

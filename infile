@@ -19,16 +19,16 @@ $END_COMMENT
 
 # $BEGIN_COMMENT
 q		# meshType (quads, deviated, triangles, or general)
-0,2        	# xMin,xMax
+0,1        	# xMin,xMax
 0,1        	# yMin,yMax 
-2,1    	# nx,ny
+8,8    	# nx,ny
 0         # distortion factor
 # $END_COMMENT
 
 ### FINITE ELEMENTS ###########################################################
 
 2          	        # polynomial degree
-1                   # Use hybrid or H(div)-conforming element for mixed method 
+0                   # Use hybrid or H(div)-conforming element for mixed method 
                     # (0 = hybrid, 1 = conforming)
 
 ### ALGORITHM PARAMETERS ######################################################

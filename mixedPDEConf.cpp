@@ -54,7 +54,8 @@ int MixedPDE::solve_conf(Monitor& monitor) {
     for(int i=0; i<u.size(); i++) {
       u[i]=0;
     }
-    u[5]=1;
+    //u[u.size()-1]=1;
+    u[36] = 1;
 
     for(int i=0; i<p.size(); i++) {
       p[i]=0;
@@ -85,7 +86,7 @@ int MixedPDE::solve_conf(Monitor& monitor) {
   }
   
   // SOLVE THE PDE ///////////////////////////////////////////////////////////
-
+if (true) {
   monitor(0,"\nSolve the PDE\n");
 
   // Only when r > 0, we calculate reduced space
@@ -184,11 +185,9 @@ int MixedPDE::solve_conf(Monitor& monitor) {
       for (int j = 0; j < loc_dimAfull; j++) {
         Tensor1 v_j = mePtr -> basis(j,iPt);
         if (mePtr -> isVertexDoF(j)) { v_j *= dmSpace.vertex_loc_to_glob_coeff(iElement,mePtr->mapDoFToVertex(j)); }
-        if (mePtr -> isEdgeDoF(j)) { v_j *= dmSpace.vertex_loc_to_glob_coeff(iElement,mePtr->mapDoFToEdge(j)); }
         for (int i = 0; i < loc_dimAfull; i++) {
           Tensor1 u_i = mePtr -> basis(i,iPt);
           if (mePtr -> isVertexDoF(i)) { u_i *= dmSpace.vertex_loc_to_glob_coeff(iElement,mePtr->mapDoFToVertex(i)); }
-          if (mePtr -> isEdgeDoF(i)) { u_i *= dmSpace.vertex_loc_to_glob_coeff(iElement,mePtr->mapDoFToEdge(i)); }
           curr_full_index = dimAfull * dmSpace.loc_to_glob(iElement,j,'f') + dmSpace.loc_to_glob(iElement,i,'f');
           evaluation = ((valD*u_i)*v_j)*quadRule.wt(iPt);
           mat_A_full[curr_full_index] += evaluation;
@@ -267,7 +266,6 @@ int MixedPDE::solve_conf(Monitor& monitor) {
         for (int j = 0; j < loc_dimAfull; j++) {
           double v_jdotNu = mePtr->basisDotNu(j,iEdge,iPt);
           if (mePtr -> isVertexDoF(j)) { v_jdotNu *= dmSpace.vertex_loc_to_glob_coeff(iElement,mePtr->mapDoFToVertex(j)); }
-          if (mePtr -> isEdgeDoF(j)) { v_jdotNu *= dmSpace.vertex_loc_to_glob_coeff(iElement,mePtr->mapDoFToEdge(j)); }
             double bc = bcVal(quadEdgeRule[edge_loc_to_glob].pt(iPt)[0],quadEdgeRule[edge_loc_to_glob].pt(iPt)[1]);
             curr_full_index = dmSpace.loc_to_glob(iElement,j,'f');
             evaluation = bc * v_jdotNu * quadEdgeRule[edge_loc_to_glob].wt(iPt);
@@ -689,5 +687,6 @@ int MixedPDE::solve_conf(Monitor& monitor) {
     }
     }
   }
+}
   return 0;
 };

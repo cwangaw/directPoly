@@ -278,6 +278,13 @@ namespace directserendipity {
     Node* vertexNodePtr(int i) const { return the_vertex_nodes[i%num_vertices]; };
     Node* edgeNodePtr(int k)   const { return the_edge_nodes[k];   };
     Node* edgeNodePtr(int i, int j) const { return the_edge_nodes[i*(polynomial_degree - 1) + j]; };
+    Node* orientedEdgeNodePtr(int i, int j) const {
+      if (my_poly_element -> edgePtr(i) -> orientation() == 1) {
+        return the_edge_nodes[i*(polynomial_degree - 1) + j];
+      } else {
+        return the_edge_nodes[i*(polynomial_degree - 1) + polynomial_degree - 2 - j];
+      }
+    }
     Node* cellNodePtr(int k)   const { return the_cell_nodes[k];   };
     Node* cellNodePtr(int i, int j) const { return the_cell_nodes[mapK(i, j, deg_cell_poly)]; };
     Node* nodePtr(int i) const;
@@ -308,6 +315,21 @@ namespace directserendipity {
       return edgeBasis( iEdge*(polynomial_degree-1) + j, iPt); }
     Tensor1 gradEdgeBasis(int iEdge, int j, int iPt) const  {
       return gradEdgeBasis( iEdge*(polynomial_degree-1) + j, iPt ); }
+
+    double orientedEdgeBasis(int iEdge, int j, int iPt) const {
+      if (my_poly_element -> edgePtr(iEdge) -> orientation() == 1) {
+        return edgeBasis(iEdge, j, iPt);
+      } else {
+        return edgeBasis(iEdge, polynomial_degree-2-j, iPt);
+      }
+    }
+    Tensor1 orientedGradEdgeBasis(int iEdge, int j, int iPt) const {
+      if (my_poly_element -> edgePtr(iEdge) -> orientation() == 1) {
+        return gradEdgeBasis(iEdge, j, iPt);
+      } else {
+        return gradEdgeBasis(iEdge, polynomial_degree-2-j, iPt);
+      }
+    }
     
 
     double cellBasis(int iCNode, int iPt) const {

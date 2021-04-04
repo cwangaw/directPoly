@@ -485,9 +485,9 @@ void DirectMixedConf::set_directmixedconf(int polyDeg, polymesh::PolyMesh* mesh)
           loc_to_glob_full[iElement][local_num_cell_dofs+iVertex*polynomial_degree+j] = v_loc_to_glob + j + 1;
           loc_to_glob_reduced[iElement][local_num_cell_dofs+iVertex*polynomial_degree+j] = v_loc_to_glob + j + 1;
         //} else {
-        //  edge_loc_to_glob_full[iElement][iVertex*polynomial_degree+j] = v_loc_to_glob + polynomial_degree - j;
-        //  loc_to_glob_full[iElement][local_num_cell_dofs+iVertex*polynomial_degree+j] = v_loc_to_glob + polynomial_degree - j;
-        //  loc_to_glob_reduced[iElement][local_num_cell_dofs+iVertex*polynomial_degree+j] = v_loc_to_glob + polynomial_degree - j;
+          //edge_loc_to_glob_full[iElement][iVertex*polynomial_degree+j] = v_loc_to_glob + polynomial_degree - j;
+          //loc_to_glob_full[iElement][local_num_cell_dofs+iVertex*polynomial_degree+j] = v_loc_to_glob + polynomial_degree - j;
+          //loc_to_glob_reduced[iElement][local_num_cell_dofs+iVertex*polynomial_degree+j] = v_loc_to_glob + polynomial_degree - j;
         //}
       }
 
@@ -1190,7 +1190,7 @@ void DirectMixedConfArray::eval(const Point* pts, Tensor1* result, int num_pts) 
   for(int iElement=0; iElement < my_dm_space->my_mesh->nElements(); iElement++) {
     DirectMixedConfFE* mixedElement = my_dm_space->MixedElementPtr(iElement);
     PolyElement* element = mixedElement->elementPtr();
-  //cout << "Local DoFs of Element " << iElement << endl;
+//  cout << "Local DoFs of Element " << iElement << endl;
     // Set list of points in element
     elementPts.clear();
     elementPtsIndex.clear();
@@ -1215,18 +1215,17 @@ void DirectMixedConfArray::eval(const Point* pts, Tensor1* result, int num_pts) 
  for (int i=0; i<mixedElement -> dimCellBasis(); i++) {
     int iCellDoF = my_dm_space -> cell_loc_to_glob(iElement,i);
     dofs[local_index] = the_array[iCellDoF];
-    //cout << "Cell Node[" << i << "]: " << dofs[local_index] <<"\n";
+//    cout << "Cell Node[" << i << "]: " << dofs[local_index] <<"\n";
     local_index++;
     
   }
 
   
   for(int i=0; i<nGon; i++) {
-    int iVertexOrientation = my_dm_space -> vertex_loc_to_glob_coeff(iElement,i);
     for(int j=0; j<(my_dm_space->degPolyn()); j++) {
       int iEdgeDoF = my_dm_space -> edge_loc_to_glob(iElement,i,j);
-      dofs[local_index] = iVertexOrientation * the_array[iEdgeDoF];
-      //cout << "Edge Node[" << i <<","<<j<< "]: " << dofs[local_index]<<"\n";
+      dofs[local_index] = the_array[iEdgeDoF];
+ //     cout << "Edge Node[" << i <<","<<j<< "]: " << dofs[local_index]<<"\n";
       local_index++;
     }
   }
@@ -1234,7 +1233,7 @@ void DirectMixedConfArray::eval(const Point* pts, Tensor1* result, int num_pts) 
     int iVertexOrientation = my_dm_space -> vertex_loc_to_glob_coeff(iElement,i);
     int iVertexDof =  my_dm_space -> vertex_loc_to_glob(iElement,i);
     dofs[local_index] =  iVertexOrientation * the_array[iVertexDof];
-    //cout << "Vertex Node[" << i << "]: " << dofs[local_index]<<"\n";
+ //   cout << "Vertex Node[" << i << "]: " << dofs[local_index]<<"\n";
     local_index++;
   }
 
@@ -1242,7 +1241,7 @@ void DirectMixedConfArray::eval(const Point* pts, Tensor1* result, int num_pts) 
   for (int i=0; i<polyDoFs; i++) {
     int iPolyDoF = my_dm_space -> poly_loc_to_glob(iElement, i, space_type);
     dofs[local_index] = the_array[iPolyDoF];
-    //cout << "Poly Node[" << i << "]: " << dofs[local_index]<<"\n";
+//    cout << "Poly Node[" << i << "]: " << dofs[local_index]<<"\n";
     local_index++;
   }
     assert(local_index == nDoFs);
@@ -1294,10 +1293,9 @@ void DirectMixedConfArray::eval(const Point& pt, Tensor1& result) const {
 
   
   for(int i=0; i<nGon; i++) {
-    int iVertexOrientation = my_dm_space -> vertex_loc_to_glob_coeff(iElement,i);
     for(int j=0; j<(my_dm_space->degPolyn()); j++) {
       int iEdgeDoF = my_dm_space -> edge_loc_to_glob(iElement,i,j);
-      dofs[local_index] = iVertexOrientation * the_array[iEdgeDoF];
+      dofs[local_index] = the_array[iEdgeDoF];
       //cout << "Edge Node[" << i <<","<<j<< "]: " << dofs[local_index]<<"\n";
       local_index++;
     }
@@ -1365,10 +1363,9 @@ void DirectMixedConfArray::eval_div(const Point* pts, double* result, int num_pt
     }
 
   for(int i=0; i<nGon; i++) {
-    int iVertexOrientation = my_dm_space -> vertex_loc_to_glob_coeff(iElement,i);
     for(int j=0; j<(my_dm_space->degPolyn()); j++) {
       int iEdgeDoF = my_dm_space -> edge_loc_to_glob(iElement,i,j);
-      dofs[local_index] = iVertexOrientation * the_array[iEdgeDoF];
+      dofs[local_index] = the_array[iEdgeDoF];
       local_index++;
     }
   }
@@ -1428,10 +1425,9 @@ void DirectMixedConfArray::eval_div(const Point& pt, double& result) const {
   }
 
   for(int i=0; i<nGon; i++) {
-    int iVertexOrientation = my_dm_space -> vertex_loc_to_glob_coeff(iElement,i);
     for(int j=0; j<(my_dm_space->degPolyn()); j++) {
       int iEdgeDoF = my_dm_space -> edge_loc_to_glob(iElement,i,j);
-      dofs[local_index] = iVertexOrientation * the_array[iEdgeDoF];
+      dofs[local_index] = the_array[iEdgeDoF];
       local_index++;
     }
   }
