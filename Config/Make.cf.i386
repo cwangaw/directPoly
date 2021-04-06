@@ -18,16 +18,16 @@ C_FTN_INTERFACE =
 
 FC       = gfortran
 FFLAGS   = 
-CC       = c++
+CC       = gcc-10
 CFLAGS   = -O $(INCLUDE_DIRS) $(DEBUGGER) $(C_FTN_INTERFACE) -Wall
-C++C     = c++
-C++FLAGS = -O $(INCLUDE_DIRS) $(DEBUGGER) $(C_FTN_INTERFACE) -std=c++11 -Wall
+C++C     = gcc-10
+C++FLAGS = -O $(INCLUDE_DIRS) $(DEBUGGER) $(C_FTN_INTERFACE) -std=c++11 -Wall -I/usr/local/Cellar/openblas/0.3.13/include -I/usr/local/Cellar/lapack/3.9.1/include
 AR       = ar
 ARFLAGS  = -rv
 RANLIB   = ranlib
 
-LDFLAGS = 
-LIBS    = -lm -lblas -llapack /Users/arbogast/.local/lib/liblapacke.a
+LDFLAGS =  
+LIBS    = -L/usr/local/lib/gcc/10/ -lstdc++ -lm -L/usr/local/Cellar/openblas/0.3.13/lib -L/usr/local/Cellar/lapack/3.9.1/lib -lcblas -llapack -llapacke
 #-llapacke
 #  -lg2c -lf2c
 DEPENDFLAGS = $(INCLUDE_DIRS)
