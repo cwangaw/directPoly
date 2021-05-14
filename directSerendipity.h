@@ -120,6 +120,14 @@ namespace directserendipity {
     void eval(const Point& pt, double& result, Tensor1& gradResult) const;
     double eval(const Point& pt) const;
 
+    void eval_chunk(const Point* pts, double* result, int num_pts) const;
+    void eval_chunk(const Point& pt, double& result) const;
+    double eval_chunk(const Point& pt) const;
+
+    void eval_error_on_element(const Point* pts, int num_pts, double* l2Error, double* l2GradError,
+					 double (*referenceFcn)(double,double),
+					 Tensor1 (*referenceGradFcn)(double,double)) const;
+
     void l2normError(double& l2Error, double& l2GradError, double& l2Norm, double& l2GradNorm,
 		     double (*referenceFcn)(double,double) = nullptr, 
 		     Tensor1 (*referenceGradFcn)(double,double) = nullptr);
@@ -143,6 +151,38 @@ namespace directserendipity {
     int write_matlab_mesh_by_pt(std::string& filename, std::string& filename_grad,
 				int num_pts_x, int num_pts_y) const;
     int write_matlab_mesh_by_pt(std::string& filename, int num_pts_x, int num_pts_y) const;
+
+    void write_matlab_mesh_error(std::ofstream* fout, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double) = nullptr) const;
+    void write_matlab_mesh_error(std::ofstream& fout, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double) = nullptr) const {
+      write_matlab_mesh_error(&fout, num_pts_x, num_pts_y, referenceFcn); };
+
+    int write_matlab_mesh_error(std::string& filename, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double) = nullptr) const;
+
+    void write_matlab_mesh_grad_error(std::ofstream* fout, int num_pts_x, int num_pts_y, Tensor1 (*referenceFcn)(double,double) = nullptr) const;
+    void write_matlab_mesh_grad_error(std::ofstream& fout, int num_pts_x, int num_pts_y, Tensor1 (*referenceFcn)(double,double) = nullptr) const {
+      write_matlab_mesh_grad_error(&fout, num_pts_x, num_pts_y, referenceFcn); };
+
+    int write_matlab_mesh_grad_error(std::string& filename, int num_pts_x, int num_pts_y, Tensor1 (*referenceFcn)(double,double) = nullptr) const;
+
+
+    void write_matlab_mesh_error_on_element(std::ofstream* fout, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double) = nullptr) const;
+    void write_matlab_mesh_error_on_element(std::ofstream& fout, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double) = nullptr) const {
+      write_matlab_mesh_error_on_element(&fout, num_pts_x, num_pts_y, referenceFcn); };
+
+    int write_matlab_mesh_error_on_element(std::string& filename, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double) = nullptr) const;
+
+    void write_matlab_mesh_grad_error_on_element(std::ofstream* fout, int num_pts_x, int num_pts_y, Tensor1 (*referenceFcn)(double,double) = nullptr) const;
+    void write_matlab_mesh_grad_error_on_element(std::ofstream& fout, int num_pts_x, int num_pts_y, Tensor1 (*referenceFcn)(double,double) = nullptr) const {
+      write_matlab_mesh_grad_error_on_element(&fout, num_pts_x, num_pts_y, referenceFcn); };
+
+    int write_matlab_mesh_grad_error_on_element(std::string& filename, int num_pts_x, int num_pts_y, Tensor1 (*referenceFcn)(double,double) = nullptr) const;
+
+
+    void write_matlab_mesh_chunk(std::ofstream* fout, int num_pts_x, int num_pts_y) const;
+    void write_matlab_mesh_chunk(std::ofstream& fout, int num_pts_x, int num_pts_y) const {
+      write_matlab_mesh_chunk(&fout, num_pts_x, num_pts_y); };
+
+    int write_matlab_mesh_chunk(std::string& filename, int num_pts_x, int num_pts_y) const;
 
     void write_raw(std::ofstream& fout) const;
     int write_raw(std::string& filename) const;

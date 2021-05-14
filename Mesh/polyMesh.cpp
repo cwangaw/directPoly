@@ -217,7 +217,7 @@ void PolyElement::set_polyelement(int nGon, Edge** theEdges, int myIndex, PolyMe
     my_centroid /= the_area;
 
     // Compute center of largest inscribed circle
-    double max_radius = 0;
+    max_radius = 0;
     std::vector<Point> center_candidates;
     center_candidates.clear();
 
@@ -582,6 +582,20 @@ void PolyMesh::set_polymesh(int numVertices, double* pts, int numElements,
   for (int i = 0; i < nElements(); i++) {
     if (elementPtr(i)->diameter()>max_element_diameter) max_element_diameter = elementPtr(i)->diameter();
   }
+
+  //Maximum chunkiness parameter among elements
+  chunkiness_parameter = 0;
+  for (int i = 0; i < nElements(); i++) {
+    if (elementPtr(i)->chunkParam()>chunkiness_parameter) chunkiness_parameter = elementPtr(i)->chunkParam();
+  }
+
+  //Average chunkiness parameter of mesh
+  average_chunkiness_parameter = 0;
+  for (int i = 0; i < nElements(); i++) {
+    average_chunkiness_parameter += elementPtr(i)->chunkParam();
+  }
+  average_chunkiness_parameter /= nElements();
+
 
   // Final settings
 

@@ -253,6 +253,21 @@ int EllipticPDE::solve(Monitor& monitor) {
   }
 
   if(param.output_soln_DS_format > 0) {
+
+    monitor(1,"Write Chunkiness Parameter"); //////////////////////////////////////////////////
+
+    switch(param.output_soln_DS_format) {
+    case 1: {
+      break;
+    }
+    case 2: {
+      std::string fileName(param.directory_name);
+      fileName += "mesh_chunkiness_parameter";
+      solution.write_matlab_mesh_chunk(fileName,
+				 param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y);
+      break;
+    }
+    }
   
     monitor(1,"Write Solution"); //////////////////////////////////////////////////
 
@@ -279,11 +294,16 @@ int EllipticPDE::solve(Monitor& monitor) {
     monitor(0,"\nError estimate\n"); ///////////////////////////////////////////////
   
     double h = param.dsSpace.mesh()->maxElementDiameter();
+    double maxChunk = param.dsSpace.mesh()->maxChunkParam();
+    double averageChunk = param.dsSpace.mesh()->averageChunkParam();
+    
     
     double l2Error = 0, l2GradError = 0, l2Norm = 0, l2GradNorm = 0;
     solution.l2normError(l2Error, l2GradError, l2Norm, l2GradNorm, trueSoln, trueGradSoln);
     
     std::cout << "  Max Element Diameter h:  " << h << std::endl;
+    std::cout << "  Max Chunkiness Parameter:  " << maxChunk << std::endl;
+    std::cout << "  Average Chunkiness Parameter:  " << averageChunk << std::endl;
     std::cout << "  L_2 Error:      " << l2Error << std::endl;
     std::cout << "  L_2 Grad Error: " << l2GradError << std::endl;
     std::cout << std::endl;
@@ -316,6 +336,32 @@ int EllipticPDE::solve(Monitor& monitor) {
         fileNameGrad += "true_solution_grad_mesh";
         u.write_matlab_mesh(fileName,fileNameGrad,
         param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y);
+        break;
+      }
+      }
+
+
+      monitor(1,"Write Error"); ////////////////////////////////////////////
+
+      switch(param.output_soln_DS_format) {
+      case 1: {
+        break;
+      }
+      case 2: {
+        std::string fileName(param.directory_name);
+        fileName += "solution_mesh_error";
+        std::string fileNameGrad(param.directory_name);
+        fileNameGrad += "solution_mesh_grad_error";
+        solution.write_matlab_mesh_error(fileName,
+        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, trueSoln);
+        solution.write_matlab_mesh_grad_error(fileName,
+        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, trueGradSoln);
+        fileName += "_on_element";
+        fileNameGrad += "_on_element";
+        solution.write_matlab_mesh_error_on_element(fileName,
+        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, trueSoln);
+        solution.write_matlab_mesh_grad_error_on_element(fileName,
+        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, trueGradSoln);
         break;
       }
       }

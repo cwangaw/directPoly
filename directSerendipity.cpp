@@ -210,6 +210,132 @@ double DirectSerendipityArray::eval(const Point& pt) const {
   return elem->eval(pt, vertex_dofs, edge_dofs, cell_dofs);
 };
 
+void DirectSerendipityArray::eval_chunk(const Point* pts, double* result, int num_pts) const {
+  bool ptEvaluated[num_pts];
+  for(int i=0; i<num_pts; i++) ptEvaluated[i] = false;
+
+  // Loop through the elements
+  std::vector<Point> elementPts;
+  std::vector<int> elementPtsIndex;
+  for(int iElement=0; iElement < my_ds_space->my_mesh->nElements(); iElement++) {
+    DirectSerendipityFE* finiteElement = &(my_ds_space->the_ds_elements[iElement]);
+    PolyElement* element = finiteElement->elementPtr();
+
+    // Set list of points in element
+    elementPts.clear();
+    elementPtsIndex.clear();
+    for(int i=0; i<num_pts; i++) {
+      if(ptEvaluated[i]) continue;
+      
+      if(element->isInElement(pts[i])) {
+        elementPts.push_back(pts[i]);
+        elementPtsIndex.push_back(i);
+        ptEvaluated[i] = true;
+      }
+    }
+    if(elementPts.size() == 0) continue;
+  
+    // Place results in global array
+    for(unsigned long int i=0; i<elementPts.size(); i++) {
+      result[elementPtsIndex[i]] = element->chunkParam();;
+    }
+  }
+
+  // Attend to unset points (outside the mesh)
+  for(int i=0; i<num_pts; i++) {
+    if(!ptEvaluated[i]) {
+      result[i] = 0;
+    }
+  }  
+}
+
+void DirectSerendipityArray::eval_chunk(const Point& pt, double& result) const {
+  int iElement = my_ds_space->my_mesh->elementIndex(pt);
+  if(iElement < 0) {
+    result = 0;
+    return;
+  }
+  DirectSerendipityFE* elem = &(my_ds_space->the_ds_elements[iElement]);
+  // Evaluate
+  result = elem->elementPtr()->chunkParam();
+};
+
+double DirectSerendipityArray::eval_chunk(const Point& pt) const {
+  int iElement = my_ds_space->my_mesh->elementIndex(pt);
+  if(iElement < 0) {
+    return 0;
+  }
+  DirectSerendipityFE* elem = &(my_ds_space->the_ds_elements[iElement]);
+  // Evaluate
+  return elem->elementPtr()->chunkParam();
+};
+
+void DirectSerendipityArray::eval_error_on_element(const Point* pts, int num_pts, double* l2Error, double* l2GradError,
+					 double (*referenceFcn)(double,double),
+					 Tensor1 (*referenceGradFcn)(double,double)) const {
+  bool ptEvaluated[num_pts];
+  for(int i=0; i<num_pts; i++) ptEvaluated[i] = false;
+
+  // Loop through the elements
+  std::vector<Point> elementPts;
+  std::vector<int> elementPtsIndex;
+  for(int iElement=0; iElement < my_ds_space->my_mesh->nElements(); iElement++) {
+    DirectSerendipityFE* finiteElement = &(my_ds_space->the_ds_elements[iElement]);
+    PolyElement* element = finiteElement->elementPtr();
+
+    // Set list of points in element
+    elementPts.clear();
+    elementPtsIndex.clear();
+    for(int i=0; i<num_pts; i++) {
+      if(ptEvaluated[i]) continue;
+      
+      if(element->isInElement(pts[i])) {
+        elementPts.push_back(pts[i]);
+        elementPtsIndex.push_back(i);
+        ptEvaluated[i] = true;
+      }
+    }
+    if(elementPts.size() == 0) continue;
+
+
+    double l2Error_for_this_element = 0, l2GradError_for_this_element = 0;
+    PolyQuadrature quadRule(13); 
+    quadRule.setElement(finiteElement->elementPtr());
+    
+    for(int iPt=0; iPt<quadRule.num(); iPt++) {
+      double x = quadRule.pt(iPt).val(0);
+      double y = quadRule.pt(iPt).val(1);
+      
+      double result; Tensor1 gradResult;
+      eval(quadRule.pt(iPt), result, gradResult);
+      
+      double diff = (referenceFcn == nullptr) ? result : (result - referenceFcn(x,y));
+      Tensor1 diffGrad = (referenceGradFcn == nullptr) ? gradResult : (gradResult - referenceGradFcn(x,y));
+      
+      l2Error_for_this_element += pow(diff,2) * quadRule.wt(iPt);
+      l2GradError_for_this_element += diffGrad * diffGrad * quadRule.wt(iPt);
+    }
+
+    l2Error_for_this_element = sqrt(l2Error_for_this_element);
+    l2GradError_for_this_element = sqrt(l2GradError_for_this_element);
+
+    // Place results in global array
+    for(unsigned long int i=0; i<elementPts.size(); i++) {
+      l2Error[elementPtsIndex[i]] = l2Error_for_this_element;
+      l2GradError[elementPtsIndex[i]] =l2GradError_for_this_element;
+    }
+  }
+
+  // Attend to unset points (outside the mesh)
+  for(int i=0; i<num_pts; i++) {
+    if(!ptEvaluated[i]) {
+      l2Error[i] = 0;
+      l2GradError[i] = 0;
+    }
+  }  
+};
+
+
 void DirectSerendipityArray::l2normError(double& l2Error, double& l2GradError, double& l2Norm, double& l2GradNorm,
 					 double (*referenceFcn)(double,double),
 					 Tensor1 (*referenceGradFcn)(double,double)) {
@@ -432,6 +558,280 @@ int DirectSerendipityArray::write_raw(std::string& filename) const {
   write_raw(fout);
   return 0;
 }
+
+void DirectSerendipityArray::write_matlab_mesh_error(std::ofstream* fout, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double)) const {
+  if(num_pts_x <= 1) num_pts_x = 2;
+  if(num_pts_y <= 1) num_pts_y = 2;
+
+  // Determine mesh of points
+  double xMin = my_ds_space->my_mesh->minX();
+  double xMax = my_ds_space->my_mesh->maxX();
+  double yMin = my_ds_space->my_mesh->minY();
+  double yMax = my_ds_space->my_mesh->maxY();
+
+  double dx = (xMax - xMin)/(num_pts_x-1);
+  double dy = (yMax - yMin)/(num_pts_y-1);
+
+  Point* pts = new Point[num_pts_x*num_pts_y];
+  
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      pts[j + num_pts_y*i].set(xMin+i*dx, yMin+j*dy);
+    }
+  }
+
+  // Evaluate
+  double result[num_pts_x*num_pts_y];
+  Tensor1* gradResult = new Tensor1[num_pts_x*num_pts_y];
+  eval(pts, result, gradResult, num_pts_x*num_pts_y);
+
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      result[j + num_pts_y*i] -= referenceFcn(xMin+i*dx, yMin+j*dy);
+    }
+  }
+
+  // Write file  
+  *fout << "mesh(" << xMin << ":" << dx << ":" << xMax << ","
+	<< yMin << ":" << dy << ":" << yMax <<",[ ";
+
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      *fout << fabs(result[i + num_pts_x*j]) << " ";
+    }
+    *fout << "; ";
+  }
+  *fout << "]);\n";
+  *fout << "xlabel('x'); ylabel('y');\n";
+
+  delete[] gradResult;
+  delete[] pts;  
+}
+
+int DirectSerendipityArray::write_matlab_mesh_error(std::string& filename, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double)) const {
+  std::ofstream fout(filename+".m");
+  if( !fout ) return 1;
+  write_matlab_mesh_error(&fout, num_pts_x, num_pts_y, referenceFcn);
+  return 0;
+}
+
+
+void DirectSerendipityArray::write_matlab_mesh_grad_error(std::ofstream* fout, int num_pts_x, int num_pts_y, 
+                                                Tensor1 (*referenceFcn)(double,double)) const {
+  if(num_pts_x <= 1) num_pts_x = 2;
+  if(num_pts_y <= 1) num_pts_y = 2;
+
+  // Determine mesh of points
+  double xMin = my_ds_space->my_mesh->minX();
+  double xMax = my_ds_space->my_mesh->maxX();
+  double yMin = my_ds_space->my_mesh->minY();
+  double yMax = my_ds_space->my_mesh->maxY();
+
+  double dx = (xMax - xMin)/(num_pts_x-1);
+  double dy = (yMax - yMin)/(num_pts_y-1);
+
+  Point* pts = new Point[num_pts_x*num_pts_y];
+  
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      pts[j + num_pts_y*i].set(xMin+i*dx, yMin+j*dy);
+    }
+  }
+
+  // Evaluate
+  double result[num_pts_x*num_pts_y];
+  Tensor1* gradResult = new Tensor1[num_pts_x*num_pts_y];
+  eval(pts, result, gradResult, num_pts_x*num_pts_y);
+
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      gradResult[j + num_pts_y*i] -= referenceFcn(xMin+i*dx, yMin+j*dy);
+    }
+  }
+
+  // Write file  
+  *fout << "mesh(" << xMin << ":" << dx << ":" << xMax << ","
+	<< yMin << ":" << dy << ":" << yMax <<",[ ";
+
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      *fout << gradResult[i + num_pts_x*j].norm() << " ";
+    }
+    *fout << "; ";
+  }
+  *fout << "]);\n";
+  *fout << "xlabel('x'); ylabel('y');\n";
+
+
+  delete[] gradResult;
+  delete[] pts;  
+}
+
+int DirectSerendipityArray::write_matlab_mesh_grad_error(std::string& filename, int num_pts_x, int num_pts_y, Tensor1 (*referenceFcn)(double,double)) const {
+  std::ofstream fout(filename+".m");
+  if( !fout ) return 1;
+  write_matlab_mesh_grad_error(&fout, num_pts_x, num_pts_y, referenceFcn);
+  return 0;
+}
+
+
+
+
+void DirectSerendipityArray::write_matlab_mesh_error_on_element(std::ofstream* fout, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double)) const {
+  if(num_pts_x <= 1) num_pts_x = 2;
+  if(num_pts_y <= 1) num_pts_y = 2;
+
+  // Determine mesh of points
+  double xMin = my_ds_space->my_mesh->minX();
+  double xMax = my_ds_space->my_mesh->maxX();
+  double yMin = my_ds_space->my_mesh->minY();
+  double yMax = my_ds_space->my_mesh->maxY();
+
+  double dx = (xMax - xMin)/(num_pts_x-1);
+  double dy = (yMax - yMin)/(num_pts_y-1);
+
+  Point* pts = new Point[num_pts_x*num_pts_y];
+  
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      pts[j + num_pts_y*i].set(xMin+i*dx, yMin+j*dy);
+    }
+  }
+
+  // Evaluate
+  double result[num_pts_x*num_pts_y];
+  double gradResult[num_pts_x*num_pts_y];
+  eval_error_on_element(pts, num_pts_x*num_pts_y, result, gradResult, referenceFcn, nullptr);
+
+  // Write file  
+  *fout << "mesh(" << xMin << ":" << dx << ":" << xMax << ","
+	<< yMin << ":" << dy << ":" << yMax <<",[ ";
+
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      *fout << fabs(result[i + num_pts_x*j]) << " ";
+    }
+    *fout << "; ";
+  }
+  *fout << "]);\n";
+  *fout << "xlabel('x'); ylabel('y');\n";
+
+  delete[] pts;  
+}
+
+int DirectSerendipityArray::write_matlab_mesh_error_on_element(std::string& filename, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double)) const {
+  std::ofstream fout(filename+".m");
+  if( !fout ) return 1;
+  write_matlab_mesh_error_on_element(&fout, num_pts_x, num_pts_y, referenceFcn);
+  return 0;
+}
+
+
+void DirectSerendipityArray::write_matlab_mesh_grad_error_on_element(std::ofstream* fout, int num_pts_x, int num_pts_y, 
+                                                Tensor1 (*referenceFcn)(double,double)) const {
+  if(num_pts_x <= 1) num_pts_x = 2;
+  if(num_pts_y <= 1) num_pts_y = 2;
+
+  // Determine mesh of points
+  double xMin = my_ds_space->my_mesh->minX();
+  double xMax = my_ds_space->my_mesh->maxX();
+  double yMin = my_ds_space->my_mesh->minY();
+  double yMax = my_ds_space->my_mesh->maxY();
+
+  double dx = (xMax - xMin)/(num_pts_x-1);
+  double dy = (yMax - yMin)/(num_pts_y-1);
+
+  Point* pts = new Point[num_pts_x*num_pts_y];
+  
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      pts[j + num_pts_y*i].set(xMin+i*dx, yMin+j*dy);
+    }
+  }
+
+  // Evaluate
+  double result[num_pts_x*num_pts_y];
+  double gradResult[num_pts_x*num_pts_y];
+  eval_error_on_element(pts, num_pts_x*num_pts_y, result, gradResult, nullptr, referenceFcn);
+
+
+  // Write file  
+  *fout << "mesh(" << xMin << ":" << dx << ":" << xMax << ","
+	<< yMin << ":" << dy << ":" << yMax <<",[ ";
+
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      *fout << fabs(gradResult[i + num_pts_x*j]) << " ";
+    }
+    *fout << "; ";
+  }
+  *fout << "]);\n";
+  *fout << "xlabel('x'); ylabel('y');\n";
+
+  delete[] pts;  
+}
+
+int DirectSerendipityArray::write_matlab_mesh_grad_error_on_element(std::string& filename, int num_pts_x, int num_pts_y, Tensor1 (*referenceFcn)(double,double)) const {
+  std::ofstream fout(filename+".m");
+  if( !fout ) return 1;
+  write_matlab_mesh_grad_error_on_element(&fout, num_pts_x, num_pts_y, referenceFcn);
+  return 0;
+}
+
+
+
+
+
+
+
+void DirectSerendipityArray::write_matlab_mesh_chunk(std::ofstream* fout, int num_pts_x, int num_pts_y) const {
+  if(num_pts_x <= 1) num_pts_x = 2;
+  if(num_pts_y <= 1) num_pts_y = 2;
+
+  // Determine mesh of points
+  double xMin = my_ds_space->my_mesh->minX();
+  double xMax = my_ds_space->my_mesh->maxX();
+  double yMin = my_ds_space->my_mesh->minY();
+  double yMax = my_ds_space->my_mesh->maxY();
+
+  double dx = (xMax - xMin)/(num_pts_x-1);
+  double dy = (yMax - yMin)/(num_pts_y-1);
+
+  Point* pts = new Point[num_pts_x*num_pts_y];
+  
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      pts[j + num_pts_y*i].set(xMin+i*dx, yMin+j*dy);
+    }
+  }
+
+  // Evaluate
+  double result[num_pts_x*num_pts_y];
+  eval_chunk(pts, result, num_pts_x*num_pts_y);
+
+  // Write file  
+  *fout << "mesh(" << xMin << ":" << dx << ":" << xMax << ","
+	<< yMin << ":" << dy << ":" << yMax <<",[ ";
+
+  for(int i=0; i<num_pts_x; i++) {
+    for(int j=0; j<num_pts_y; j++) {
+      *fout << fabs(result[i + num_pts_x*j]) << " ";
+    }
+    *fout << "; ";
+  }
+  *fout << "]);\n";
+  *fout << "xlabel('x'); ylabel('y');\n";
+
+  delete[] pts;  
+}
+
+int DirectSerendipityArray::write_matlab_mesh_chunk(std::string& filename, int num_pts_x, int num_pts_y) const {
+  std::ofstream fout(filename+".m");
+  if( !fout ) return 1;
+  write_matlab_mesh_chunk(&fout, num_pts_x, num_pts_y);
+  return 0;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Class DirectSerendipity

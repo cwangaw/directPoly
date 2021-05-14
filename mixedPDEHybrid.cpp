@@ -847,6 +847,9 @@ int MixedPDE::solve_hybrid(Monitor& monitor) {
     monitor(0,"\nError estimate\n"); ///////////////////////////////////////////////
   
     double h = param.dsSpace.mesh()->maxElementDiameter();
+    double maxChunk = param.dsSpace.mesh()->maxChunkParam();
+    double averageChunk = param.dsSpace.mesh()->averageChunkParam();
+    
     
     double l2Error_f = 0, l2UError_f = 0, l2DivUError_f = 0, l2Norm_f = 0, l2UNorm_f = 0, l2DivUNorm_f = 0;
     double l2Error_r = 0, l2UError_r = 0, l2DivUError_r = 0, l2Norm_r = 0, l2UNorm_r = 0, l2DivUNorm_r = 0;
@@ -859,6 +862,8 @@ int MixedPDE::solve_hybrid(Monitor& monitor) {
     solution_u_r.l2normError_div(l2DivUError_r, l2DivUNorm_r, trueDivUSoln);
     
     std::cout << "  Max Element Diameter h:  " << h << std::endl;
+    std::cout << "  Max Chunkiness Parameter:  " << maxChunk << std::endl;
+    std::cout << "  Average Chunkiness Parameter:  " << averageChunk << std::endl;
     std::cout << "  === p ===  " << std::endl;
     std::cout << "  L_2 Error full:      " << l2Error_f << std::endl;
     std::cout << "  L_2 Error reduced:      " << l2Error_r << std::endl;

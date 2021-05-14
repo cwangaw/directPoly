@@ -195,6 +195,7 @@ namespace polymesh {
     Point my_center;  // of largest inscribed circle
     Point my_centroid; // center of mass
     double my_diameter;
+    double max_radius;
 
     PolyMesh* my_mesh;
     int my_mesh_index;
@@ -231,7 +232,9 @@ namespace polymesh {
     double area() const { return the_area; };
     Point center()   const { return my_center; };
     Point centroid() const { return my_centroid; };
+    double maxRadius() const { return max_radius; }
     double diameter() const { return my_diameter; };
+    double chunkParam() const {return my_diameter / max_radius; }
 
     bool isInElement(const Point& pt) const;
     bool isOnElementBoundary(const Point& pt) const;
@@ -275,6 +278,8 @@ namespace polymesh {
     int num_boundary_vertices;
     int num_boundary_edges;
     double max_element_diameter;
+    double chunkiness_parameter;
+    double average_chunkiness_parameter;
 
     // Polymesh of elements
     Vertex* the_vertices = nullptr;
@@ -329,6 +334,8 @@ namespace polymesh {
     double maxY() const { return max_y; }
     
     double maxElementDiameter() const { return max_element_diameter; };
+    double maxChunkParam() const { return chunkiness_parameter; }
+    double averageChunkParam() const { return average_chunkiness_parameter; }
     
     bool isGood() const { return mesh_is_good; };
     
