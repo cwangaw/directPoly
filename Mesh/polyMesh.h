@@ -234,7 +234,7 @@ namespace polymesh {
     Point centroid() const { return my_centroid; };
     double maxRadius() const { return max_radius; }
     double diameter() const { return my_diameter; };
-    double chunkParam() const {return my_diameter / max_radius; }
+    double chunkParam();
 
     bool isInElement(const Point& pt) const;
     bool isOnElementBoundary(const Point& pt) const;

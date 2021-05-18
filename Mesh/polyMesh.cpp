@@ -357,6 +357,29 @@ bool PolyElement::isOnElementBoundary(const Point& pt) const {
   return false;
 }
 
+double PolyElement::chunkParam() {
+  double rho = diameter();
+  for (int i = 0; i < num_vertices; i++) {
+    for (int j = i+1; j < num_vertices; j++) {
+      for (int k = j+1; k < num_vertices; k++) {
+        Edge e0(vertexPtr(i),vertexPtr(j));
+        Edge e1(vertexPtr(j),vertexPtr(k));
+        Edge e2(vertexPtr(k),vertexPtr(i));
+
+        OrientedEdge oe0(&e0, 1);
+        OrientedEdge oe1(&e1, 1);
+        OrientedEdge oe2(&e2, 1);
+
+        Point center(0,0);
+        bool unique = 0;
+        computeCenterOfTriangle(&oe0, &oe1, &oe2, center, unique);
+        rho = (oe1.lambda(center) < rho)? oe1.lambda(center) : rho;
+      }
+    }
+  }
+
+  return 4*rho/diameter();
+}
 
 void PolyElement::write_raw(std::ofstream& fout) const {
   fout << "  POLYELEMENT\n";
