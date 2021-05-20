@@ -27,6 +27,8 @@ q		# meshType (quads, deviated, triangles, or general)
 0         # distortion factor
 $END_COMMENT
 
+0.2       # remove small edges [0,0.5]
+
 ### FINITE ELEMENTS ###########################################################
 
 2          	        # polynomial degree
