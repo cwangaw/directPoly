@@ -2,6 +2,8 @@
 #include <fstream>
 #include <vector>
 #include <random>
+#include <algorithm>
+#include <assert.h>
 
 #include "debug.h"
 #include "polyMesh.h"
@@ -339,6 +341,32 @@ void PolyElement::computeCenterOfTriangle(const OrientedEdge* e0, const Oriented
 
   double sc = ( (v2[1] - v1[1])*t2[0] - (v2[0] - v1[0])*t2[1] ) / ( t1[1]*t2[0] - t1[0]*t2[1] );
   center = t1; center *= sc; center += v1; // center = v1 + sc*t1;
+}
+
+int PolyElement::iLongestEdge() {
+  // Find the longest edge
+  int iLongestEdge = 0;
+  for (int i = 1; i < num_vertices; i++) {
+    if (edgePtr(i)->length() > edgePtr(iLongestEdge)->length()) {
+      iLongestEdge = i;
+    }
+  }
+  return iLongestEdge;
+}
+
+
+int PolyElement::countShortEdges(double ratio) {
+  int nShortEdges = 0;
+
+  // Count short edges
+  double shortEdgeLength = edgePtr(iLongestEdge())->length() * ratio;
+  for (int i = 0; i < num_vertices; i++) {
+    if ( edgePtr(i)->length() <= shortEdgeLength ) {
+      nShortEdges += 1;
+    }
+  }
+
+  return nShortEdges;
 }
 
 bool PolyElement::isInElement(const Point& pt) const {
@@ -813,6 +841,100 @@ int PolyMesh::createMesh(char meshTypeC, int nx, int ny, double xMin, double xMa
   return 0;
 }
 
+int PolyMesh::removeShortEdges(int ratio) {
+  if (!nVertices()) return -1;
+
+
+//int numVertices, double* pts, int numElements, 
+//int* numEdgesOfElement, int** elementByVertexIndex, 
+
+  std::vector<int> indexToBeRemoved;
+  int numOfIndexToBeRemoved = 0;
+
+  // We set up numEdgesOfElement during the procedure of finding short edges
+  std::vector<int> numEdgesOfElement(nElements());
+
+  for (int iElement = 0; iElement < nElements(); iElement++) { 
+    if (elementPtr(iElement)->countShortEdges(ratio) == 0) continue;
+
+    PolyElement* thisElement = elementPtr(iElement);
+    int iLongEdge = thisElement -> iLongestEdge();
+    double shortEdgeLength = thisElement -> edgePtr(iLongEdge) -> length() * ratio;
+
+    int newNumEdges = thisElement -> nVertices();
+
+    // Loop through all the edges of this element
+    for (int iEdge = 0; iEdge < thisElement->nVertices(); iEdge++) {
+      // If iEdge is an short edge in this element
+      if ( thisElement -> edgePtr(iEdge) -> length() <= shortEdgeLength ) {
+        newNumEdges -= 1;
+
+        // We consider the two ends of this edge, and remove the one that has larger global index
+        int globalVertexIndex = (element_by_vertex_index[iElement][iEdge] >element_by_vertex_index[iElement][iEdge-1]) ?
+                                element_by_vertex_index[iElement][iEdge] : element_by_vertex_index[iElement][iEdge-1];
+
+        // If this vertex is not considered to be removed before, 
+        // we add it to the list of vertices that are going to be removed 
+        if (std::count(indexToBeRemoved.begin(), indexToBeRemoved.end(), globalVertexIndex) == 0) {
+          indexToBeRemoved.push_back(globalVertexIndex);
+          numOfIndexToBeRemoved += 1;
+        }
+      }
+    }
+
+    numEdgesOfElement[iElement] = newNumEdges;
+  }
+
+  // Now we set up the new data for constructing the mesh by removing those vertices
+  int numVertices = num_vertices - numOfIndexToBeRemoved;
+
+  std::vector<double> pts;
+  for (int i = 0; i < num_vertices; i++) {
+    // If this index of vertex is not on the removing list
+    if (std::count(indexToBeRemoved.begin(), indexToBeRemoved.end(), i) == 0) {
+      // We add its x and y value to pts array
+      pts.push_back(vertexPtr(i)->val(0));
+      pts.push_back(vertexPtr(i)->val(1));
+    }
+  }
+
+  int numElements = nElements();
+  
+  // To set up elementByVertexIndex,
+  // we first construct an array mapping old vertex index to new vertex index
+  std::vector<int> newIndex(nVertices());
+  int index = 0;
+  for (int i = 0; i < nVertices(); i++) {
+     // If this index of vertex is not on the removing list
+    if (std::count(indexToBeRemoved.begin(), indexToBeRemoved.end(), i) == 0) {
+      newIndex[i] = index;
+      index++;
+    } else { newIndex[i] = -1; }
+  }
+  assert(index == numVertices);
+
+  //elementByVertexIndex
+  int** elementByVertexIndex = new int*[numElements];
+  for (int i = 0; i < numElements; i++) {
+    elementByVertexIndex[i] = new int[numEdgesOfElement[i]];
+  }
+
+  for (int iElement = 0; iElement < numElements; iElement++) {
+    int localVertexIndex = 0;
+    for (int iVertex = 0; iVertex < nVerticesOfElement(iElement); iVertex++) {
+      int originalGlobalIndex = element_by_vertex_index[iElement][iVertex];
+      int newGlobalIndex = newIndex[originalGlobalIndex];
+      if (newGlobalIndex != -1) {
+        elementByVertexIndex[iElement][localVertexIndex] = newGlobalIndex;
+        localVertexIndex++;
+      }
+    }
+    assert(localVertexIndex == numEdgesOfElement[iElement]);
+  }
+
+  set(numVertices, pts.data(), numElements, numEdgesOfElement.data(), elementByVertexIndex);
+}
+
 bool PolyMesh::isVertexOnBoundary(int i) const {
   return nbr_elements_of_vertex[i].size() != nbr_edges_of_vertex[i].size();
 }
@@ -837,6 +959,15 @@ int PolyMesh::elementIndex(const Point& pt) const {
     }
   }
   return -1;
+}
+
+// The input parameter ratio is the criteria of defining small edges
+int PolyMesh::countShortEdges(double ratio) {
+  int nShortEdges = 0;
+  for (int iElement = 0; iElement < nElements(); iElement++) {
+    nShortEdges += elementPtr(iElement) -> countShortEdges(ratio);
+  }
+  return nShortEdges;
 }
 
 void PolyMesh::write_raw(std::ofstream& fout) const {

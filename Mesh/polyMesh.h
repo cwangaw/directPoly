@@ -222,6 +222,10 @@ namespace polymesh {
     
     bool isGood() const { return good_element; };
     int nVertices() const { return num_vertices; };
+
+    int iLongestEdge(); // Return the index of longest edge 
+    // The input parameter ratio is the criteria of defining small edges
+    int countShortEdges(double ratio);
     
     OrientedEdge* edgePtr(int i) { return &the_oriented_edge[i % num_vertices]; };
     Vertex* vertexPtr(int i) { return the_oriented_edge[i % num_vertices].vertexPtr(1); };
@@ -322,6 +326,9 @@ namespace polymesh {
     int createMesh(char meshType='q', int nx=1, int ny=1, double xMin=0, double xMax=1,
 		   double yMin=0, double yMax=1, double distortionFactor=0); // Create simple mesh
 
+
+    int removeShortEdges(int ratio); // Remove the short edges of the mesh
+
     // Access functions
     int nVertices() const { return num_vertices; };
     int nEdges() const { return num_edges; };
@@ -354,6 +361,9 @@ namespace polymesh {
     void nbrElementsOfEdge(int i, int theNbrIndices[2]) const {
       theNbrIndices[0] = nbr_elements_of_edge[i][0];
       theNbrIndices[1] = nbr_elements_of_edge[i][1]; }
+
+    // The input parameter ratio is the criteria of defining small edges
+    int countShortEdges(double ratio);
     
     bool isVertexOnBoundary(int i) const;
     bool isEdgeOnBoundary(int i) const;
