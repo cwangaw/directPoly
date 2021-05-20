@@ -933,6 +933,7 @@ int PolyMesh::removeShortEdges(int ratio) {
   }
 
   set(numVertices, pts.data(), numElements, numEdgesOfElement.data(), elementByVertexIndex);
+  return numOfIndexToBeRemoved;
 }
 
 bool PolyMesh::isVertexOnBoundary(int i) const {
