@@ -6,6 +6,8 @@
 
 using namespace std;
 
+static const double max_mesh_small_edge_ratio = 0.5;
+
 ////////////////////////////////////////////////////////////////////////////////
 // PARAMETERDATA
 
@@ -256,8 +258,6 @@ int ParameterData::writeDMSpace() {
 
 // READ ==========================================================================
 
-#define SIZE_STRING 15
-
 int ParameterData::read() {
   int error = 0;
 
@@ -319,6 +319,16 @@ int ParameterData::read() {
   default:
     return processReaderError(ERR_UNSUPPORTED_OPTION);
   }
+
+  ERRCHK(readScalar(mesh_small_edge_ratio));
+  if(mesh_small_edge_ratio < 0) mesh_small_edge_ratio = 0;
+  if(mesh_small_edge_ratio > max_mesh_small_edge_ratio) {
+    mesh_small_edge_ratio = max_mesh_small_edge_ratio;
+    processReaderError(ERR_OUT_OF_RANGE);
+    cerr << "WARNING: ratio set to " << max_mesh_small_edge_ratio << endl;
+  }
+
+  mesh.removeSmallEdges(mesh_small_edge_ratio);
 
   // FINITE ELEMENTS
 
