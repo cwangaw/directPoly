@@ -328,7 +328,7 @@ int ParameterData::read() {
     cerr << "WARNING: ratio set to " << max_mesh_small_edge_ratio << endl;
   }
 
-  mesh.removeSmallEdges(mesh_small_edge_ratio);
+  mesh.removeShortEdges(mesh_small_edge_ratio);
 
   // FINITE ELEMENTS
 
