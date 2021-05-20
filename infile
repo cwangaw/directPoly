@@ -8,22 +8,24 @@ test/   	# dirName, output directory (preamble)
 #{ 0,0 1,0 1,0.5 0.6,0.5 0.5,0.8 0,1 0.5,0.3 1,1 }	# mesh_vertices
 #{ [ 1 2 7 ] [ 3 4 7 2 ] [ 5 8 6 ] [ 5 6 1 7 4 ] [ 8 5 4 3 ] } 	# mesh_elements
 
+# SSPM:    4_9  16_34 36_74 64_130 100_202 144_290 196_392
 # Pattern: 4_10 16_34 36_74 64_130 100_202 144_290 196_394 256_514
-$BEGIN_COMMENT
-g
-514  	   # nVertices;
-256     	   # nElements;
-{ $INCLUDE testingMeshes/Pattern/Pattern_256_514/Node.txt }    # mesh_vertices file
-{ $INCLUDE testingMeshes/Pattern/Pattern_256_514/Element.txt } # mesh_elements file name
-$END_COMMENT
-
+# Quad:    4_9  16_25 36_49 64_81  100_121 144_169 196_225
 # $BEGIN_COMMENT
+g
+202    	   # nVertices;
+100     	   # nElements;
+{ $INCLUDE testingMeshes/SSPM/SSPM_100_202/Node.txt }    # mesh_vertices file
+{ $INCLUDE testingMeshes/SSPM/SSPM_100_202/Element.txt } # mesh_elements file name
+# $END_COMMENT
+
+$BEGIN_COMMENT
 q		# meshType (quads, deviated, triangles, or general)
 0,1        	# xMin,xMax
 0,1        	# yMin,yMax 
-8,8    	# nx,ny
+1,1    	# nx,ny
 0         # distortion factor
-# $END_COMMENT
+$END_COMMENT
 
 ### FINITE ELEMENTS ###########################################################
 
@@ -39,10 +41,10 @@ q		# meshType (quads, deviated, triangles, or general)
 
 ### OUTPUT PARAMETERS ########################################################
 
--1			# Output DS solution (-1=omit, 0=none, 1=raw, 2=matlab)
+2			# Output DS solution (-1=omit, 0=none, 1=raw, 2=matlab)
 101,101              	# numPtsDS_x,numPtsDS_y, number of x,y points for matlab
 
-2			# Output Mixed solution (-1=omit, 0=none, 1=raw, 2=matlab)
+-1			# Output Mixed solution (-1=omit, 0=none, 1=raw, 2=matlab)
 101,101              	# numPtsMixed_x,numPtsMixed_y, number of x,y points for matlab
 
 2			# Mesh output format (0=none, 1=raw, 2=matlab)
