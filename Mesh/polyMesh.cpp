@@ -9,6 +9,27 @@
 #include "polyMesh.h"
 using namespace polymesh;
 
+
+// Function to print the
+// index of an element
+int getIndex(std::vector<int> v, int K)
+{
+    auto it = find(v.begin(), v.end(), K);
+ 
+    // If element was found
+    if (it != v.end())
+    {
+        // calculating the index
+        // of K
+        return it - v.begin();
+    }
+    else {
+        // If the element is not
+        // present in the vector
+        return -1;
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Class Vertex
 
@@ -635,10 +656,17 @@ void PolyMesh::set_polymesh(int numVertices, double* pts, int numElements,
   }
 
   //Maximum chunkiness parameter among elements
-  chunkiness_parameter = 0;
+  max_chunkiness_parameter = 0;
   for (int i = 0; i < nElements(); i++) {
-    if (elementPtr(i)->chunkParam()>chunkiness_parameter) chunkiness_parameter = elementPtr(i)->chunkParam();
+    if (elementPtr(i)->chunkParam()>max_chunkiness_parameter) max_chunkiness_parameter = elementPtr(i)->chunkParam();
   }
+
+  //Miniimum chunkiness parameter among elements
+  min_chunkiness_parameter = max_chunkiness_parameter;
+  for (int i = 0; i < nElements(); i++) {
+    if (elementPtr(i)->chunkParam()<min_chunkiness_parameter) min_chunkiness_parameter = elementPtr(i)->chunkParam();
+  }
+
 
   //Average chunkiness parameter of mesh
   average_chunkiness_parameter = 0;
@@ -841,99 +869,174 @@ int PolyMesh::createMesh(char meshTypeC, int nx, int ny, double xMin, double xMa
   return 0;
 }
 
-int PolyMesh::removeShortEdges(int ratio) {
-  if (!nVertices()) return -1;
 
+
+int PolyMesh::removeShortEdges(double ratio) {
+  if (!nVertices()) return -1;
+  if (ratio <= 0) return 0;
 
 //int numVertices, double* pts, int numElements, 
 //int* numEdgesOfElement, int** elementByVertexIndex, 
 
+  // We first sort out global indices that are going to be removed
+  // And they will first be considered as another index that we are going to keep 
+  //(For example, if vertex 0 and vertex 1 form an short edge, 
+  // we would first mark vertex 1 as vertex 0, and delete it later)
+
   std::vector<int> indexToBeRemoved;
-  int numOfIndexToBeRemoved = 0;
+  indexToBeRemoved.clear();
+  std::vector<int> indexToBeRemoved_mapping;
+  indexToBeRemoved_mapping.clear();
 
-  // We set up numEdgesOfElement during the procedure of finding short edges
-  std::vector<int> numEdgesOfElement(nElements());
-
+  // We loop through all the elements to find small edges
+  // and look for indices to be removed, as well as the indices they would be mapped to
   for (int iElement = 0; iElement < nElements(); iElement++) { 
-    if (elementPtr(iElement)->countShortEdges(ratio) == 0) continue;
-
     PolyElement* thisElement = elementPtr(iElement);
+    
+    // Decide the criteria for short edges
     int iLongEdge = thisElement -> iLongestEdge();
     double shortEdgeLength = thisElement -> edgePtr(iLongEdge) -> length() * ratio;
-
-    int newNumEdges = thisElement -> nVertices();
 
     // Loop through all the edges of this element
     for (int iEdge = 0; iEdge < thisElement->nVertices(); iEdge++) {
       // If iEdge is an short edge in this element
       if ( thisElement -> edgePtr(iEdge) -> length() <= shortEdgeLength ) {
-        newNumEdges -= 1;
+        // We consider the two ends of this edge,
+        // If they are not on the list of indexToBeRemoved,
+        // we mark both of them as that with smaller global index
+        int v0_local = (iEdge+thisElement->nVertices()-1)%thisElement->nVertices();
+        int v1_local = iEdge;
 
-        // We consider the two ends of this edge, and remove the one that has larger global index
-        int globalVertexIndex = (element_by_vertex_index[iElement][iEdge] >element_by_vertex_index[iElement][iEdge-1]) ?
-                                element_by_vertex_index[iElement][iEdge] : element_by_vertex_index[iElement][iEdge-1];
-
-        // If this vertex is not considered to be removed before, 
-        // we add it to the list of vertices that are going to be removed 
-        if (std::count(indexToBeRemoved.begin(), indexToBeRemoved.end(), globalVertexIndex) == 0) {
-          indexToBeRemoved.push_back(globalVertexIndex);
-          numOfIndexToBeRemoved += 1;
+        int smaller_global_index = std::min(thisElement -> vertexPtr(v0_local) -> meshIndex(), thisElement -> vertexPtr(v1_local) -> meshIndex());
+        int larger_global_index = std::max(thisElement -> vertexPtr(v0_local) -> meshIndex(), thisElement -> vertexPtr(v1_local) -> meshIndex());
+        // If they are not on the list, we add them to the list
+        if (std::count(indexToBeRemoved.begin(), indexToBeRemoved.end(), larger_global_index) == 0 ) {
+          indexToBeRemoved.push_back(larger_global_index);
+          indexToBeRemoved_mapping.push_back(smaller_global_index);
         }
       }
     }
-
-    numEdgesOfElement[iElement] = newNumEdges;
   }
 
-  // Now we set up the new data for constructing the mesh by removing those vertices
-  int numVertices = num_vertices - numOfIndexToBeRemoved;
+  for (unsigned int i = 0; i < indexToBeRemoved.size(); i++) {
+    std::cout << "Index to be removed: " << indexToBeRemoved[i] << std::endl;
+    std::cout << "Coordinate of this index: " << vertexPtr(indexToBeRemoved[i]) -> val(0) << "," << vertexPtr(indexToBeRemoved[i]) -> val(1) << std::endl;
+  } 
+  // We loop through all the elements to do the mapping
+  // And store them in the double array vector elementByVertexIndexBeforeReordering
+  // We set up numEdgesOfElement at the same time by counting #unique indices in each element
+  // And we can also get numOfEdgesToBeRemoved
+  int numOfEdgesToBeRemoved = 0;
+  std::vector<int> numEdgesOfElement(nElements());
+  std::vector<int>* elementByVertexIndexBeforeReordering = new std::vector<int>[nElements()];
+  //std::vector<std::vector<int>> elementByVertexIndexBeforeReordering(nElements());
 
+
+  for (int iElement = 0; iElement < nElements(); iElement++) {
+    PolyElement* thisElement = elementPtr(iElement);
+    //std::vector<int> vertexIndexBeforeReordering(thisElement -> nVertices());
+
+    for (int iVertex = 0; iVertex < thisElement -> nVertices(); iVertex++) {
+      //int vertex_index = element_by_vertex_index[iElement][iVertex];
+      int vertex_index = thisElement -> vertexPtr(iVertex) -> meshIndex();
+      int locate_vertex_index_on_the_list = getIndex(indexToBeRemoved, vertex_index);
+      if ( locate_vertex_index_on_the_list == -1 ) {
+        //vertexIndexBeforeReordering[iVertex] = vertex_index;
+        elementByVertexIndexBeforeReordering[iElement].push_back(vertex_index);
+      } else {
+        //vertexIndexBeforeReordering[iVertex] = indexToBeRemoved_mapping[locate_vertex_index_on_the_list];
+        elementByVertexIndexBeforeReordering[iElement].push_back(indexToBeRemoved_mapping[locate_vertex_index_on_the_list]);
+      }
+    }
+    //elementByVertexIndexBeforeReordering[iElement] = vertexIndexBeforeReordering;
+
+    
+    // Now we count the new number of vertices;
+    int newNumVertices = 0;
+
+    for (int iVertex = 0; iVertex < thisElement->nVertices(); iVertex++) { 
+      int repeat = 0;
+      for (int i = 0; i < iVertex; i++) {
+        if (elementByVertexIndexBeforeReordering[iElement][i] == elementByVertexIndexBeforeReordering[iElement][iVertex]) repeat++;
+      }
+      if (repeat == 0) newNumVertices++;
+    }
+
+    numEdgesOfElement[iElement] = newNumVertices;
+    numOfEdgesToBeRemoved += thisElement->nVertices() - newNumVertices;
+  }
+
+  numOfEdgesToBeRemoved /= 2; //Each edge was counted twice in two elements sharing it
+
+
+  // To set up elementByVertexIndex,
+  // we first loop through elementByVertexIndexBeforeReordering
+  // And construct an array mapping indices on the list to the new indices with order 1,2,3,4,5,...
+  // We record their coordinates and find out new numVertices at the same times
+  std::vector<int> newIndex(nVertices());
   std::vector<double> pts;
-  for (int i = 0; i < num_vertices; i++) {
-    // If this index of vertex is not on the removing list
-    if (std::count(indexToBeRemoved.begin(), indexToBeRemoved.end(), i) == 0) {
+  pts.clear();
+  int index = 0;
+
+  for (int i = 0; i < nVertices(); i++) {
+     // If this index of vertex is not on elementByVertexIndexBeforeReordering
+     int count = 0;
+     for (int iElement = 0; iElement < nElements(); iElement++) {
+       count += std::count(elementByVertexIndexBeforeReordering[iElement].begin(), 
+                           elementByVertexIndexBeforeReordering[iElement].end(), i);
+     }
+    if (count > 0) {
+      newIndex[i] = index;
       // We add its x and y value to pts array
       pts.push_back(vertexPtr(i)->val(0));
-      pts.push_back(vertexPtr(i)->val(1));
-    }
-  }
-
-  int numElements = nElements();
-  
-  // To set up elementByVertexIndex,
-  // we first construct an array mapping old vertex index to new vertex index
-  std::vector<int> newIndex(nVertices());
-  int index = 0;
-  for (int i = 0; i < nVertices(); i++) {
-     // If this index of vertex is not on the removing list
-    if (std::count(indexToBeRemoved.begin(), indexToBeRemoved.end(), i) == 0) {
-      newIndex[i] = index;
-      index++;
+      pts.push_back(vertexPtr(i)->val(1));   
+      index++;   
     } else { newIndex[i] = -1; }
   }
-  assert(index == numVertices);
 
+  int numVertices = index;
+  int numElements = nElements();
+/*  std::cout << "new vertices:" << std::endl;
+  for (int i = 0; i < pts.size()/2; i++) {
+      std::cout << "(" <<pts[2*i] << "," << pts[2*i+1] << ")" <<std::endl;
+  }
+*/
   //elementByVertexIndex
+
   int** elementByVertexIndex = new int*[numElements];
   for (int i = 0; i < numElements; i++) {
     elementByVertexIndex[i] = new int[numEdgesOfElement[i]];
   }
 
   for (int iElement = 0; iElement < numElements; iElement++) {
-    int localVertexIndex = 0;
+    int local_index = 0;
     for (int iVertex = 0; iVertex < nVerticesOfElement(iElement); iVertex++) {
-      int originalGlobalIndex = element_by_vertex_index[iElement][iVertex];
-      int newGlobalIndex = newIndex[originalGlobalIndex];
-      if (newGlobalIndex != -1) {
-        elementByVertexIndex[iElement][localVertexIndex] = newGlobalIndex;
-        localVertexIndex++;
+      // Test if it repeats
+      int repeat = 0;
+      for (int i = 0; i < iVertex; i++) {
+        if (elementByVertexIndexBeforeReordering[iElement][i] == elementByVertexIndexBeforeReordering[iElement][iVertex]) repeat++;
+      }
+
+      // We only log it if it is not a repeated index
+      if (repeat == 0) {
+        elementByVertexIndex[iElement][local_index] = newIndex[elementByVertexIndexBeforeReordering[iElement][iVertex]];
+        local_index++;
       }
     }
-    assert(localVertexIndex == numEdgesOfElement[iElement]);
+    assert(local_index == numEdgesOfElement[iElement]);
   }
 
   set(numVertices, pts.data(), numElements, numEdgesOfElement.data(), elementByVertexIndex);
-  return numOfIndexToBeRemoved;
+
+  for (int i = 0; i < nElements(); i++) {
+    delete[] elementByVertexIndex[i];
+  }
+  delete[] elementByVertexIndex;
+
+  delete[] elementByVertexIndexBeforeReordering;
+  std::cout << "Number of short edges removed: " << numOfEdgesToBeRemoved << std::endl;
+  return numOfEdgesToBeRemoved;
+
 }
 
 bool PolyMesh::isVertexOnBoundary(int i) const {

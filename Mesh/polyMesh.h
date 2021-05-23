@@ -282,7 +282,8 @@ namespace polymesh {
     int num_boundary_vertices;
     int num_boundary_edges;
     double max_element_diameter;
-    double chunkiness_parameter;
+    double max_chunkiness_parameter;
+    double min_chunkiness_parameter;
     double average_chunkiness_parameter;
 
     // Polymesh of elements
@@ -327,7 +328,7 @@ namespace polymesh {
 		   double yMin=0, double yMax=1, double distortionFactor=0); // Create simple mesh
 
 
-    int removeShortEdges(int ratio); // Remove the short edges of the mesh
+    int removeShortEdges(double ratio); // Remove the short edges of the mesh
 
     // Access functions
     int nVertices() const { return num_vertices; };
@@ -341,7 +342,8 @@ namespace polymesh {
     double maxY() const { return max_y; }
     
     double maxElementDiameter() const { return max_element_diameter; };
-    double maxChunkParam() const { return chunkiness_parameter; }
+    double maxChunkParam() const { return max_chunkiness_parameter; }
+    double minChunkParam() const { return min_chunkiness_parameter; }
     double averageChunkParam() const { return average_chunkiness_parameter; }
     
     bool isGood() const { return mesh_is_good; };

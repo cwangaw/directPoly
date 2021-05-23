@@ -295,6 +295,7 @@ int EllipticPDE::solve(Monitor& monitor) {
   
     double h = param.dsSpace.mesh()->maxElementDiameter();
     double maxChunk = param.dsSpace.mesh()->maxChunkParam();
+    double minChunk = param.dsSpace.mesh()->minChunkParam();
     double averageChunk = param.dsSpace.mesh()->averageChunkParam();
     
     
@@ -303,6 +304,7 @@ int EllipticPDE::solve(Monitor& monitor) {
     
     std::cout << "  Max Element Diameter h:  " << h << std::endl;
     std::cout << "  Max Chunkiness Parameter:  " << maxChunk << std::endl;
+    std::cout << "  Min Chunkiness Parameter:  " << minChunk << std::endl;
     std::cout << "  Average Chunkiness Parameter:  " << averageChunk << std::endl;
     std::cout << "  L_2 Error:      " << l2Error << std::endl;
     std::cout << "  L_2 Grad Error: " << l2GradError << std::endl;

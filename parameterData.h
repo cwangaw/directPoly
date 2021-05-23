@@ -63,6 +63,7 @@ public:
   std::string mesh_elements_fileName;
   double distortion_factor;
   polymesh::PolyMesh mesh;
+  double mesh_small_edge_ratio;
 
   // FINITE ELEMENTS
   int polynomial_degree;
