@@ -909,10 +909,19 @@ int PolyMesh::removeShortEdges(double ratio) {
 
         int smaller_global_index = std::min(thisElement -> vertexPtr(v0_local) -> meshIndex(), thisElement -> vertexPtr(v1_local) -> meshIndex());
         int larger_global_index = std::max(thisElement -> vertexPtr(v0_local) -> meshIndex(), thisElement -> vertexPtr(v1_local) -> meshIndex());
+
+        bool larger_edge_on_the_boundary = vertexPtr(larger_global_index)->isOnBoundary();
+
+        // 
         // If they are not on the list, we add them to the list
         if (std::count(indexToBeRemoved.begin(), indexToBeRemoved.end(), larger_global_index) == 0 ) {
-          indexToBeRemoved.push_back(larger_global_index);
-          indexToBeRemoved_mapping.push_back(smaller_global_index);
+          if (larger_edge_on_the_boundary) {
+            indexToBeRemoved.push_back(smaller_global_index);
+            indexToBeRemoved_mapping.push_back(larger_global_index);
+          } else {
+            indexToBeRemoved.push_back(larger_global_index);
+            indexToBeRemoved_mapping.push_back(smaller_global_index);
+          }
         }
       }
     }

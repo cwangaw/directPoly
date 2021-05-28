@@ -591,6 +591,7 @@ void DirectSerendipityArray::write_matlab_mesh_error(std::ofstream* fout, int nu
     }
   }
 
+cout << "I am here" << endl;
   // Write file  
   *fout << "mesh(" << xMin << ":" << dx << ":" << xMax << ","
 	<< yMin << ":" << dy << ":" << yMax <<",[ ";
@@ -598,6 +599,7 @@ void DirectSerendipityArray::write_matlab_mesh_error(std::ofstream* fout, int nu
   for(int i=0; i<num_pts_x; i++) {
     for(int j=0; j<num_pts_y; j++) {
       *fout << fabs(result[i + num_pts_x*j]) << " ";
+      if (i==num_pts_x/2) cout << fabs(result[i + num_pts_x*j]) << " ";
     }
     *fout << "; ";
   }

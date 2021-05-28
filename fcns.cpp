@@ -61,14 +61,14 @@ double trueSoln(double x, double y) {
   return sin(PI*x)*sin(PI*y); 
   //return pow(x,2)+pow(y,2);
   //return x;
-  //return x*(1-x)*y*(1-y);
+  //return x*x*(1-x)*y*(1-y);
 }
 
 Tensor1 trueGradSoln(double x, double y) {
   return Tensor1(PI*cos(PI*x)*sin(PI*y),PI*sin(PI*x)*cos(PI*y));
   //return Tensor1(2*x,2*y);
   //return Tensor1(1,0);
-  //return Tensor1((1-2*x)*y*(1-y),x*(1-x)*(1-2*y));
+  //return Tensor1((2*x-3*x*x)*y*(1-y),x*x*(1-x)*(1-2*y));
 }
 
 Tensor2 trueHessianSoln(double x, double y) {
@@ -76,7 +76,7 @@ Tensor2 trueHessianSoln(double x, double y) {
     PI*PI*cos(PI*x)*cos(PI*y),-PI*PI*sin(PI*x)*sin(PI*y));
   //return Tensor2(2*x,0,0,2*y);
   //return Tensor2(0,0,0,0);
-  //return Tensor2( -2*y*(1-y), (1-2*x)*(1-2*y) , (1-2*x)*(1-2*y), -2*x*(1-x) );
+  //return Tensor2( (2-6*x)*y*(1-y), (2*x-3*x*x)*(1-2*y) , (2*x-3*x*x)*(1-2*y), -2*x*x*(1-x) );
 }
 
 Tensor1 trueUSoln(double x, double y) {

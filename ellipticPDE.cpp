@@ -303,6 +303,7 @@ int EllipticPDE::solve(Monitor& monitor) {
     solution.l2normError(l2Error, l2GradError, l2Norm, l2GradNorm, trueSoln, trueGradSoln);
     
     std::cout << "  Max Element Diameter h:  " << h << std::endl;
+    std::cout << "  Size of Matrix: " << nn << std::endl;
     std::cout << "  Max Chunkiness Parameter:  " << maxChunk << std::endl;
     std::cout << "  Min Chunkiness Parameter:  " << minChunk << std::endl;
     std::cout << "  Average Chunkiness Parameter:  " << averageChunk << std::endl;
@@ -356,13 +357,13 @@ int EllipticPDE::solve(Monitor& monitor) {
         fileNameGrad += "solution_mesh_grad_error";
         solution.write_matlab_mesh_error(fileName,
         param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, trueSoln);
-        solution.write_matlab_mesh_grad_error(fileName,
+        solution.write_matlab_mesh_grad_error(fileNameGrad,
         param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, trueGradSoln);
         fileName += "_on_element";
         fileNameGrad += "_on_element";
         solution.write_matlab_mesh_error_on_element(fileName,
         param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, trueSoln);
-        solution.write_matlab_mesh_grad_error_on_element(fileName,
+        solution.write_matlab_mesh_grad_error_on_element(fileNameGrad,
         param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, trueGradSoln);
         break;
       }

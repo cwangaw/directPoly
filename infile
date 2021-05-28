@@ -9,30 +9,31 @@ g
 { [ 1 2 5 4 ] [ 2 3 7 6 5 ] [ 6 7 10 9 ] [ 4 5 6 9 8 ] } 	# mesh_elements
 $END_COMMENT
 
-# SSPM:    4_9  16_34 36_74 64_130 100_202 144_290 196_392
+# SSPM:    4_9  16_34 36_74 64_130 100_202 144_290 196_393 256_513 289_580 400_802
 # Pattern: 4_10 16_34 36_74 64_130 100_202 144_290 196_394 256_514
 # Quad:    4_9  16_25 36_49 64_81  100_121 144_169 196_225
 # $BEGIN_COMMENT
 g
-34    	   # nVertices;
-16     	   # nElements;
-{ $INCLUDE testingMeshes/SSPM/SSPM_16_34/Node.txt }    # mesh_vertices file
-{ $INCLUDE testingMeshes/SSPM/SSPM_16_34/Element.txt } # mesh_elements file name
+74    	   # nVertices;
+36     	   # nElements;
+# { 0,0 0.111111,0 0.222222,0 0.444444,0 0.555555,0 0.777777,0 0.888888,0 1,0 0,0.111111 0.333333,0.111111 0.666666,0.111111 1,0.111111 0,0.222222 0.333333,0.222222 0.666666,0.222222 1,0.222222 0.111111,0.333333 0.222222,0.333333 0.444444,0.333333 0.555555,0.333333 0.777777,0.333333 0.888888,0.333333 0,0.444444 0.333333,0.444444 0.666666,0.444444 1,0.444444 0,0.555555 0.333333,0.555555 0.666666,0.555555 1,0.555555 0.111111,0.666666 0.222222,0.666666 0.444444,0.666666 0.555555,0.666666 0.777777,0.666666 0.888888,0.666666 0,0.777777 0.333333,0.777777 0.666666,0.777777 1,0.777777 0,0.888888 0.333333,0.888888 0.666666,0.888888 1,0.888888 0,1 0.111111,1 0.222222,1 0.444444,1 0.555555,1 0.777777,1 0.888888,1 1,1 }
+{ $INCLUDE testingMeshes/SSPM/SSPM_36_74/Node.txt }    # mesh_vertices file
+{ $INCLUDE testingMeshes/SSPM/SSPM_36_74/Element.txt } # mesh_elements file name
 # $END_COMMENT
 
 $BEGIN_COMMENT
 q		# meshType (quads, deviated, triangles, or general)
 0,1        	# xMin,xMax
 0,1        	# yMin,yMax 
-2,2    	# nx,ny
+4,4    	# nx,ny
 0         # distortion factor
 $END_COMMENT
 
-0       # remove small edges [0,0.5]
+0      # remove small edges [0,0.5]
 
 ### FINITE ELEMENTS ###########################################################
 
-2          	        # polynomial degree
+5         	        # polynomial degree
 0                   # Use hybrid or H(div)-conforming element for mixed method 
                     # (0 = hybrid, 1 = conforming)
 
