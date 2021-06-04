@@ -3,12 +3,13 @@ using namespace std;
 
 #include "debug.h"
 #include "fcns.h"
+#include <assert.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 // SPATIALLY DEPENDENT PDE FUNCTIONS
 
 // Coefficients
-static const double PI = 3.141592653589793238463;
+static const double PI = 3.141592653589793238462643383279502884197169399375105820974944;
 
 double coefA(double x, double y) {
   return 0;
@@ -42,13 +43,14 @@ double sourceVal(double x, double y) {
   //Id D=I, a=b=0
   Tensor2 h = trueHessianSoln(x,y);
   return - h(1,1) - h(2,2);
+
 }
 
 // BC values g
 double bcVal(double x, double y) {
-  //return x; 
+  return x+y; 
   //return pow(x,2)+pow(y,2);
-  return 0;
+  //return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -58,25 +60,28 @@ bool trueSolnKnown() { return true; }
 
 // Real solution
 double trueSoln(double x, double y) {
-  return sin(PI*x)*sin(PI*y); 
+  //return sin(PI*x)*sin(PI*y); 
   //return pow(x,2)+pow(y,2);
-  //return x;
+  return x+y;
   //return x*x*(1-x)*y*(1-y);
+  //return x*(1-x)*y*(1-y);
 }
 
 Tensor1 trueGradSoln(double x, double y) {
-  return Tensor1(PI*cos(PI*x)*sin(PI*y),PI*sin(PI*x)*cos(PI*y));
+  //return Tensor1(PI*cos(PI*x)*sin(PI*y),PI*sin(PI*x)*cos(PI*y));
   //return Tensor1(2*x,2*y);
-  //return Tensor1(1,0);
+  return Tensor1(1,1);
   //return Tensor1((2*x-3*x*x)*y*(1-y),x*x*(1-x)*(1-2*y));
+  //return Tensor1((1-2*x)*y*(1-y),x*(1-x)*(1-2*y));
 }
 
 Tensor2 trueHessianSoln(double x, double y) {
-  return Tensor2(-PI*PI*sin(PI*x)*sin(PI*y),PI*PI*cos(PI*x)*cos(PI*y),
-    PI*PI*cos(PI*x)*cos(PI*y),-PI*PI*sin(PI*x)*sin(PI*y));
-  //return Tensor2(2*x,0,0,2*y);
-  //return Tensor2(0,0,0,0);
+  //return Tensor2(-PI*PI*sin(PI*x)*sin(PI*y),PI*PI*cos(PI*x)*cos(PI*y),
+  //  PI*PI*cos(PI*x)*cos(PI*y),-PI*PI*sin(PI*x)*sin(PI*y));
+  //return Tensor2(2,0,0,2);
+  return Tensor2(0,0,0,0);
   //return Tensor2( (2-6*x)*y*(1-y), (2*x-3*x*x)*(1-2*y) , (2*x-3*x*x)*(1-2*y), -2*x*x*(1-x) );
+  //return Tensor2( (-2)*y*(1-y), (1-2*x)*(1-2*y) , (1-2*x)*(1-2*y), -2*x*(1-x) );
 }
 
 Tensor1 trueUSoln(double x, double y) {

@@ -53,11 +53,11 @@ int EllipticPDE::solve(Monitor& monitor) {
     for(int i=0; i<u.size(); i++) {
       //double x = parameterDataPtr()->dsSpace.nodePtr(i)->val(0);
       //double y = parameterDataPtr()->dsSpace.nodePtr(i)->val(1);
-      //u[i] = sin(PI*x)*sin(PI*y); //x*x+y*y;
+      //u[i] = x*x+y*y;
       u[i]=0;
       //if (fabs(x-5)<1e-6&&fabs(y-6)<1e-6) {u[i]=1;}
     }
-    u[4]=1;
+    u[0]=1;
     monitor(1,"Write Array");
 
     std::string fileName = parameterDataPtr()->directory_name;
@@ -102,7 +102,7 @@ int EllipticPDE::solve(Monitor& monitor) {
   double* rhs = rhs_vector.data();
 
   // quadrature points
-  polyquadrature::PolyQuadrature quadRule(2*param.dsSpace.degPolyn()+3);
+  polyquadrature::PolyQuadrature quadRule(13);
 
   monitor(1,"Matrix and RHS Assembly"); ////////////////////////////////////////
 
@@ -111,7 +111,14 @@ int EllipticPDE::solve(Monitor& monitor) {
     
     quadRule.setElement(fePtr->elementPtr());
 
-    fePtr->initBasis(quadRule.pts(), quadRule.num());
+    // test 
+    if (fePtr->degPolyn() == 2 && fePtr->nVertices() == 4) {
+      fePtr->initBasisLowOrderQuad(quadRule.pts(), quadRule.num());
+    } else {
+      fePtr->initBasis(quadRule.pts(), quadRule.num());
+    }
+
+    
 
     // Local matrix and rhs
     int nn_loc = fePtr->nNodes();
@@ -236,6 +243,14 @@ int EllipticPDE::solve(Monitor& monitor) {
   }
   rcond = 1/rcond;
 
+  std::ofstream sout("test/solution.txt");
+  for(int i=0; i<nn; i++) {
+    sout.precision(64);
+    sout << rhs[i];
+    if (i < nn - 1) sout << "\n";
+  }
+
+
   //Calculate inf condition number
   std::cout << "\tNorm Format:\t" << norm << std::endl;
   std::cout << "\tNorm of mat:\t" << anorm << std::endl;
@@ -262,8 +277,8 @@ int EllipticPDE::solve(Monitor& monitor) {
     }
     case 2: {
       std::string fileName(param.directory_name);
-      fileName += "mesh_chunkiness_parameter";
-      solution.write_matlab_mesh_chunk(fileName,
+      fileName += "mesh_one_over_chunkiness_parameter";
+      solution.write_matlab_mesh_one_over_chunk(fileName,
 				 param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y);
       break;
     }

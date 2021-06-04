@@ -178,11 +178,11 @@ namespace directserendipity {
     int write_matlab_mesh_grad_error_on_element(std::string& filename, int num_pts_x, int num_pts_y, Tensor1 (*referenceFcn)(double,double) = nullptr) const;
 
 
-    void write_matlab_mesh_chunk(std::ofstream* fout, int num_pts_x, int num_pts_y) const;
-    void write_matlab_mesh_chunk(std::ofstream& fout, int num_pts_x, int num_pts_y) const {
-      write_matlab_mesh_chunk(&fout, num_pts_x, num_pts_y); };
+    void write_matlab_mesh_one_over_chunk(std::ofstream* fout, int num_pts_x, int num_pts_y) const;
+    void write_matlab_mesh_one_over_chunk(std::ofstream& fout, int num_pts_x, int num_pts_y) const {
+      write_matlab_mesh_one_over_chunk(&fout, num_pts_x, num_pts_y); };
 
-    int write_matlab_mesh_chunk(std::string& filename, int num_pts_x, int num_pts_y) const;
+    int write_matlab_mesh_one_over_chunk(std::string& filename, int num_pts_x, int num_pts_y) const;
 
     void write_raw(std::ofstream& fout) const;
     int write_raw(std::string& filename) const;
@@ -340,6 +340,8 @@ namespace directserendipity {
     void vertexBasisGrad(Tensor1* result, int num_pts) const;
     */
     void initBasis(const Point* pt, int num_pts); // (re)evaluate all basis fcns at the points
+    // (re)evaluate all basis fcns at the points for quadrilaterals with r = 1 and r = 2
+    void initBasisLowOrderQuad(const Point* pt, int num_pts);
 
     double basis(int iNode, int iPt) const { return value_n[iNode + iPt*num_nodes]; };
     Tensor1 basisGrad(int iNode, int iPt) const { return gradvalue_n[iNode + iPt*num_nodes]; };

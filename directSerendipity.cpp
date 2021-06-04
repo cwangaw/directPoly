@@ -591,7 +591,7 @@ void DirectSerendipityArray::write_matlab_mesh_error(std::ofstream* fout, int nu
     }
   }
 
-cout << "I am here" << endl;
+
   // Write file  
   *fout << "mesh(" << xMin << ":" << dx << ":" << xMax << ","
 	<< yMin << ":" << dy << ":" << yMax <<",[ ";
@@ -599,7 +599,6 @@ cout << "I am here" << endl;
   for(int i=0; i<num_pts_x; i++) {
     for(int j=0; j<num_pts_y; j++) {
       *fout << fabs(result[i + num_pts_x*j]) << " ";
-      if (i==num_pts_x/2) cout << fabs(result[i + num_pts_x*j]) << " ";
     }
     *fout << "; ";
   }
@@ -786,7 +785,7 @@ int DirectSerendipityArray::write_matlab_mesh_grad_error_on_element(std::string&
 
 
 
-void DirectSerendipityArray::write_matlab_mesh_chunk(std::ofstream* fout, int num_pts_x, int num_pts_y) const {
+void DirectSerendipityArray::write_matlab_mesh_one_over_chunk(std::ofstream* fout, int num_pts_x, int num_pts_y) const {
   if(num_pts_x <= 1) num_pts_x = 2;
   if(num_pts_y <= 1) num_pts_y = 2;
 
@@ -817,7 +816,7 @@ void DirectSerendipityArray::write_matlab_mesh_chunk(std::ofstream* fout, int nu
 
   for(int i=0; i<num_pts_x; i++) {
     for(int j=0; j<num_pts_y; j++) {
-      *fout << fabs(result[i + num_pts_x*j]) << " ";
+      *fout << fabs(1/result[i + num_pts_x*j]) << " ";
     }
     *fout << "; ";
   }
@@ -827,10 +826,10 @@ void DirectSerendipityArray::write_matlab_mesh_chunk(std::ofstream* fout, int nu
   delete[] pts;  
 }
 
-int DirectSerendipityArray::write_matlab_mesh_chunk(std::string& filename, int num_pts_x, int num_pts_y) const {
+int DirectSerendipityArray::write_matlab_mesh_one_over_chunk(std::string& filename, int num_pts_x, int num_pts_y) const {
   std::ofstream fout(filename+".m");
   if( !fout ) return 1;
-  write_matlab_mesh_chunk(&fout, num_pts_x, num_pts_y);
+  write_matlab_mesh_one_over_chunk(&fout, num_pts_x, num_pts_y);
   return 0;
 }
 
