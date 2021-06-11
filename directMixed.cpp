@@ -667,13 +667,13 @@ DirectMixedArray::~DirectMixedArray() {
   if(the_array) delete[] the_array;
 }
 
-void DirectMixedArray::l2normError(double& l2Error, double& l2Norm, Tensor1 (*referenceFcn)(double,double)) {
+void DirectMixedArray::l2normError(double& l2Error, double& l2Norm, int refinement_level, Tensor1 (*referenceFcn)(double,double)) {
   l2Error = 0, l2Norm = 0;
   PolyQuadrature quadRule(13); //2*my_ds_space->degPolyn()+3
 
   for(int iElement=0; iElement < num_elements; iElement++) {
     polymesh::PolyElement* mixedElementPtr = my_dm_space->elementPtr(iElement);
-    quadRule.setElement(mixedElementPtr);
+    quadRule.setElement(refinement_level, mixedElementPtr);
     
     for(int iPt=0; iPt<quadRule.num(); iPt++) {
       double x = quadRule.pt(iPt).val(0);
@@ -693,13 +693,13 @@ void DirectMixedArray::l2normError(double& l2Error, double& l2Norm, Tensor1 (*re
   l2Norm = sqrt(l2Norm);
 }
 
-void DirectMixedArray::l2normError_div(double& l2Error, double& l2Norm, double (*referenceFcn)(double,double)) {
+void DirectMixedArray::l2normError_div(double& l2Error, double& l2Norm, int refinement_level, double (*referenceFcn)(double,double)) {
   l2Error = 0, l2Norm = 0;
   PolyQuadrature quadRule(13); //2*my_ds_space->degPolyn()+3
 
   for(int iElement=0; iElement < num_elements; iElement++) {
     polymesh::PolyElement* mixedElementPtr = my_dm_space->elementPtr(iElement);
-    quadRule.setElement(mixedElementPtr);
+    quadRule.setElement(refinement_level, mixedElementPtr);
     
     for(int iPt=0; iPt<quadRule.num(); iPt++) {
       double x = quadRule.pt(iPt).val(0);
@@ -1552,14 +1552,14 @@ void DirectDGArray::eval(const Point& pt, double& result) const {
 
 
 
-void DirectDGArray::l2normError(double& l2Error, double& l2Norm, 
+void DirectDGArray::l2normError(double& l2Error, double& l2Norm, int refinement_level, 
 					 double (*referenceFcn)(double,double)) {
   l2Error = 0, l2Norm = 0;
   PolyQuadrature quadRule(13); //2*my_ds_space->degPolyn()+3
 
   for(int iElement=0; iElement < my_dm_space->mesh()->nElements(); iElement++) {
     DirectDGFE* dgPtr = my_dm_space->DGElementPtr(iElement);
-    quadRule.setElement(dgPtr->elementPtr());
+    quadRule.setElement(refinement_level, dgPtr->elementPtr());
     
     for(int iPt=0; iPt<quadRule.num(); iPt++) {
       double x = quadRule.pt(iPt).val(0);

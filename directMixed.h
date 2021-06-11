@@ -762,14 +762,14 @@ namespace directserendipity {
       double result; eval_div(pt, result); return result;
     };
 
-    void l2normError(double& l2Error, double& l2Norm, Tensor1 (*referenceFcn)(double,double) = nullptr);
-    void l2norm(double& l2Norm) {
-      double null; l2normError(l2Norm,null); };
+    void l2normError(double& l2Error, double& l2Norm, int refinement_level = 0, Tensor1 (*referenceFcn)(double,double) = nullptr);
+    void l2norm(double& l2Norm, int refinement_level = 0) {
+      double null; l2normError(l2Norm,null, refinement_level); };
 
     // Reference function should be
-    void l2normError_div(double& l2Error, double& l2Norm, double (*referenceFcn)(double,double) = nullptr);
-    void l2norm_div(double& l2Norm) {
-      double null; l2normError_div(l2Norm,null); };
+    void l2normError_div(double& l2Error, double& l2Norm, int refinement_level = 0, double (*referenceFcn)(double,double) = nullptr);
+    void l2norm_div(double& l2Norm, int refinement_level = 0) {
+      double null; l2normError_div(l2Norm,null, refinement_level); };
 
     void write_matlab_mesh(std::ofstream* fout, int num_pts_x, int num_pts_y) const;
     void write_matlab_mesh(std::ofstream& fout, int num_pts_x, int num_pts_y) const {
@@ -894,9 +894,9 @@ namespace directserendipity {
       double result; eval(pt, result); return result;
     };
 
-    void l2normError(double& l2Error, double& l2Norm, double (*referenceFcn)(double,double) = nullptr);
-    void l2norm(double& l2Norm) {
-      double null; l2normError(l2Norm,null); };
+    void l2normError(double& l2Error, double& l2Norm, int refinement_level = 0, double (*referenceFcn)(double,double) = nullptr);
+    void l2norm(double& l2Norm, int refinement_level = 0) {
+      double null; l2normError(l2Norm,null,refinement_level); };
 
     void write_matlab_mesh(std::ofstream* fout, int num_pts_x, int num_pts_y) const;
     void write_matlab_mesh(std::ofstream& fout, int num_pts_x, int num_pts_y) const {

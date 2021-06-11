@@ -1071,11 +1071,104 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
   }
 };
 
+void DirectSerendipityFE::initBasisLowOrderQuad(const Point* pt, int num_pts) {
+  assert( polynomial_degree <= 2 && num_vertices == 4 );
+
+  if(num_pts <= 0) return;
+  num_eval_pts = num_pts;
+
+  // Allocate space for the resulting values
+  int sizeOfArray = num_pts * num_nodes;
+
+  if(value_n) delete[] value_n;
+  value_n = new double[sizeOfArray];
+  if (gradvalue_n) delete[] gradvalue_n;
+  gradvalue_n = new Tensor1[sizeOfArray];
+
+  if (polynomial_degree == 2) {
+    // Evaluation of phi_{e,iEdge,0} at \x_{e,iEdge,0}
+    // Used for normalizing edge nodal basis function
+    std::vector<double> phi_e_normalize(4);
+
+    // Evaluation of phi_{v,iEdge} at \x_{v,iEdge}
+    // Used for normalizing vertex nodal basis function    
+    std::vector<double> phi_v_normalize(4);
+
+    for (int iEdge = 0 ; iEdge < num_vertices; iEdge++) { 
+      phi_e_normalize[iEdge] = lambda(iEdge+1,*edgeNodePtr(iEdge,0)) * lambda(iEdge+num_vertices-1, *edgeNodePtr(iEdge,0)) 
+                              * r_supp(iEdge, iEdge+2, *edgeNodePtr(iEdge,0));
+
+      phi_v_normalize[iEdge] = lambda(iEdge+2,*vertexNodePtr(iEdge)) * lambda(iEdge+3,*vertexNodePtr(iEdge));
+
+      for (int k = iEdge; k <= iEdge+1; k++) {
+          double eval_phi_e_k = lambda(k+1,*vertexNodePtr(iEdge)) * lambda(k+num_vertices-1, *vertexNodePtr(iEdge)) 
+                        * r_supp(k,k+2,*vertexNodePtr(iEdge)) 
+                        / (lambda(k+1,*edgeNodePtr(k%num_vertices,0)) * lambda(k+num_vertices-1, *edgeNodePtr(k%num_vertices,0)) 
+                        * r_supp(k,k+2,*edgeNodePtr(k%num_vertices,0)));
+          phi_v_normalize[iEdge] -= lambda(iEdge+2,*edgeNodePtr(k%num_vertices,0)) * lambda(iEdge+3,*edgeNodePtr(k%num_vertices,0)) * eval_phi_e_k;
+        }
+
+    }
+
+    for (int pt_index = 0; pt_index < num_pts; pt_index++) { 
+      // We first assign all the evaluated edge nodal 
+      // basis functions to the corresponding location in array
+      for (int iEdge = 0 ; iEdge < num_vertices; iEdge++) { 
+        int global_index = pt_index * num_nodes + num_vertices + iEdge;
+
+        double rSupp = 0; Tensor1 dRSupp(0,0);
+        r_supp(iEdge, iEdge+2, pt[pt_index], rSupp, dRSupp);
+
+        double value = lambda(iEdge+1,pt[pt_index]) * lambda(iEdge+num_vertices-1, pt[pt_index]) * rSupp;
+        Tensor1 gradvalue = dLambda(iEdge+1) * lambda(iEdge+num_vertices-1, pt[pt_index]) * rSupp 
+                          + lambda(iEdge+1,pt[pt_index]) * dLambda(iEdge+num_vertices-1) * rSupp 
+                          + lambda(iEdge+1,pt[pt_index]) * lambda(iEdge+num_vertices-1, pt[pt_index]) * dRSupp;
+
+        value_n[global_index] = value / phi_e_normalize[iEdge];
+        gradvalue_n[global_index] = gradvalue / phi_e_normalize[iEdge];
+      }
+
+      // Now we assign all the evaluated vertex nodal 
+      // basis functions to the corresponding location in array
+      for (int iVertex = 0; iVertex < num_vertices; iVertex++) {
+        int global_index = pt_index * num_nodes + iVertex;
+
+        double value = lambda(iVertex+2,pt[pt_index]) * lambda(iVertex+3,pt[pt_index]);
+        Tensor1 gradvalue = dLambda(iVertex+2) * lambda(iVertex+3,pt[pt_index]) + lambda(iVertex+2,pt[pt_index]) * dLambda(iVertex+3);
+
+        for (int k = iVertex; k <= iVertex+1; k++) {
+          double eval_phi_e_k = value_n[pt_index * num_nodes + num_vertices + k %num_vertices];
+          Tensor1 eval_grad_phi_e_k = gradvalue_n[pt_index * num_nodes + num_vertices + k%num_vertices];
+
+          value -= lambda(iVertex+2,*edgeNodePtr(k%num_vertices,0)) * lambda(iVertex+3,*edgeNodePtr(k%num_vertices,0)) * eval_phi_e_k;
+          gradvalue -= lambda(iVertex+2,*edgeNodePtr(k%num_vertices,0)) * lambda(iVertex+3,*edgeNodePtr(k%num_vertices,0)) * eval_grad_phi_e_k;
+        }
+
+        value_n[global_index] = value / phi_v_normalize[iVertex];
+        gradvalue_n[global_index] = gradvalue / phi_v_normalize[iVertex];
+
+      }
+
+    }
+  }
+
+}
+
 // Eval for DirectSerendipityFE
 
 void DirectSerendipityFE::eval(const Point* pt, double* result, Tensor1* gradResult, int num_pts,
 			       double* vertex_dofs, double* edge_dofs, double* cell_dofs) {
+  //initBasis(pt,num_pts);
+  /*
+  if (degPolyn() == 2 && nVertices() == 4) {
+      initBasisLowOrderQuad(pt,num_pts);
+    } else {
+      initBasis(pt,num_pts);
+  }
+  */
+
   initBasis(pt,num_pts);
+
   //double gradInnerProduct = 0, b = 0;
   //double h = 0.05;
   for(int n=0; n<num_pts; n++) {
@@ -1102,6 +1195,15 @@ void DirectSerendipityFE::eval(const Point* pt, double* result, Tensor1* gradRes
 
 void DirectSerendipityFE::eval(const Point* pt, double* result, int num_pts, 
 				 double* vertex_dofs, double* edge_dofs, double* cell_dofs) {
+  //initBasis(pt,num_pts);
+  /*
+  if (degPolyn() == 2 && nVertices() == 4) {
+      initBasisLowOrderQuad(pt,num_pts);
+    } else {
+      initBasis(pt,num_pts);
+  }
+  */
+
   initBasis(pt,num_pts);
 
   for(int n=0; n<num_pts; n++) {

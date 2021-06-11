@@ -158,7 +158,7 @@ if (true) {
     DirectMixedConfFE* mePtr = dmSpace.MixedElementPtr(iElement);
     DirectDGFE* dgePtr = dmSpace.DGElementPtr(iElement);
 
-    quadRule.setElement(mePtr->elementPtr());
+    quadRule.setElement(MIXED_REFINEMENT_LEVEL, mePtr->elementPtr());
     
     mePtr->initBasis(quadRule.pts(), quadRule.num());
     dgePtr->initBasis(quadRule.pts(), quadRule.num());
@@ -581,12 +581,12 @@ if (true) {
     double l2Error_f = 0, l2UError_f = 0, l2DivUError_f = 0, l2Norm_f = 0, l2UNorm_f = 0, l2DivUNorm_f = 0;
     double l2Error_r = 0, l2UError_r = 0, l2DivUError_r = 0, l2Norm_r = 0, l2UNorm_r = 0, l2DivUNorm_r = 0;
 
-    solution_p_f.l2normError(l2Error_f, l2Norm_f, trueSoln);
-    solution_p_r.l2normError(l2Error_r, l2Norm_r, trueSoln);
-    solution_u_f.l2normError(l2UError_f, l2UNorm_f, trueUSoln);
-    solution_u_r.l2normError(l2UError_r, l2UNorm_r, trueUSoln);
-    solution_u_f.l2normError_div(l2DivUError_f, l2DivUNorm_f, trueDivUSoln);
-    solution_u_r.l2normError_div(l2DivUError_r, l2DivUNorm_r, trueDivUSoln);
+    solution_p_f.l2normError(l2Error_f, l2Norm_f, MIXED_REFINEMENT_LEVEL, trueSoln);
+    solution_p_r.l2normError(l2Error_r, l2Norm_r, MIXED_REFINEMENT_LEVEL, trueSoln);
+    solution_u_f.l2normError(l2UError_f, l2UNorm_f, MIXED_REFINEMENT_LEVEL, trueUSoln);
+    solution_u_r.l2normError(l2UError_r, l2UNorm_r, MIXED_REFINEMENT_LEVEL, trueUSoln);
+    solution_u_f.l2normError_div(l2DivUError_f, l2DivUNorm_f, MIXED_REFINEMENT_LEVEL, trueDivUSoln);
+    solution_u_r.l2normError_div(l2DivUError_r, l2DivUNorm_r, MIXED_REFINEMENT_LEVEL, trueDivUSoln);
     
     std::cout << "  Max Element Diameter h:  " << h << std::endl;
     std::cout << "  Max Chunkiness Parameter:  " << maxChunk << std::endl;

@@ -270,7 +270,7 @@ double DirectSerendipityArray::eval_chunk(const Point& pt) const {
   return elem->elementPtr()->chunkParam();
 };
 
-void DirectSerendipityArray::eval_error_on_element(const Point* pts, int num_pts, double* l2Error, double* l2GradError,
+void DirectSerendipityArray::eval_error_on_element(const Point* pts, int num_pts, double* l2Error, double* l2GradError, int refinement_level,
 					 double (*referenceFcn)(double,double),
 					 Tensor1 (*referenceGradFcn)(double,double)) const {
   bool ptEvaluated[num_pts];
@@ -300,7 +300,7 @@ void DirectSerendipityArray::eval_error_on_element(const Point* pts, int num_pts
 
     double l2Error_for_this_element = 0, l2GradError_for_this_element = 0;
     PolyQuadrature quadRule(13); 
-    quadRule.setElement(finiteElement->elementPtr());
+    quadRule.setElement(refinement_level, finiteElement->elementPtr());
     
     for(int iPt=0; iPt<quadRule.num(); iPt++) {
       double x = quadRule.pt(iPt).val(0);
@@ -336,7 +336,7 @@ void DirectSerendipityArray::eval_error_on_element(const Point* pts, int num_pts
 };
 
 
-void DirectSerendipityArray::l2normError(double& l2Error, double& l2GradError, double& l2Norm, double& l2GradNorm,
+void DirectSerendipityArray::l2normError(double& l2Error, double& l2GradError, double& l2Norm, double& l2GradNorm, int refinement_level,
 					 double (*referenceFcn)(double,double),
 					 Tensor1 (*referenceGradFcn)(double,double)) {
   l2Error = 0, l2GradError = 0, l2Norm = 0, l2GradNorm = 0;
@@ -344,7 +344,7 @@ void DirectSerendipityArray::l2normError(double& l2Error, double& l2GradError, d
 
   for(int iElement=0; iElement < my_ds_space->mesh()->nElements(); iElement++) {
     DirectSerendipityFE* fePtr = my_ds_space->finiteElementPtr(iElement);
-    quadRule.setElement(fePtr->elementPtr());
+    quadRule.setElement(refinement_level,fePtr->elementPtr());
     
     for(int iPt=0; iPt<quadRule.num(); iPt++) {
       double x = quadRule.pt(iPt).val(0);
@@ -678,7 +678,7 @@ int DirectSerendipityArray::write_matlab_mesh_grad_error(std::string& filename, 
 
 
 
-void DirectSerendipityArray::write_matlab_mesh_error_on_element(std::ofstream* fout, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double)) const {
+void DirectSerendipityArray::write_matlab_mesh_error_on_element(std::ofstream* fout, int num_pts_x, int num_pts_y, int refinement_level, double (*referenceFcn)(double,double)) const {
   if(num_pts_x <= 1) num_pts_x = 2;
   if(num_pts_y <= 1) num_pts_y = 2;
 
@@ -702,7 +702,7 @@ void DirectSerendipityArray::write_matlab_mesh_error_on_element(std::ofstream* f
   // Evaluate
   double result[num_pts_x*num_pts_y];
   double gradResult[num_pts_x*num_pts_y];
-  eval_error_on_element(pts, num_pts_x*num_pts_y, result, gradResult, referenceFcn, nullptr);
+  eval_error_on_element(pts, num_pts_x*num_pts_y, result, gradResult, refinement_level, referenceFcn, nullptr);
 
   // Write file  
   *fout << "mesh(" << xMin << ":" << dx << ":" << xMax << ","
@@ -720,15 +720,15 @@ void DirectSerendipityArray::write_matlab_mesh_error_on_element(std::ofstream* f
   delete[] pts;  
 }
 
-int DirectSerendipityArray::write_matlab_mesh_error_on_element(std::string& filename, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double)) const {
+int DirectSerendipityArray::write_matlab_mesh_error_on_element(std::string& filename, int num_pts_x, int num_pts_y, int refinement_level, double (*referenceFcn)(double,double)) const {
   std::ofstream fout(filename+".m");
   if( !fout ) return 1;
-  write_matlab_mesh_error_on_element(&fout, num_pts_x, num_pts_y, referenceFcn);
+  write_matlab_mesh_error_on_element(&fout, num_pts_x, num_pts_y, refinement_level, referenceFcn);
   return 0;
 }
 
 
-void DirectSerendipityArray::write_matlab_mesh_grad_error_on_element(std::ofstream* fout, int num_pts_x, int num_pts_y, 
+void DirectSerendipityArray::write_matlab_mesh_grad_error_on_element(std::ofstream* fout, int num_pts_x, int num_pts_y, int refinement_level, 
                                                 Tensor1 (*referenceFcn)(double,double)) const {
   if(num_pts_x <= 1) num_pts_x = 2;
   if(num_pts_y <= 1) num_pts_y = 2;
@@ -753,7 +753,7 @@ void DirectSerendipityArray::write_matlab_mesh_grad_error_on_element(std::ofstre
   // Evaluate
   double result[num_pts_x*num_pts_y];
   double gradResult[num_pts_x*num_pts_y];
-  eval_error_on_element(pts, num_pts_x*num_pts_y, result, gradResult, nullptr, referenceFcn);
+  eval_error_on_element(pts, num_pts_x*num_pts_y, result, gradResult, refinement_level, nullptr, referenceFcn);
 
 
   // Write file  
@@ -772,10 +772,10 @@ void DirectSerendipityArray::write_matlab_mesh_grad_error_on_element(std::ofstre
   delete[] pts;  
 }
 
-int DirectSerendipityArray::write_matlab_mesh_grad_error_on_element(std::string& filename, int num_pts_x, int num_pts_y, Tensor1 (*referenceFcn)(double,double)) const {
+int DirectSerendipityArray::write_matlab_mesh_grad_error_on_element(std::string& filename, int num_pts_x, int num_pts_y, int refinement_level, Tensor1 (*referenceFcn)(double,double)) const {
   std::ofstream fout(filename+".m");
   if( !fout ) return 1;
-  write_matlab_mesh_grad_error_on_element(&fout, num_pts_x, num_pts_y, referenceFcn);
+  write_matlab_mesh_grad_error_on_element(&fout, num_pts_x, num_pts_y, refinement_level, referenceFcn);
   return 0;
 }
 

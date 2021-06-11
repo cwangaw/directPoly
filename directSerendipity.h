@@ -124,15 +124,15 @@ namespace directserendipity {
     void eval_chunk(const Point& pt, double& result) const;
     double eval_chunk(const Point& pt) const;
 
-    void eval_error_on_element(const Point* pts, int num_pts, double* l2Error, double* l2GradError,
-					 double (*referenceFcn)(double,double),
-					 Tensor1 (*referenceGradFcn)(double,double)) const;
+    void eval_error_on_element(const Point* pts, int num_pts, double* l2Error, double* l2GradError, int refinement_level = 0,
+					 double (*referenceFcn)(double,double) = nullptr,
+					 Tensor1 (*referenceGradFcn)(double,double) = nullptr) const;
 
-    void l2normError(double& l2Error, double& l2GradError, double& l2Norm, double& l2GradNorm,
+    void l2normError(double& l2Error, double& l2GradError, double& l2Norm, double& l2GradNorm, int refinement_level = 0,
 		     double (*referenceFcn)(double,double) = nullptr, 
 		     Tensor1 (*referenceGradFcn)(double,double) = nullptr);
-    void l2norm(double& l2Norm, double& l2GradNorm) {
-      double null1,null2; l2normError(l2Norm,l2GradNorm,null1,null2); };
+    void l2norm(double& l2Norm, double& l2GradNorm, int refinement_level = 0) {
+      double null1,null2; l2normError(l2Norm,l2GradNorm,null1,null2,refinement_level); };
 
     void write_matlab_mesh(std::ofstream* fout, std::ofstream* fout_grad,
 			   int num_pts_x, int num_pts_y) const;
@@ -165,17 +165,17 @@ namespace directserendipity {
     int write_matlab_mesh_grad_error(std::string& filename, int num_pts_x, int num_pts_y, Tensor1 (*referenceFcn)(double,double) = nullptr) const;
 
 
-    void write_matlab_mesh_error_on_element(std::ofstream* fout, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double) = nullptr) const;
-    void write_matlab_mesh_error_on_element(std::ofstream& fout, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double) = nullptr) const {
-      write_matlab_mesh_error_on_element(&fout, num_pts_x, num_pts_y, referenceFcn); };
+    void write_matlab_mesh_error_on_element(std::ofstream* fout, int num_pts_x, int num_pts_y, int refinement_level = 0, double (*referenceFcn)(double,double) = nullptr) const;
+    void write_matlab_mesh_error_on_element(std::ofstream& fout, int num_pts_x, int num_pts_y, int refinement_level = 0, double (*referenceFcn)(double,double) = nullptr) const {
+      write_matlab_mesh_error_on_element(&fout, num_pts_x, num_pts_y, refinement_level, referenceFcn); };
 
-    int write_matlab_mesh_error_on_element(std::string& filename, int num_pts_x, int num_pts_y, double (*referenceFcn)(double,double) = nullptr) const;
+    int write_matlab_mesh_error_on_element(std::string& filename, int num_pts_x, int num_pts_y, int refinement_level = 0, double (*referenceFcn)(double,double) = nullptr) const;
 
-    void write_matlab_mesh_grad_error_on_element(std::ofstream* fout, int num_pts_x, int num_pts_y, Tensor1 (*referenceFcn)(double,double) = nullptr) const;
-    void write_matlab_mesh_grad_error_on_element(std::ofstream& fout, int num_pts_x, int num_pts_y, Tensor1 (*referenceFcn)(double,double) = nullptr) const {
-      write_matlab_mesh_grad_error_on_element(&fout, num_pts_x, num_pts_y, referenceFcn); };
+    void write_matlab_mesh_grad_error_on_element(std::ofstream* fout, int num_pts_x, int num_pts_y,  int refinement_level = 0, Tensor1 (*referenceFcn)(double,double) = nullptr) const;
+    void write_matlab_mesh_grad_error_on_element(std::ofstream& fout, int num_pts_x, int num_pts_y,  int refinement_level = 0, Tensor1 (*referenceFcn)(double,double) = nullptr) const {
+      write_matlab_mesh_grad_error_on_element(&fout, num_pts_x, num_pts_y, refinement_level, referenceFcn); };
 
-    int write_matlab_mesh_grad_error_on_element(std::string& filename, int num_pts_x, int num_pts_y, Tensor1 (*referenceFcn)(double,double) = nullptr) const;
+    int write_matlab_mesh_grad_error_on_element(std::string& filename, int num_pts_x, int num_pts_y,  int refinement_level = 0, Tensor1 (*referenceFcn)(double,double) = nullptr) const;
 
 
     void write_matlab_mesh_one_over_chunk(std::ofstream* fout, int num_pts_x, int num_pts_y) const;

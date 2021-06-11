@@ -25,6 +25,8 @@ int EllipticPDE::solve(Monitor& monitor) {
 
   ParameterData& param = *parameterDataPtr();
 
+
+
   // TEST SINGLE ELEMENT MESH //////////////////////////////////////////////
 
   if(false) {
@@ -109,16 +111,18 @@ int EllipticPDE::solve(Monitor& monitor) {
   for(int iElement=0; iElement<param.mesh.nElements(); iElement++) {
     DirectSerendipityFE* fePtr = param.dsSpace.finiteElementPtr(iElement);
     
-    quadRule.setElement(fePtr->elementPtr());
+    quadRule.setElement(REFINEMENT_LEVEL, fePtr->elementPtr());
 
     // test 
+
+/*    
     if (fePtr->degPolyn() == 2 && fePtr->nVertices() == 4) {
       fePtr->initBasisLowOrderQuad(quadRule.pts(), quadRule.num());
     } else {
       fePtr->initBasis(quadRule.pts(), quadRule.num());
     }
-
-    
+*/
+    fePtr->initBasis(quadRule.pts(), quadRule.num());
 
     // Local matrix and rhs
     int nn_loc = fePtr->nNodes();
@@ -315,7 +319,7 @@ int EllipticPDE::solve(Monitor& monitor) {
     
     
     double l2Error = 0, l2GradError = 0, l2Norm = 0, l2GradNorm = 0;
-    solution.l2normError(l2Error, l2GradError, l2Norm, l2GradNorm, trueSoln, trueGradSoln);
+    solution.l2normError(l2Error, l2GradError, l2Norm, l2GradNorm, REFINEMENT_LEVEL, trueSoln, trueGradSoln);
     
     std::cout << "  Max Element Diameter h:  " << h << std::endl;
     std::cout << "  Size of Matrix: " << nn << std::endl;
@@ -377,9 +381,9 @@ int EllipticPDE::solve(Monitor& monitor) {
         fileName += "_on_element";
         fileNameGrad += "_on_element";
         solution.write_matlab_mesh_error_on_element(fileName,
-        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, trueSoln);
+        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, REFINEMENT_LEVEL, trueSoln);
         solution.write_matlab_mesh_grad_error_on_element(fileNameGrad,
-        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, trueGradSoln);
+        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, REFINEMENT_LEVEL, trueGradSoln);
         break;
       }
       }

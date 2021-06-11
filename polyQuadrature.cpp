@@ -2,6 +2,7 @@
 
 #include "polyQuadrature.h"
 #include "debug.h"
+#include <assert.h>
 
 using namespace polyquadrature;
 
@@ -22,12 +23,58 @@ void PolyQuadrature::set_rule(int desired_dop) {
   my_wts_ref  = ruleForTriangle[my_rule].wts;
 }
 
-void PolyQuadrature::set_element(polymesh::PolyElement* element) {
+void PolyQuadrature::set_element(int refinement_level, polymesh::PolyElement* element) {
+  my_refinement_level = refinement_level;
+  int num_of_units = pow(2,my_refinement_level);
+  double length_refined_edge = 1/(double)num_of_units;
+
   my_element = element;
   if(!element) return;
   
   int num_triangles = my_element->nVertices();
-  num_pts = num_triangles*num_pts_ref;
+  num_pts = num_triangles*pow(4,refinement_level)*num_pts_ref;
+
+
+  int loc_pt_index = 0;
+  
+  // Construction of points in refined reference triangle 
+
+  std::vector<Point> ref_pts(pow(4,refinement_level)*num_pts_ref);
+  std::vector<double> ref_wts(pow(4,refinement_level)*num_pts_ref);
+
+
+  //       v2           .
+  //       | \          .      
+  //      v0--v1        .
+  for (int i_loc = 0; i_loc < num_of_units; i_loc++) {
+    for (int j_loc = 0; j_loc < num_of_units - i_loc; j_loc++) {
+      Point refv0_refined(i_loc*length_refined_edge, j_loc*length_refined_edge);
+      for (int iPt = 0; iPt < num_pts_ref; iPt++) {
+        ref_pts[loc_pt_index] = refv0_refined + ruleForTriangle[my_rule].pts[iPt] * length_refined_edge;
+        ref_wts[loc_pt_index] = ruleForTriangle[my_rule].wts[iPt] * length_refined_edge * length_refined_edge / 2;
+        loc_pt_index++;
+      }
+    }
+  }
+          
+  //      v1--v0     .
+  //        \ |      .
+  //         v2      .
+  for (int i_loc = 1; i_loc < num_of_units; i_loc++) {
+    for (int j_loc = 1; j_loc <= num_of_units - i_loc; j_loc++) {
+      Point refv0_refined(i_loc*length_refined_edge, j_loc*length_refined_edge);
+      for (int iPt = 0; iPt < num_pts_ref; iPt++) {
+        ref_pts[loc_pt_index] = refv0_refined - ruleForTriangle[my_rule].pts[iPt] * length_refined_edge;
+        ref_wts[loc_pt_index] = ruleForTriangle[my_rule].wts[iPt] * length_refined_edge * length_refined_edge / 2;
+        loc_pt_index++;
+      }
+    }
+  }
+
+  assert(loc_pt_index == pow(4,refinement_level)*num_pts_ref);
+
+
+
 
   // Quadrature points and weights
 
@@ -48,12 +95,15 @@ void PolyQuadrature::set_element(polymesh::PolyElement* element) {
     Tensor2 mappingMatrix(v1[0], v2[0], v1[1], v2[1]);
     double jacobian = std::abs(mappingMatrix.determinant())/2;
 
-    int kk = i*num_pts_ref;
-    for(int j=0; j<num_pts_ref; j++) {
-      mappingMatrix.mult(ruleForTriangle[my_rule].pts[j], my_pts[kk+j]);
+
+    int kk = i*pow(4,refinement_level)*num_pts_ref;
+    for(int j=0; j<pow(4,refinement_level)*num_pts_ref; j++) {
+      mappingMatrix.mult(ref_pts[j], my_pts[kk+j]);
       my_pts[kk+j] += center;
-      my_wts[kk+j] = ruleForTriangle[my_rule].wts[j]*jacobian;
+      my_wts[kk+j] = ref_wts[j]*jacobian;
     }
+
+
   }
 }
 
@@ -63,7 +113,7 @@ PolyQuadrature::~PolyQuadrature() {
 }
 
 // Test degree of precision on a mesh over the domain [0,10]^2
-void polyquadrature::testPolyQuadrature(polymesh::PolyMesh* mesh, double eps, int toDOP) {
+void polyquadrature::testPolyQuadrature(polymesh::PolyMesh* mesh, int refinement_level, double eps, int toDOP) {
   auto f = [](Point& x, int i, int j) { return std::pow(x[0],i)*std::pow(x[1],j); };
   auto trueIntegF = [](int i, int j) { return std::pow(10,i+1)/(i+1)*std::pow(10,j+1)/(j+1); };
 
@@ -80,7 +130,7 @@ void polyquadrature::testPolyQuadrature(polymesh::PolyMesh* mesh, double eps, in
 
 	double full_integ = 0;
 	for(int iElem=0; iElem<mesh->nElements(); iElem++) {
-	  quadrature.setElement(mesh->elementPtr(iElem));
+	  quadrature.setElement(refinement_level, mesh->elementPtr(iElem));
 
 	  double integ = 0;
 	  for(int k=0; k<quadrature.num(); k++) {
