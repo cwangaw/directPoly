@@ -50,8 +50,7 @@
 class MixedPDE {
 private:
   ParameterData* my_param;
-  // level of refinement for integration
-  const int MIXED_REFINEMENT_LEVEL = 2;
+
 public:
   MixedPDE(ParameterData& param_in) : my_param(&param_in) {};
 

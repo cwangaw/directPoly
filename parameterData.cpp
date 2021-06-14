@@ -342,6 +342,8 @@ int ParameterData::read() {
   dmSpace.set(polynomial_degree,&mesh,(bool)conforming);
   
   // ALGORITHM PARAMETERS
+  ERRCHK(readScalar(refinement_level));
+  if(refinement_level < 0) refinement_level = 0 ;
 
   /*
   ERRCHK(readScalar(maximumIterations));

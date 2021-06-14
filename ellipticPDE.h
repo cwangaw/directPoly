@@ -36,8 +36,7 @@
 class EllipticPDE {
 private:
   ParameterData* my_param;
-  // level of refinement for integration
-  const int REFINEMENT_LEVEL = 3;
+
 
 public:
   EllipticPDE(ParameterData& param_in) : my_param(&param_in) {};

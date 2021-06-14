@@ -104,14 +104,14 @@ int EllipticPDE::solve(Monitor& monitor) {
   double* rhs = rhs_vector.data();
 
   // quadrature points
-  polyquadrature::PolyQuadrature quadRule(13);
+  polyquadrature::PolyQuadrature quadRule(13,param.refinement_level);
 
   monitor(1,"Matrix and RHS Assembly"); ////////////////////////////////////////
 
   for(int iElement=0; iElement<param.mesh.nElements(); iElement++) {
     DirectSerendipityFE* fePtr = param.dsSpace.finiteElementPtr(iElement);
     
-    quadRule.setElement(REFINEMENT_LEVEL, fePtr->elementPtr());
+    quadRule.setElement(fePtr->elementPtr());
 
     // test 
 
@@ -319,7 +319,7 @@ int EllipticPDE::solve(Monitor& monitor) {
     
     
     double l2Error = 0, l2GradError = 0, l2Norm = 0, l2GradNorm = 0;
-    solution.l2normError(l2Error, l2GradError, l2Norm, l2GradNorm, REFINEMENT_LEVEL, trueSoln, trueGradSoln);
+    solution.l2normError(l2Error, l2GradError, l2Norm, l2GradNorm, param.refinement_level, trueSoln, trueGradSoln);
     
     std::cout << "  Max Element Diameter h:  " << h << std::endl;
     std::cout << "  Size of Matrix: " << nn << std::endl;
@@ -381,9 +381,9 @@ int EllipticPDE::solve(Monitor& monitor) {
         fileName += "_on_element";
         fileNameGrad += "_on_element";
         solution.write_matlab_mesh_error_on_element(fileName,
-        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, REFINEMENT_LEVEL, trueSoln);
+        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, param.refinement_level, trueSoln);
         solution.write_matlab_mesh_grad_error_on_element(fileNameGrad,
-        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, REFINEMENT_LEVEL, trueGradSoln);
+        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, param.refinement_level, trueGradSoln);
         break;
       }
       }

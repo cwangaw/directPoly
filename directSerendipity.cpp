@@ -299,8 +299,8 @@ void DirectSerendipityArray::eval_error_on_element(const Point* pts, int num_pts
 
 
     double l2Error_for_this_element = 0, l2GradError_for_this_element = 0;
-    PolyQuadrature quadRule(13); 
-    quadRule.setElement(refinement_level, finiteElement->elementPtr());
+    PolyQuadrature quadRule(13,refinement_level); 
+    quadRule.setElement(finiteElement->elementPtr());
     
     for(int iPt=0; iPt<quadRule.num(); iPt++) {
       double x = quadRule.pt(iPt).val(0);
@@ -340,11 +340,11 @@ void DirectSerendipityArray::l2normError(double& l2Error, double& l2GradError, d
 					 double (*referenceFcn)(double,double),
 					 Tensor1 (*referenceGradFcn)(double,double)) {
   l2Error = 0, l2GradError = 0, l2Norm = 0, l2GradNorm = 0;
-  PolyQuadrature quadRule(13); //2*my_ds_space->degPolyn()+3
+  PolyQuadrature quadRule(13,refinement_level); //2*my_ds_space->degPolyn()+3
 
   for(int iElement=0; iElement < my_ds_space->mesh()->nElements(); iElement++) {
     DirectSerendipityFE* fePtr = my_ds_space->finiteElementPtr(iElement);
-    quadRule.setElement(refinement_level,fePtr->elementPtr());
+    quadRule.setElement(fePtr->elementPtr());
     
     for(int iPt=0; iPt<quadRule.num(); iPt++) {
       double x = quadRule.pt(iPt).val(0);

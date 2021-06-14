@@ -71,6 +71,7 @@ public:
   directserendipity::DirectSerendipity dsSpace;
   directserendipity::DirectMixed dmSpace;
   // ALGORITHM PARAMETERS
+  int refinement_level;
   /*
   int maximumIterations; // 2000
   double absoluteTolerance; // 0

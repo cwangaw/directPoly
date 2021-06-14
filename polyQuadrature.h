@@ -356,28 +356,28 @@ namespace polyquadrature {
     int my_refinement_level;
     int my_rule;
 
-    // Reference triangle
+    // Reference triangle (refined)
     int num_pts_ref;
-    Point* my_pts_ref;
-    double* my_wts_ref;
+    Point* my_pts_ref = nullptr;
+    double* my_wts_ref = nullptr;
 
     // Polygon
     int num_pts;
     Point* my_pts = nullptr;
     double* my_wts = nullptr;
 
-    void set_rule(int desired_dop);
-    void set_element(int refinement_level, polymesh::PolyElement* element);
+    void set_rule(int desired_dop, int refinement_level);
+    void set_element(polymesh::PolyElement* element);
     
   public:
     PolyQuadrature(int desired_dop=2, int refinement_level=0, polymesh::PolyElement* element=nullptr) {
-      set_rule(desired_dop); set_element(refinement_level, element); };
+      set_rule(desired_dop, refinement_level); set_element(element); };
     ~PolyQuadrature();
 
     void set(int desired_dop=2, int refinement_level=0, polymesh::PolyElement* element=nullptr) {
-      set_rule(desired_dop); set_element(refinement_level, element); };
-    void setRule(int desired_dop) { set_rule(desired_dop); set_element(my_refinement_level, my_element); };
-    void setElement(int refinement_level=0, polymesh::PolyElement* element = nullptr) { set_element(refinement_level, element); };
+      set_rule(desired_dop, refinement_level); set_element(element); };
+    void setRule(int desired_dop, int refinement_level = 0) { set_rule(desired_dop, refinement_level); };
+    void setElement(polymesh::PolyElement* element = nullptr) { set_element(element); };
 
     polymesh::PolyElement* elementPtr() const { return my_element; };
     int quadratureRule() const { return my_rule; };
