@@ -218,6 +218,7 @@ int EllipticPDE::solve(Monitor& monitor) {
 
 
   std::ofstream fout("test/matrix.txt");
+  fout.precision(24);
   for(int j=0; j<nn; j++) {
     for(int i=0; i<nn; i++) {
       fout << mat[i + nn*j] << "\t";
@@ -225,6 +226,7 @@ int EllipticPDE::solve(Monitor& monitor) {
     if (j < nn - 1) fout << "\n";
   }
   std::ofstream rout("test/rhs.txt");
+  rout.precision(24);
   for(int i=0; i<nn; i++) {
     rout << rhs[i];
     if (i < nn - 1) rout << "\n";
@@ -248,14 +250,15 @@ int EllipticPDE::solve(Monitor& monitor) {
   rcond = 1/rcond;
 
   std::ofstream sout("test/solution.txt");
+  sout.precision(6);
   for(int i=0; i<nn; i++) {
-    sout.precision(64);
     sout << rhs[i];
     if (i < nn - 1) sout << "\n";
   }
 
 
   //Calculate inf condition number
+ 
   std::cout << "\tNorm Format:\t" << norm << std::endl;
   std::cout << "\tNorm of mat:\t" << anorm << std::endl;
   std::cout << "\tCond number:\t" << rcond << std::endl;
@@ -319,7 +322,7 @@ int EllipticPDE::solve(Monitor& monitor) {
     
     
     double l2Error = 0, l2GradError = 0, l2Norm = 0, l2GradNorm = 0;
-    solution.l2normError(l2Error, l2GradError, l2Norm, l2GradNorm, param.refinement_level, trueSoln, trueGradSoln);
+    solution.l2normError(l2Error, l2GradError, l2Norm, l2GradNorm, param.refinement_level*0, trueSoln, trueGradSoln);
     
     std::cout << "  Max Element Diameter h:  " << h << std::endl;
     std::cout << "  Size of Matrix: " << nn << std::endl;
@@ -381,9 +384,9 @@ int EllipticPDE::solve(Monitor& monitor) {
         fileName += "_on_element";
         fileNameGrad += "_on_element";
         solution.write_matlab_mesh_error_on_element(fileName,
-        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, param.refinement_level, trueSoln);
+        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, param.refinement_level*0, trueSoln);
         solution.write_matlab_mesh_grad_error_on_element(fileNameGrad,
-        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, param.refinement_level, trueGradSoln);
+        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, param.refinement_level*0, trueGradSoln);
         break;
       }
       }
