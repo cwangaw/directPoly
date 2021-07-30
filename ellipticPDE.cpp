@@ -14,10 +14,220 @@
 #include "Utilities/debug.h"
 #include <complex.h>
 #include "lapacke.h"
-
+#include <cblas.h>
 using namespace directserendipity;
 using namespace polymesh;
 using namespace polyquadrature;
+
+double innerProduct(double* a, double*b, int size) {
+  double product = 0;
+  for (int i = 0; i < size; i++) {
+    product += a[i] * b[i];
+  }
+  return product;
+}
+
+double l2Error(double* a, double*b, int size) {
+  double error = 0;
+  for (int i = 0; i < size; i++) {
+    error += (a[i]-b[i]) * (a[i]-b[i]);
+  }
+  error = sqrt(error);
+  return error;
+}
+
+// M is the left preconditioner
+// We are solving for M^{-1} Ax = M^{-1} b
+// Here M^{-1} is acting on vector as a function
+
+
+
+// numVertices = indices[0][0] contains the number of vertices
+// indices[0][1] indices[0][2] ... indices[0][numVertices] contains the dimension
+// of each subspace corresponding to vertices
+int addSchPrec(double* A, double* b, std::vector<int>* indices, int size) {
+  std::vector<double> sol_vec(size,0);
+  double* sol = sol_vec.data();
+
+  int numVertices = indices[0][0];
+
+
+  // Assemble A_0, x_0, and b_0
+  
+
+
+  for (int i = 1; i <= numVertices; i++) {
+    int size_of_supspace = indices[0][i];
+
+    // Assemble matrix A_i and b_i
+    std::vector<double> A_i_vec(size_of_supspace*size_of_supspace);
+    double* A_i = A_i_vec.data();
+
+    std::vector<double> b_i_vec(size_of_supspace);
+    double* b_i = b_i_vec.data();
+
+    for (int iRow = 0; iRow < size_of_supspace; iRow++) {
+      // Assemble b_i
+      b_i[iRow] = b[indices[i][iRow]];
+
+      for (int iCol = 0; iCol < size_of_supspace; iCol++) {
+
+        // Assemble A_i
+        A_i[iRow*size_of_supspace+iCol] = A[indices[i][iRow]*size_of_supspace+indices[i][iCol]];
+      }
+    }
+
+    // Solve A_i*x_i = b_i and store the result in b_i
+    //Solve the matrix, result would be stored in rhs
+    lapack_int* ipiv;
+    ipiv = (lapack_int*)malloc(size_of_supspace * sizeof(lapack_int));
+    int ierr = LAPACKE_dgesv(LAPACK_ROW_MAJOR, size_of_supspace, 1, A_i, size_of_supspace, ipiv, b_i, 1); //A_i updated to be LU
+    if(ierr) { // ?? what should we do ???
+      std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
+    }
+
+    // Assemble b_i (holding the information of x_i) back to sol
+    for (int iRow = 0; iRow < size_of_supspace; iRow++) {
+      sol[indices[i][iRow]] = b_i[iRow];
+    }
+
+  }
+  return 0;
+};
+
+int jacobiPrec(double* A, double* b, std::vector<int>* indices, int size) {
+  for (int i = 0; i < size; i++) {
+    b[i] /= A[i*size+i];
+  }
+  return 0;
+}
+
+
+double leftPCG(double* A, double* b, std::vector<int>* indices, double* sol, int problem_size, double* x_0, int max_iter,
+              double tol, int (*leftPrec)(double*, double*, std::vector<int>*, int) = nullptr) {
+  /* res = b - A * x_0 */
+  std::vector <double> res_vec(problem_size);
+  double* res = res_vec.data();
+
+  for (int j = 0; j < problem_size; j++) {
+    res[j] = b[j];
+  }
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, problem_size, 1,
+              problem_size, -1, A, problem_size, x_0, 1,
+              1, res, 1);
+
+  /* z = M^{-1} * res */
+  std::vector <double> z_vec(problem_size);
+  double* z = z_vec.data();
+
+  // We first initialize z with res
+  for (int j = 0; j < problem_size; j++) {
+    z[j] = res[j];
+  }
+
+  if (leftPrec != nullptr) {
+    // If left preconditioning function is null, we let it be identity matrix
+    // Otherwise, z = M^{-1} * res;
+    leftPrec(A, z, indices, problem_size);
+  }
+
+  /* p = z */
+  std::vector <double> p_vec(problem_size);
+  double* p = p_vec.data();
+
+  for (int j = 0; j < problem_size; j++) {
+    p[j] = z[j];
+  }
+
+  /* sol = x_0 */
+
+  for (int j = 0; j < problem_size; j++) {
+    sol[j] = x_0[j];
+  }
+
+  /* initialize iteration and error */
+  int iter = 0;
+  
+  // delta_0 = res^T * z = res^T * M^{-1} * res;
+  double delta_0 = innerProduct(res,z,problem_size);
+
+  /* initialize terms that would be updated in iterations */
+  double delta = delta_0;
+  double alpha, beta;
+
+  // Store res and z of last iteration
+  std::vector <double> res_old_vec(problem_size);
+  double* res_old = res_old_vec.data();
+
+  std::vector <double> z_old_vec(problem_size);
+  double* z_old = z_old_vec.data();
+
+
+  /* iteration */
+  //cout << "iter" << iter << endl;
+  //cout << "delta" << delta << endl;
+  // << "tol*tol*delta0" <<  tol * tol * delta_0 << endl;
+  while (iter < max_iter && delta > tol * tol * delta_0)
+  {
+    /* res_old = r */
+    for (int i = 0; i < problem_size; i++) {
+      res_old[i] = res[i];
+    }
+
+    /* z_old = z */
+    for (int i = 0; i < problem_size; i++) {
+      z_old[i] = z[i];
+    }
+
+    /* alpha = dot(res,z) / dot(A*p,p) */
+    // We first calculate A*p
+    std::vector <double> product_Ap_vec(problem_size);
+    double* product_Ap = product_Ap_vec.data();
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, problem_size, 1,
+              problem_size, 1, A, problem_size, p, 1,
+              0, product_Ap, 1);
+
+    alpha = innerProduct(res,z,problem_size) / innerProduct(product_Ap,p,problem_size);
+
+
+    /* x = x + alpha * p; */
+    for (int i = 0; i < problem_size; i++) {
+      sol[i] += alpha * p[i];
+    }
+
+    /* res = res - alpha * A * p; */
+    for (int i = 0; i < problem_size; i++) {
+      res[i] -= alpha * product_Ap[i];
+    }
+
+    /* z = M^{-1} * res */
+    // We first initialize z with res
+    for (int i = 0; i < problem_size; i++) {
+      z[i] = res[i];
+    }
+    if (leftPrec != nullptr) {
+      // If left preconditioning function is null, we let it be identity matrix
+      // Otherwise, z = M^{-1} * res;
+      leftPrec(A, z, indices, problem_size);
+
+      /* beta = dot(res,z)/dot(res_old,z_old) */
+      beta = innerProduct(res,z,problem_size)/innerProduct(res_old,z_old,problem_size);
+
+      /* p = z + beta * p */
+      for (int i = 0; i < problem_size; i++) {
+        p[i] = z[i] + beta * p[i];
+      }
+    } 
+
+    /* delta = res^T * z = res^T * M^{-1} * res */
+    delta = innerProduct(res,z,problem_size);
+
+    iter++;
+  }
+  
+  return delta;
+}
 
 
 int EllipticPDE::solve(Monitor& monitor) {
@@ -43,6 +253,27 @@ int EllipticPDE::solve(Monitor& monitor) {
     s_dsSpace.write_matlab(fileName);
   }
   
+  // TEST PROCONDITIONING FUNCTIONS ////////////////////////////////////////
+  if(true) {
+    double A[4] = {2, 1, 1, 2};
+    double b[2] = {4, 5};
+    double x_0[2] = {0, 0};
+    double sol[2] = {0, 0};
+    int problem_size = 2;
+    int max_iter = 1000;
+    double tol = pow(10,-6);
+
+
+    double delta = leftPCG(A, b, nullptr, sol, problem_size, x_0, max_iter,
+              tol, jacobiPrec);
+
+  //  for (int i = 0; i < problem_size; i++) {
+  //    cout << sol[i] << endl;
+  //  }
+
+    cout << "Error of PCG testing problem: " << delta << endl;
+  }
+
   // TEST BASIS FUNCTIONS //////////////////////////////////////////////////
 
   if(true) {
@@ -50,16 +281,43 @@ int EllipticPDE::solve(Monitor& monitor) {
 
     DirectSerendipityArray u(&(parameterDataPtr()->dsSpace));
 
-    double PI = 3.141592653589793238463;
+    // double PI = 3.141592653589793238463;
+
+    // 4  -------- 3   
+    //   |        \           .
+    //   |         \ 2
+    //   |         |          .
+    // 0 |_________| 1
+
+    const int TESTING_VERTEX = 0; 
     
     for(int i=0; i<u.size(); i++) {
-      //double x = parameterDataPtr()->dsSpace.nodePtr(i)->val(0);
-      //double y = parameterDataPtr()->dsSpace.nodePtr(i)->val(1);
-      //u[i] = x*x+y*y;
       u[i]=0;
-      //if (fabs(x-5)<1e-6&&fabs(y-6)<1e-6) {u[i]=1;}
+
+      double x = parameterDataPtr()->dsSpace.nodePtr(i)->val(0);
+      double y = parameterDataPtr()->dsSpace.nodePtr(i)->val(1);
+
+      if ( TESTING_VERTEX == 0 ) {
+        if (fabs(y)<1e-6) { u[i]=1-x; } // 0--1
+        if (fabs(x)<1e-6) { u[i]=1-y; } // 0--4
+      } else if ( TESTING_VERTEX == 1 ) {
+        if (fabs(y)<1e-6) { u[i]=x; } // 1--0
+        if (y>=0 && y<=0.5 && fabs(x-1)<1e-6) { u[i]=2*(0.5-y); } // 1--2
+      } else if ( TESTING_VERTEX == 2 ) {
+        if (y>=0 && y<=0.5 && fabs(x-1)<1e-6) { u[i]=2*y; } // 2--1
+        if (y>=0.5 && y<=1 && fabs(x+y-1.5)<=1e-6) { u[i]=2*(x-0.5); } // 2--3
+      } else if ( TESTING_VERTEX == 3 ) {
+        if (y>=0.5 && y<=1 && fabs(x+y-1.5)<=1e-6) { u[i]=2*(1-x); } // 3--2
+        if (fabs(y-1)<1e-6 && x>=0 && x<=0.5) { u[i]=2*x; } // 3--4
+      } else if ( TESTING_VERTEX == 4) {
+        if (fabs(y-1)<1e-6 && x>=0 && x<=0.5) { u[i]=2*(0.5-x); } // 4--3
+        if (fabs(x)<1e-6) { u[i]=y; } // 4--0
+      }
+
+      //u[i] = x*x+y*y;
+      //
     }
-    u[0]=1;
+    
     monitor(1,"Write Array");
 
     std::string fileName = parameterDataPtr()->directory_name;
@@ -115,13 +373,6 @@ int EllipticPDE::solve(Monitor& monitor) {
 
     // test 
 
-/*    
-    if (fePtr->degPolyn() == 2 && fePtr->nVertices() == 4) {
-      fePtr->initBasisLowOrderQuad(quadRule.pts(), quadRule.num());
-    } else {
-      fePtr->initBasis(quadRule.pts(), quadRule.num());
-    }
-*/
     fePtr->initBasis(quadRule.pts(), quadRule.num());
 
     // Local matrix and rhs
@@ -216,6 +467,77 @@ int EllipticPDE::solve(Monitor& monitor) {
     }
   }
 
+  // Assemble  indices
+
+  // numVertices = indices[0][0] contains the number of vertices
+  // indices[0][1] indices[0][2] ... indices[0][numVertices] contains the dimension
+  // of each subspace corresponding to vertices
+
+
+  std::vector<int>* indices = new std::vector<int>[param.dsSpace.nVertexNodes()+1];
+
+  
+
+  indices[0].push_back(param.dsSpace.nVertexNodes());
+
+  for (int iVertex = 0; iVertex < param.dsSpace.nVertexNodes(); iVertex++) {
+    int index = iVertex + 1;
+    int local_dim = 0;
+    // First we add vertex node (if it is interior)
+    if (!param.mesh.vertexPtr(iVertex)->isOnBoundary()) {
+      indices[index].push_back(index_correction[param.dsSpace.meshVertexToNodeIndex(iVertex)]);
+      local_dim++;
+    }
+
+    // Now we add edge nodes (if it is interior)
+    std::vector<int> connected_edges;
+    param.mesh.nbrEdgesOfVertex(iVertex,connected_edges);
+    for (unsigned int iEdge = 0; iEdge < connected_edges.size(); iEdge++) {
+      if (!param.mesh.edgePtr(connected_edges[iEdge])->isOnBoundary()) {
+        // If it is an interior edge, we would count its nodes
+        int starting_index = param.dsSpace.meshEdgeToFirstNodeIndex(connected_edges[iEdge]);
+        for (int nEdgeNode = 0; nEdgeNode < param.dsSpace.degPolyn()-1; nEdgeNode++){
+          indices[index].push_back(index_correction[starting_index]);
+          local_dim++;
+          starting_index++;
+        }
+      }
+    }
+
+    // Now we add interior nodes
+    std::vector<int> connected_elements;
+    param.mesh.nbrElementsOfVertex(iVertex,connected_elements);
+    for (unsigned int iElement = 0; iElement < connected_elements.size(); iElement++) {
+      int nVertices = param.mesh.elementPtr(connected_elements[iElement])->nVertices();
+      if (param.dsSpace.degPolyn() >= nVertices) {
+        int numInteriorNodes = (param.dsSpace.degPolyn()-nVertices+2) * (param.dsSpace.degPolyn()-nVertices+1) / 2;
+        int starting_index = param.dsSpace.meshElementToFirstNodeIndex(connected_elements[iElement]);
+        for (int nInteriorNode = 0; nInteriorNode < numInteriorNodes; nInteriorNode++) {
+          indices[index].push_back(index_correction[starting_index]);
+          local_dim++;
+          starting_index++;
+        }
+      }
+    }
+
+    // Now we store local_dim
+    indices[0].push_back(local_dim);
+    
+  }
+
+  // Test
+
+  /*
+  for (int i = 0; i < param.dsSpace.nVertexNodes()+1; i++) {
+    for (unsigned int j = 0; j < indices[i].size(); j++) {
+      cout << "indices[" << i << "][" << j << "]: ";
+      cout << indices[i][j] << endl;
+    }
+  }
+  */
+
+
+
 
   std::ofstream fout("test/matrix.txt");
   fout.precision(24);
@@ -231,6 +553,8 @@ int EllipticPDE::solve(Monitor& monitor) {
     rout << rhs[i];
     if (i < nn - 1) rout << "\n";
   }
+
+
 
   monitor(1,"Solution of linear system"); ////////////////////////////////////////
   
@@ -392,5 +716,7 @@ int EllipticPDE::solve(Monitor& monitor) {
       }
     }
   }  
+
+  delete[] indices;
   return 0;
 } 

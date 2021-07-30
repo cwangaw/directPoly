@@ -508,7 +508,6 @@ namespace directserendipity {
     int meshVertexToNodeIndex(int i) const { return mesh_vertex_to_node_index[i]; };
     int meshEdgeToFirstNodeIndex(int i) const { return mesh_edge_to_first_node_index[i]; };
     int meshElementToFirstNodeIndex(int i) const { return mesh_element_to_first_node_index[i]; };
-
     void write_raw(std::ofstream& fout) const;
     int write_raw(std::string& filename) const;
 

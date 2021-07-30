@@ -354,7 +354,7 @@ namespace polymesh {
     
     // Mesh connectivity
     int nVerticesOfElement(int i) const { return num_vertices_of_element[i]; }
-    
+     
     void nbrEdgesOfVertex(int i, std::vector<int>& theNbrIndices) const {
       theNbrIndices = nbr_edges_of_vertex[i]; }
     void nbrElementsOfVertex(int i, std::vector<int>& theNbrIndices) const {
