@@ -884,10 +884,13 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
               for (int i=0; i<num_term; i++) { gradresult += term_grad_coef_part[i] * term_grad[i]; }
 
               //Deduct value at interior nodes
+
+              /*
               for (int k=0; k<nCellNodes(); k++) {
                   phi_pt -= phi_e_at_c[k] * value_n[k + num_vertices*polynomial_degree + pt_index*num_nodes];
                   gradresult -= phi_e_at_c[k] * gradvalue_n[k + num_vertices*polynomial_degree + pt_index*num_nodes];
               }
+              */
               if (pt_index == 0) { phi *=  lambda((nEdge+1) % 3, *edgeNodePtr(nEdge, jNode)) * lambda((nEdge+2) % 3, *edgeNodePtr(nEdge, jNode)); }
               value_n[global_index] = phi_pt / phi;
               gradresult /= phi;
@@ -987,10 +990,13 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
             if (pt_index == 0) {  phi = phi_alpha_part + phi_beta_part; }
 
             //Deduct value at interior nodes
+
+            /*
             for (int k=0; k<nCellNodes(); k++) {
                 phi_pt -= phi_e_at_c[k] * value_n[k + num_vertices*polynomial_degree + pt_index*num_nodes];
                 gradresult -= phi_e_at_c[k] * gradvalue_n[k + num_vertices*polynomial_degree + pt_index*num_nodes];
             }
+            */
             value_n[global_index] = phi_pt / phi;
 
             gradresult /= phi;
@@ -1057,11 +1063,12 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
       }
       
       //Deduct value at interior nodes
+      /*
       for (int k=0; k<nCellNodes(); k++) {
         phi_pt -=  phi_v_at_c[k] * value_n[k + num_vertices*polynomial_degree + pt_index*num_nodes];
         gradresult -= phi_v_at_c[k] * gradvalue_n[k + num_vertices*polynomial_degree + pt_index*num_nodes];
       }
-
+      */
       value_n[i + pt_index * num_nodes] = phi_pt / phi;
 
       gradresult /= phi;

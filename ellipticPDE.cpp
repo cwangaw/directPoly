@@ -297,6 +297,7 @@ int EllipticPDE::solve(Monitor& monitor) {
       double x = parameterDataPtr()->dsSpace.nodePtr(i)->val(0);
       double y = parameterDataPtr()->dsSpace.nodePtr(i)->val(1);
 
+      // This is a test for functions linear on edges
       if ( TESTING_VERTEX == 0 ) {
         if (fabs(y)<1e-6) { u[i]=1-x; } // 0--1
         if (fabs(x)<1e-6) { u[i]=1-y; } // 0--4
@@ -314,6 +315,11 @@ int EllipticPDE::solve(Monitor& monitor) {
         if (fabs(x)<1e-6) { u[i]=y; } // 4--0
       }
 
+
+/*     if (fabs(y)<1e-6 || fabs(x)<1e-6) { u[i]=1; }
+     if (fabs(y-1)<1e-6 || fabs(x-1)<1e-6) { u[i]=1; } 
+     if (fabs(x+y-1.5)<=1e-6) {u[i]=1;}
+*/
       //u[i] = x*x+y*y;
       //
     }
