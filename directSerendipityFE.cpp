@@ -546,7 +546,7 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
 
   if (polynomial_degree < num_vertices - 2) {
     high_order_ds_space->finiteElementPtr(0)->initBasis(pt, num_pts);
-    int higher_order = high_order_ds_space->finiteElementPtr(0)->polynomial_degree;
+    //int higher_order = high_order_ds_space->finiteElementPtr(0)->polynomial_degree;
     
     //Update phi_{v,i} in A_\Supp
     for (int i = 0; i < num_vertices; i++) {
@@ -555,12 +555,20 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
       //if ((polynomial_degree == 1) && (i == num_vertices - 1)) continue;
 
       //Define the array storing coefficients got by lagrange_v
+
+      /*
       std::vector<double> coef_v_vector(2*(higher_order-1));
       double* coef_v = coef_v_vector.data();
+      */
+
+      // Now we directly take higher order vertex basis functions that are linear on each edge
 
       for (int pt_index = 0; pt_index < num_pts; pt_index++) {
         double phi_pt = high_order_ds_space->finiteElementPtr(0)->vertexBasis(i,pt_index);
         Tensor1 gradresult = high_order_ds_space->finiteElementPtr(0)->gradVertexBasis(i,pt_index);
+
+
+        /*
         for (int nEdge = i; nEdge<=(i+1); nEdge++) {
           for (int sNode=0; sNode<higher_order-1; sNode++) {
               if (pt_index == 0) {
@@ -574,6 +582,7 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
               gradresult += coef_v[(nEdge-i)*(higher_order-1)+sNode] * grad_high_order;
             }
           }
+          */
         value_n[pt_index*num_nodes+i] = phi_pt;
         gradvalue_n[pt_index*num_nodes+i] = gradresult;
       }
@@ -1053,12 +1062,29 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
         for (int i=0; i<num_term; i++) { gradresult += term_grad_coef_part[i] * term_grad[i]; }
 
       //Deduct value at edge nodes
+      //And then add value that make vertex basis functions linear on each edge
       for (int k=i; k<i+2; k++){
         for (int l=0; l<polynomial_degree-1; l++){
           int index_v_at_e = (k-i)*(polynomial_degree-1) + l;
           int global_index = pt_index * num_nodes + num_vertices + (k % num_vertices) * (polynomial_degree-1) + l;
           phi_pt -= phi_v_at_e[index_v_at_e] * value_n[global_index];
           gradresult -= phi_v_at_e[index_v_at_e] * gradvalue_n[global_index];
+ 
+          //Add value that make vertex basis functions linear on each edge
+           double linear_correction = 0;
+          if (k == i) {
+            linear_correction = lambda((i+num_vertices-1)%num_vertices,*edgeNodePtr(k % num_vertices,l))
+                                  /lambda((i+num_vertices-1)%num_vertices,*vertexNodePtr(i % num_vertices));
+          } else {
+            linear_correction = lambda((i+2)%num_vertices,*edgeNodePtr(k % num_vertices,l))
+                                  /lambda((i+2)%num_vertices,*vertexNodePtr(i % num_vertices));
+          }  
+
+          if (abs(pt[pt_index](0))<1e-6 && abs(pt[pt_index](1)-0.2)<1e-6) {
+            cout << linear_correction << endl;
+          }
+          phi_pt += linear_correction * phi *  value_n[global_index];
+          gradresult += linear_correction * phi * gradvalue_n[global_index]; 
         }
       }
       
