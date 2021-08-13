@@ -1080,9 +1080,6 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
                                   /lambda((i+2)%num_vertices,*vertexNodePtr(i % num_vertices));
           }  
 
-          if (abs(pt[pt_index](0))<1e-6 && abs(pt[pt_index](1)-0.2)<1e-6) {
-            cout << linear_correction << endl;
-          }
           phi_pt += linear_correction * phi *  value_n[global_index];
           gradresult += linear_correction * phi * gradvalue_n[global_index]; 
         }

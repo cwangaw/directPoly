@@ -51,43 +51,57 @@ int addSchPrec(double* A, double* b, std::vector<int>* indices, int size) {
 
   int numVertices = indices[0][0];
 
-
-  // Assemble A_0, x_0, and b_0
-  
-
-
-  for (int i = 1; i <= numVertices; i++) {
-    int size_of_supspace = indices[0][i];
+  for (int i = 1; i <= numVertices+1; i++) {
+    int size_of_subspace = indices[0][i];
+    if (size_of_subspace == 0) continue;
 
     // Assemble matrix A_i and b_i
-    std::vector<double> A_i_vec(size_of_supspace*size_of_supspace);
+    std::vector<double> A_i_vec(size_of_subspace*size_of_subspace);
     double* A_i = A_i_vec.data();
 
-    std::vector<double> b_i_vec(size_of_supspace);
+    std::vector<double> b_i_vec(size_of_subspace);
     double* b_i = b_i_vec.data();
 
-    for (int iRow = 0; iRow < size_of_supspace; iRow++) {
+    for (int iRow = 0; iRow < size_of_subspace; iRow++) {
       // Assemble b_i
       b_i[iRow] = b[indices[i][iRow]];
 
-      for (int iCol = 0; iCol < size_of_supspace; iCol++) {
+      for (int iCol = 0; iCol < size_of_subspace; iCol++) {
 
         // Assemble A_i
-        A_i[iRow*size_of_supspace+iCol] = A[indices[i][iRow]*size_of_supspace+indices[i][iCol]];
+        A_i[iRow*size_of_subspace+iCol] = A[indices[i][iRow]*size+indices[i][iCol]];
       }
     }
 
+    // Print A_i and b_i
+    /* cout << "A[" << i << "]:" << endl;
+    cout << "indices: ";
+    for (int n = 0; n < size_of_subspace; n++) {
+      cout << indices[i][n] << " ";
+    }
+    cout << endl;
+    for (int k = 0; k < size_of_subspace; k++) {
+      for(int j = 0; j < size_of_subspace; j++) {
+        cout << A_i[k + size_of_subspace*j] << "\t";
+      }
+      cout << "\n";
+    }
+
+    cout << "b[" << i << "]" << endl;
+    for(int j = 0; j < size_of_subspace; j++) {
+      cout << b_i[j] << "\n";
+    }
+ */
     // Solve A_i*x_i = b_i and store the result in b_i
     //Solve the matrix, result would be stored in rhs
     lapack_int* ipiv;
-    ipiv = (lapack_int*)malloc(size_of_supspace * sizeof(lapack_int));
-    int ierr = LAPACKE_dgesv(LAPACK_ROW_MAJOR, size_of_supspace, 1, A_i, size_of_supspace, ipiv, b_i, 1); //A_i updated to be LU
+    ipiv = (lapack_int*)malloc(size_of_subspace * sizeof(lapack_int));
+    int ierr = LAPACKE_dgesv(LAPACK_ROW_MAJOR, size_of_subspace, 1, A_i, size_of_subspace, ipiv, b_i, 1); //A_i updated to be LU
     if(ierr) { // ?? what should we do ???
       std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
     }
-
     // Assemble b_i (holding the information of x_i) back to sol
-    for (int iRow = 0; iRow < size_of_supspace; iRow++) {
+    for (int iRow = 0; iRow < size_of_subspace; iRow++) {
       sol[indices[i][iRow]] = b_i[iRow];
     }
 
@@ -170,6 +184,7 @@ double leftPCG(double* A, double* b, std::vector<int>* indices, double* sol, int
   // << "tol*tol*delta0" <<  tol * tol * delta_0 << endl;
   while (iter < max_iter && delta > tol * tol * delta_0)
   {
+    cout << "Delta[" << iter << "]: " << delta << endl;
     /* res_old = r */
     for (int i = 0; i < problem_size; i++) {
       res_old[i] = res[i];
@@ -225,7 +240,7 @@ double leftPCG(double* A, double* b, std::vector<int>* indices, double* sol, int
 
     iter++;
   }
-  
+  cout << "Number of iterations: " << iter << endl;
   return delta;
 }
 
@@ -283,13 +298,6 @@ int EllipticPDE::solve(Monitor& monitor) {
 
     // double PI = 3.141592653589793238463;
 
-    // 4  -------- 3   
-    //   |        \           .
-    //   |         \ 2
-    //   |         |          .
-    // 0 |_________| 1
-
-    const int TESTING_VERTEX = 0; 
     
     for(int i=0; i<u.size(); i++) {
       u[i]=0;
@@ -297,7 +305,7 @@ int EllipticPDE::solve(Monitor& monitor) {
       double x = parameterDataPtr()->dsSpace.nodePtr(i)->val(0);
       double y = parameterDataPtr()->dsSpace.nodePtr(i)->val(1);
 
-      if (abs(x-1)<1e-6 && abs(y)<1e-6) u[i]=1;
+      if (abs(x-0.5)<1e-6 && abs(y-0.5)<1e-6) u[i]=1;
     }
     
     monitor(1,"Write Array");
@@ -454,14 +462,16 @@ int EllipticPDE::solve(Monitor& monitor) {
   // numVertices = indices[0][0] contains the number of vertices
   // indices[0][1] indices[0][2] ... indices[0][numVertices] contains the dimension
   // of each subspace corresponding to vertices
+  // indices[0][numVertices+1] contains the dimension of low-order matrix
 
 
-  std::vector<int>* indices = new std::vector<int>[param.dsSpace.nVertexNodes()+1];
+  std::vector<int>* indices = new std::vector<int>[param.dsSpace.nVertexNodes()+2];
 
   
 
   indices[0].push_back(param.dsSpace.nVertexNodes());
 
+  // We first assemble local matrices
   for (int iVertex = 0; iVertex < param.dsSpace.nVertexNodes(); iVertex++) {
     int index = iVertex + 1;
     int local_dim = 0;
@@ -507,16 +517,59 @@ int EllipticPDE::solve(Monitor& monitor) {
     
   }
 
+  // We now assemble the low-order matrix
+  int lom_dim = 0; // dimension for low order matrix
+
+  // First we add vertex nodes (if it is interior)
+  for (int iVertex = 0; iVertex < param.dsSpace.nVertexNodes(); iVertex++) {
+    if (!param.mesh.vertexPtr(iVertex)->isOnBoundary()) {
+      indices[param.dsSpace.nVertexNodes()+1].push_back(index_correction[param.dsSpace.meshVertexToNodeIndex(iVertex)]);
+      lom_dim++;
+    }
+  }
+
+  // Now we add interior nodes
+  for (int iElement = 0; iElement < param.mesh.nElements(); iElement++) {
+      int nVertices = param.mesh.elementPtr(iElement)->nVertices();
+      if (param.dsSpace.degPolyn() >= nVertices) {
+        int numInteriorNodes = (param.dsSpace.degPolyn()-nVertices+2) * (param.dsSpace.degPolyn()-nVertices+1) / 2;
+        int starting_index = param.dsSpace.meshElementToFirstNodeIndex(iElement);
+        for (int nInteriorNode = 0; nInteriorNode < numInteriorNodes; nInteriorNode++) {
+          indices[param.dsSpace.nVertexNodes()+1].push_back(index_correction[starting_index]);
+          lom_dim++;
+          starting_index++;
+        }
+      }
+    }
+
+  indices[0].push_back(lom_dim);
+
+  // Direct Solver would update mat to be LU, and rhs to be the solution
+  // We need to store another set of mat and rhs for iterative solver
+  std::vector<double> mat_iter_vector(nn*nn,0);
+  double* mat_iter = mat_iter_vector.data();
+  std::vector<double> rhs_iter_vector(nn,0);
+  double* rhs_iter = rhs_iter_vector.data();
+
+  for(int j=0; j<nn; j++) {
+    for(int i=0; i<nn; i++) {
+      mat_iter[i + nn*j] = mat[i + nn*j];
+    }
+  }
+
+  for(int i=0; i<nn; i++) {
+    rhs_iter[i] = rhs[i];
+  }
   // Test
 
-  /*
-  for (int i = 0; i < param.dsSpace.nVertexNodes()+1; i++) {
+  
+/*   for (int i = 0; i < param.dsSpace.nVertexNodes()+2; i++) {
     for (unsigned int j = 0; j < indices[i].size(); j++) {
       cout << "indices[" << i << "][" << j << "]: ";
       cout << indices[i][j] << endl;
     }
   }
-  */
+   */
 
 
 
@@ -529,6 +582,8 @@ int EllipticPDE::solve(Monitor& monitor) {
     }
     if (j < nn - 1) fout << "\n";
   }
+
+
   std::ofstream rout("test/rhs.txt");
   rout.precision(24);
   for(int i=0; i<nn; i++) {
@@ -537,8 +592,9 @@ int EllipticPDE::solve(Monitor& monitor) {
   }
 
 
-
-  monitor(1,"Solution of linear system"); ////////////////////////////////////////
+  monitor(1,"===============================================");
+  monitor(1,"===Solution of linear system (DIRECT SOLVER)==="); ////////////////////////////////////////
+  monitor(1,"===============================================");
   
   //Solve the matrix, result would be stored in rhs
   lapack_int* ipiv; char norm = 'I'; 
@@ -554,6 +610,22 @@ int EllipticPDE::solve(Monitor& monitor) {
     std::cerr << "ERROR: Lapack failed with code " << ierr << std::endl; 
   }
   rcond = 1/rcond;
+
+  // Calculate the residual of direct solver
+  std::vector<double> Ax_direct_vec(nn,0);
+  double* Ax_direct = Ax_direct_vec.data();
+
+  for (int j = 0; j < nn; j++) {
+    Ax_direct[j] = 0;
+  }
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, nn, 1,
+              nn, 1, mat_iter, nn, rhs, 1,
+              0, Ax_direct, 1);
+
+
+  cout << "l2 norm of residual: " << l2Error(Ax_direct, rhs_iter, nn) << endl;
+
 
   std::ofstream sout("test/solution.txt");
   sout.precision(6);
@@ -683,6 +755,123 @@ int EllipticPDE::solve(Monitor& monitor) {
         fileName += "solution_mesh_error";
         std::string fileNameGrad(param.directory_name);
         fileNameGrad += "solution_mesh_grad_error";
+        solution.write_matlab_mesh_error(fileName,
+        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, trueSoln);
+        solution.write_matlab_mesh_grad_error(fileNameGrad,
+        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, trueGradSoln);
+        fileName += "_on_element";
+        fileNameGrad += "_on_element";
+        solution.write_matlab_mesh_error_on_element(fileName,
+        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, param.refinement_level*0, trueSoln);
+        solution.write_matlab_mesh_grad_error_on_element(fileNameGrad,
+        param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, param.refinement_level*0, trueGradSoln);
+        break;
+      }
+      }
+    }
+  }  
+
+
+
+
+  monitor(1,"==================================================");
+  monitor(1,"===Solution of linear system (ITERATIVE SOLVER)==="); ////////////////////////////////////////
+  monitor(1,"==================================================");
+  
+  std::vector<double> sol_iter_vector(nn,0);
+  double* sol_iter = sol_iter_vector.data();
+
+  int max_iter = 2000;
+  double tol = 1e-30;
+
+  //Solve the matrix, result would be stored in sol
+  double delta = leftPCG(mat_iter, rhs_iter, indices, sol_iter, nn, sol_iter, max_iter,
+              tol, addSchPrec);
+
+  std::ofstream sitout("test/solution_iteration.txt");
+  sitout.precision(6);
+  for(int i=0; i<nn; i++) {
+    sitout << sol_iter[i];
+    if (i < nn - 1) sitout << "\n";
+  }
+
+  cout << "Error of Preconditioned Conjugate Gradient Iteration: " << delta << endl;
+
+  // Calculate the residual of iterative solver
+  std::vector<double> Ax_iter_vec(nn,0);
+  double* Ax_iter = Ax_iter_vec.data();
+
+  for (int j = 0; j < nn; j++) {
+    Ax_iter[j] = 0;
+  }
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, nn, 1,
+              nn, 1, mat_iter, nn, sol_iter, 1,
+              0, Ax_iter, 1);
+
+
+  cout << "l2 norm of residual: " << l2Error(Ax_iter, rhs_iter, nn) << endl;
+
+  // Here we rewrite the DirectSerendipity array "solution" to be 
+  // the result of preconditioned iterative method
+  for(int i=0; i<solution.size(); i++) {
+    if(index_correction[i] == -1) {
+      double x = param.dsSpace.nodePtr(i)->val(0);
+      double y = param.dsSpace.nodePtr(i)->val(1);
+      solution[i] = bcVal(x,y);
+    } else {
+      solution[i] = sol_iter[index_correction[i]];
+    }
+  }
+
+  if(param.output_soln_DS_format > 0) {
+  
+    monitor(1,"Write Solution"); //////////////////////////////////////////////////
+
+    switch(param.output_soln_DS_format) {
+    case 1: {
+      std::string fileName(param.directory_name);
+      fileName += "solution_iter_raw";
+      solution.write_raw(fileName);
+      break;
+    }
+    case 2: {
+      std::string fileName(param.directory_name);
+      fileName += "solution_iter_mesh";
+      std::string fileNameGrad(param.directory_name);
+      fileNameGrad += "solution_grad_iter_mesh";
+      solution.write_matlab_mesh(fileName,fileNameGrad,
+				 param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y);
+      break;
+    }
+    }
+  }
+
+  if(trueSolnKnown()) {
+    monitor(0,"\nError estimate\n"); ///////////////////////////////////////////////
+
+    double l2Error = 0, l2GradError = 0, l2Norm = 0, l2GradNorm = 0;
+    solution.l2normError(l2Error, l2GradError, l2Norm, l2GradNorm, param.refinement_level*0, trueSoln, trueGradSoln);
+    
+    std::cout << "  L_2 Error:      " << l2Error << std::endl;
+    std::cout << "  L_2 Grad Error: " << l2GradError << std::endl;
+    std::cout << std::endl;
+    std::cout << "  Relative L_2 Error:      " << l2Error/l2Norm << std::endl;
+    std::cout << "  Relative L_2 Grad Error: " << l2GradError/l2GradNorm << std::endl;
+    std::cout << std::endl;
+
+    if(param.output_soln_DS_format > 0) {
+      monitor(1,"Write Error"); ////////////////////////////////////////////
+
+      switch(param.output_soln_DS_format) {
+      case 1: {
+        break;
+      }
+      case 2: {
+        std::string fileName(param.directory_name);
+        fileName += "solution_iter_mesh_error";
+        std::string fileNameGrad(param.directory_name);
+        fileNameGrad += "solution_iter_mesh_grad_error";
         solution.write_matlab_mesh_error(fileName,
         param.output_mesh_numPts_DS_x,param.output_mesh_numPts_DS_y, trueSoln);
         solution.write_matlab_mesh_grad_error(fileNameGrad,

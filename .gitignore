@@ -488,3 +488,14 @@ compare/rhs_RL0.txt
 compare/rhs_RL1.txt
 compare/solution_RL0.txt
 compare/solution_RL1.txt
+testingMeshes/Pattern.zip
+Comparison_Direct and Iterative/Pattern_324_650.txt
+test/solution_iter_mesh_grad_error.m
+test/solution_iteration.txt
+test/solution_iter_mesh.m
+test/solution_iter_mesh_grad_error_on_element.m
+test/solution_iter_mesh_error.m
+test/solution_iter_mesh_error_on_element.m
+test/solution_grad_iter_mesh.m
+Comparison_Direct and Iterative/SSPM_144_290.txt
+.vscode/settings.json
