@@ -23,10 +23,10 @@ g
 $END_COMMENT
 
 # $BEGIN_COMMENT
-d		# meshType (quads, deviated, triangles, or general)
+t		# meshType (quads, deviated, triangles, or general)
 0,1        	# xMin,xMax
 0,1        	# yMin,yMax 
-10,10  	# nx,ny
+4,4  	# nx,ny
 0         # distortion factor
 # $END_COMMENT
 

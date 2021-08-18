@@ -45,7 +45,11 @@ double l2Error(double* a, double*b, int size) {
 // numVertices = indices[0][0] contains the number of vertices
 // indices[0][1] indices[0][2] ... indices[0][numVertices] contains the dimension
 // of each subspace corresponding to vertices
+int noPrec(double* A, double* b, std::vector<int>* indices, int size) { 
+  return 0;
+}
 int addSchPrec(double* A, double* b, std::vector<int>* indices, int size) {
+
   std::vector<double> sol_vec(size,0);
   double* sol = sol_vec.data();
 
@@ -105,6 +109,9 @@ int addSchPrec(double* A, double* b, std::vector<int>* indices, int size) {
       sol[indices[i][iRow]] = b_i[iRow];
     }
 
+  }
+  for (int i = 0; i < size; i++) {
+    b[i] = sol[i];
   }
   return 0;
 };
@@ -781,12 +788,13 @@ int EllipticPDE::solve(Monitor& monitor) {
   std::vector<double> sol_iter_vector(nn,0);
   double* sol_iter = sol_iter_vector.data();
 
-  int max_iter = 2000;
-  double tol = 1e-30;
+  int max_iter = 2*nn;
+  double tol = 1e-20;
 
   //Solve the matrix, result would be stored in sol
+
   double delta = leftPCG(mat_iter, rhs_iter, indices, sol_iter, nn, sol_iter, max_iter,
-              tol, addSchPrec);
+              tol, noPrec);
 
   std::ofstream sitout("test/solution_iteration.txt");
   sitout.precision(6);
