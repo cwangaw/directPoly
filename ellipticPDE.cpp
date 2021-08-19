@@ -312,7 +312,7 @@ int EllipticPDE::solve(Monitor& monitor) {
       double x = parameterDataPtr()->dsSpace.nodePtr(i)->val(0);
       double y = parameterDataPtr()->dsSpace.nodePtr(i)->val(1);
 
-      if (abs(x-0.5)<1e-6 && abs(y-0.5)<1e-6) u[i]=1;
+if (abs(x-0.5)<1e-6 && abs(y-0.5)<1e-6) u[i]=1;
     }
     
     monitor(1,"Write Array");
