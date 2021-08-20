@@ -55,6 +55,7 @@ int addSchPrec(double* A, double* b, std::vector<int>* indices, int size) {
 
   int numVertices = indices[0][0];
 
+  //for (int i = 1; i <= numVertices+1; i++) {
   for (int i = 1; i <= numVertices+1; i++) {
     int size_of_subspace = indices[0][i];
     if (size_of_subspace == 0) continue;
@@ -78,7 +79,7 @@ int addSchPrec(double* A, double* b, std::vector<int>* indices, int size) {
     }
 
     // Print A_i and b_i
-    /* cout << "A[" << i << "]:" << endl;
+/*    cout << "A[" << i << "]:" << endl;
     cout << "indices: ";
     for (int n = 0; n < size_of_subspace; n++) {
       cout << indices[i][n] << " ";
@@ -106,7 +107,7 @@ int addSchPrec(double* A, double* b, std::vector<int>* indices, int size) {
     }
     // Assemble b_i (holding the information of x_i) back to sol
     for (int iRow = 0; iRow < size_of_subspace; iRow++) {
-      sol[indices[i][iRow]] = b_i[iRow];
+      sol[indices[i][iRow]] += b_i[iRow];
     }
 
   }
@@ -191,7 +192,7 @@ double leftPCG(double* A, double* b, std::vector<int>* indices, double* sol, int
   // << "tol*tol*delta0" <<  tol * tol * delta_0 << endl;
   while (iter < max_iter && delta > tol * tol * delta_0)
   {
-    cout << "Delta[" << iter << "]: " << delta << endl;
+    //cout << "Delta[" << iter << "]: " << delta << endl;
     /* res_old = r */
     for (int i = 0; i < problem_size; i++) {
       res_old[i] = res[i];
@@ -536,8 +537,18 @@ if (abs(x-0.5)<1e-6 && abs(y-0.5)<1e-6) u[i]=1;
   }
 
   // Now we add interior nodes
+  
   for (int iElement = 0; iElement < param.mesh.nElements(); iElement++) {
       int nVertices = param.mesh.elementPtr(iElement)->nVertices();
+
+      // If no vertex is in the interior, we skip the element
+      int numInteriorVertex = 0;
+      for (int iVertex = 0; iVertex < nVertices; iVertex++) {
+        if (!param.mesh.elementPtr(iElement)->vertexPtr(iVertex)->isOnBoundary())
+        numInteriorVertex += 1;
+      }
+      if (numInteriorVertex == 0) continue;
+
       if (param.dsSpace.degPolyn() >= nVertices) {
         int numInteriorNodes = (param.dsSpace.degPolyn()-nVertices+2) * (param.dsSpace.degPolyn()-nVertices+1) / 2;
         int starting_index = param.dsSpace.meshElementToFirstNodeIndex(iElement);
@@ -548,6 +559,7 @@ if (abs(x-0.5)<1e-6 && abs(y-0.5)<1e-6) u[i]=1;
         }
       }
     }
+    
 
   indices[0].push_back(lom_dim);
 
@@ -568,16 +580,16 @@ if (abs(x-0.5)<1e-6 && abs(y-0.5)<1e-6) u[i]=1;
     rhs_iter[i] = rhs[i];
   }
   // Test
-
+/*
   
-/*   for (int i = 0; i < param.dsSpace.nVertexNodes()+2; i++) {
+   for (int i = 0; i < param.dsSpace.nVertexNodes()+2; i++) {
     for (unsigned int j = 0; j < indices[i].size(); j++) {
       cout << "indices[" << i << "][" << j << "]: ";
       cout << indices[i][j] << endl;
     }
   }
-   */
-
+  
+*/
 
 
 
@@ -793,8 +805,9 @@ if (abs(x-0.5)<1e-6 && abs(y-0.5)<1e-6) u[i]=1;
 
   //Solve the matrix, result would be stored in sol
 
+
   double delta = leftPCG(mat_iter, rhs_iter, indices, sol_iter, nn, sol_iter, max_iter,
-              tol, noPrec);
+              tol, addSchPrec);
 
   std::ofstream sitout("test/solution_iteration.txt");
   sitout.precision(6);
