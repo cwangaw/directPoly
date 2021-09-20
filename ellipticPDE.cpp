@@ -18,6 +18,7 @@
 using namespace directserendipity;
 using namespace polymesh;
 using namespace polyquadrature;
+using namespace base_object;
 
 double innerProduct(double* a, double*b, int size) {
   double product = 0;
@@ -310,11 +311,12 @@ int EllipticPDE::solve(Monitor& monitor) {
     for(int i=0; i<u.size(); i++) {
       u[i]=0;
 
-      double x = parameterDataPtr()->dsSpace.nodePtr(i)->val(0);
-      double y = parameterDataPtr()->dsSpace.nodePtr(i)->val(1);
+      //double x = parameterDataPtr()->dsSpace.nodePtr(i)->val(0);
+      //double y = parameterDataPtr()->dsSpace.nodePtr(i)->val(1);
 
-if (abs(x-0.5)<1e-6 && abs(y-0.5)<1e-6) u[i]=1;
+      //if (abs(x-0.5)<1e-6 && abs(y-0.5)<1e-6) u[i]=1;
     }
+    u[0] = 1;
     
     monitor(1,"Write Array");
 
@@ -713,9 +715,9 @@ if (abs(x-0.5)<1e-6 && abs(y-0.5)<1e-6) u[i]=1;
     monitor(0,"\nError estimate\n"); ///////////////////////////////////////////////
   
     double h = param.dsSpace.mesh()->maxElementDiameter();
-    double maxChunk = param.dsSpace.mesh()->maxChunkParam();
-    double minChunk = param.dsSpace.mesh()->minChunkParam();
-    double averageChunk = param.dsSpace.mesh()->averageChunkParam();
+    double maxChunk = param.dsSpace.mesh()->maxChunkinessParam();
+    double minChunk = param.dsSpace.mesh()->minChunkinessParam();
+    double averageChunk = param.dsSpace.mesh()->avgChunkinessParam();
     
     
     double l2Error = 0, l2GradError = 0, l2Norm = 0, l2GradNorm = 0;

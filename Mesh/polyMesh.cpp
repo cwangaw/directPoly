@@ -7,27 +7,19 @@
 
 #include "debug.h"
 #include "polyMesh.h"
+using namespace base_object;
 using namespace polymesh;
 
-
-// Function to print the
-// index of an element
-int getIndex(std::vector<int> v, int K)
-{
-    auto it = find(v.begin(), v.end(), K);
+// Function to print the index of an element
+static int getIndex(std::vector<int> v, int K) {
+  auto it = find(v.begin(), v.end(), K);
  
-    // If element was found
-    if (it != v.end())
-    {
-        // calculating the index
-        // of K
-        return it - v.begin();
-    }
-    else {
-        // If the element is not
-        // present in the vector
-        return -1;
-    }
+  // If element was found
+  if (it != v.end()) { // calculating the index of K
+    return it - v.begin();
+  } else { // the element is not present in the vector
+    return -1;
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -45,7 +37,7 @@ void Vertex::nbrEdges(std::vector<int>& theNbrIndices) const {
   if(my_mesh) {
     my_mesh->nbrEdgesOfVertex(my_mesh_index, theNbrIndices);
   }
-};
+}
 
 bool Vertex::isOnBoundary() const {
   return (!my_mesh) ? false :
@@ -105,8 +97,8 @@ bool Edge::isOnBoundary() const {
 }
 
 bool Edge::isInEdge(const Point& pt) const {
-  double distToV0 = Tensor1(*vertexPtr(0)-pt).norm();
-  double distToV1 = Tensor1(*vertexPtr(1)-pt).norm();
+  double distToV0 = Tensor1(vertex(0)-pt).norm();
+  double distToV1 = Tensor1(vertex(1)-pt).norm();
   if (fabs(distToV0 + distToV1 - edge_length) < edge_eps) {
     return true;
   } else { return false; }
@@ -179,8 +171,8 @@ void PolyElement::set_polyelement(int nGon, Edge** theEdges, int myIndex, PolyMe
   // Determin orientation
   double orientation[num_vertices];
   for(int i=0; i<num_vertices; i++) {
-    if(theEdges[i]->lambda(*(theEdges[(i+1) % num_vertices]->vertexPtr(0))) > 0 ||
-       theEdges[i]->lambda(*(theEdges[(i+1) % num_vertices]->vertexPtr(1))) > 0 ) {
+    if(theEdges[i]->lambda(theEdges[(i+1) % num_vertices]->vertex(0)) > 0 ||
+       theEdges[i]->lambda(theEdges[(i+1) % num_vertices]->vertex(1)) > 0 ) {
       orientation[i] = 1;
     } else {
       orientation[i] = -1;
@@ -194,12 +186,12 @@ void PolyElement::set_polyelement(int nGon, Edge** theEdges, int myIndex, PolyMe
     the_oriented_edge[i].set(theEdges[i],orientation[i]);
   }
 
-  //Find diameter
+  // Find diameter
   my_diameter = 0;
   double h = 0;
   for (int i = 0; i < num_vertices; i++) {
     for (int j = i + 1; j < num_vertices; j++) {
-      h = Tensor1(*vertexPtr(i)-*vertexPtr(j)).norm();
+      h = Tensor1(vertex(i)-vertex(j)).norm();
       if (my_diameter < h) my_diameter = h;
     }
   }
@@ -211,9 +203,9 @@ void PolyElement::set_polyelement(int nGon, Edge** theEdges, int myIndex, PolyMe
     the_area = 0;
 
     // take arithmetic average of vertices
-    my_centroid = *(the_oriented_edge[0].vertexPtr(1));
+    my_centroid = the_oriented_edge[0].vertex(1);
     for(int i=1; i<num_vertices; i++) {
-      my_centroid += *(the_oriented_edge[i].vertexPtr(1));
+      my_centroid += the_oriented_edge[i].vertex(1);
     }
     my_centroid /= num_vertices;
     my_center = my_centroid;
@@ -229,9 +221,9 @@ void PolyElement::set_polyelement(int nGon, Edge** theEdges, int myIndex, PolyMe
 						 the_oriented_edge[i].vertexPtr(1));
       the_area += area_triangle;
 
-      Point centroid_triangle(*(the_oriented_edge[0].vertexPtr(0)));
-      centroid_triangle += *(the_oriented_edge[i].vertexPtr(0));
-      centroid_triangle += *(the_oriented_edge[i].vertexPtr(1));
+      Point centroid_triangle(the_oriented_edge[0].vertex(0));
+      centroid_triangle += the_oriented_edge[i].vertex(0);
+      centroid_triangle += the_oriented_edge[i].vertex(1);
       centroid_triangle /= 3;
 
       centroid_triangle *= area_triangle;
@@ -240,7 +232,7 @@ void PolyElement::set_polyelement(int nGon, Edge** theEdges, int myIndex, PolyMe
     my_centroid /= the_area;
 
     // Compute center of largest inscribed circle
-    max_radius = 0;
+    max_inscribed_radius = 0;
     std::vector<Point> center_candidates;
     center_candidates.clear();
 
@@ -262,11 +254,11 @@ void PolyElement::set_polyelement(int nGon, Edge** theEdges, int myIndex, PolyMe
 	  }
 
 	  if(inside) {
-	    if(max_radius < new_radius) {
-	      max_radius = new_radius;
+	    if(max_inscribed_radius < new_radius) {
+	      max_inscribed_radius = new_radius;
 	      center_candidates.clear();
 	      center_candidates.push_back(triangle_center);
-	    } else if(max_radius == new_radius) {
+	    } else if(max_inscribed_radius == new_radius) {
 	      center_candidates.push_back(triangle_center);
 	    }
 	  }
@@ -302,7 +294,7 @@ bool PolyElement::isConvexCounterclockwise() {
   if( !isConnected() ) return false;
   
   for(int i=0; i<num_vertices; i++) {
-    double lam = the_oriented_edge[i].lambda(*(the_oriented_edge[(i+1) % num_vertices].vertexPtr(1)));
+    double lam = the_oriented_edge[i].lambda(the_oriented_edge[(i+1) % num_vertices].vertex(1));
     if( lam <= polyelement_eps ) return false;
   }
   return true;
@@ -323,7 +315,7 @@ double PolyElement::computeArea() {
 }
 
 void PolyElement::computeCenterOfTriangle(const OrientedEdge* e0, const OrientedEdge* e1,
-				   const OrientedEdge* e2, Point& center, bool& unique) {
+				   const OrientedEdge* e2, Point& center, bool& unique) const {
   unique = true;
 
   // Reorder so e0 not parallel to e1 and e2
@@ -342,9 +334,9 @@ void PolyElement::computeCenterOfTriangle(const OrientedEdge* e0, const Oriented
   }
   
   // Find ends of triangle base (through e0), v1 and v2
-  Point p0(*(e0->vertexPtr(0)));
-  Point p1(*(e1->vertexPtr(0)));
-  Point p2(*(e2->vertexPtr(0)));
+  Point p0(e0->vertex(0));
+  Point p1(e1->vertex(0));
+  Point p2(e2->vertex(0));
 
   Tensor1 t0(e0->tangent());
   Tensor1 t1(e1->tangent());
@@ -364,27 +356,22 @@ void PolyElement::computeCenterOfTriangle(const OrientedEdge* e0, const Oriented
   center = t1; center *= sc; center += v1; // center = v1 + sc*t1;
 }
 
-int PolyElement::iLongestEdge() {
+int PolyElement::longestEdgeIndex() const {
   // Find the longest edge
   int iLongestEdge = 0;
   for (int i = 1; i < num_vertices; i++) {
-    if (edgePtr(i)->length() > edgePtr(iLongestEdge)->length()) {
-      iLongestEdge = i;
-    }
+    if (edge(i).length() > edge(iLongestEdge).length()) iLongestEdge = i;
   }
   return iLongestEdge;
 }
 
-
-int PolyElement::countShortEdges(double ratio) {
+int PolyElement::nShortEdges(double ratio) const {
   int nShortEdges = 0;
 
   // Count short edges
-  double shortEdgeLength = edgePtr(iLongestEdge())->length() * ratio;
+  double shortEdgeLength = edge(longestEdgeIndex()).length() * ratio;
   for (int i = 0; i < num_vertices; i++) {
-    if ( edgePtr(i)->length() <= shortEdgeLength ) {
-      nShortEdges += 1;
-    }
+    if ( edge(i).length() <= shortEdgeLength ) nShortEdges += 1;
   }
 
   return nShortEdges;
@@ -406,7 +393,7 @@ bool PolyElement::isOnElementBoundary(const Point& pt) const {
   return false;
 }
 
-double PolyElement::chunkParam() {
+double PolyElement::chunkinessParam() const {
   double rho = diameter();
   for (int i = 0; i < num_vertices; i++) {
     for (int j = i+1; j < num_vertices; j++) {
@@ -463,6 +450,7 @@ void PolyMesh::set_polymesh(int numVertices, double* pts, int numElements,
   num_vertices = numVertices;
   num_elements = numElements;
   mesh_is_good = false;
+  mesh_is_periodic = false;
 
 // Vertices (ordered by input array)
 
@@ -498,7 +486,7 @@ void PolyMesh::set_polymesh(int numVertices, double* pts, int numElements,
     num_vertices_of_element[i] = num;
     if(maxNum < num) maxNum = num;
   }
-  max_edges_of_element = maxNum;
+  max_num_edges_of_elements = maxNum;
 
   // Save vertex representation
   
@@ -652,29 +640,20 @@ void PolyMesh::set_polymesh(int numVertices, double* pts, int numElements,
   //Maximun diameter among elements
   max_element_diameter = 0;
   for (int i = 0; i < nElements(); i++) {
-    if (elementPtr(i)->diameter()>max_element_diameter) max_element_diameter = elementPtr(i)->diameter();
+    if (element(i).diameter() > max_element_diameter) max_element_diameter = element(i).diameter();
   }
 
-  //Maximum chunkiness parameter among elements
-  max_chunkiness_parameter = 0;
-  for (int i = 0; i < nElements(); i++) {
-    if (elementPtr(i)->chunkParam()>max_chunkiness_parameter) max_chunkiness_parameter = elementPtr(i)->chunkParam();
-  }
-
-  //Miniimum chunkiness parameter among elements
+  //Maximum/minumum/average chunkiness parameter among elements
+  max_chunkiness_parameter = element(0).chunkinessParam();
   min_chunkiness_parameter = max_chunkiness_parameter;
-  for (int i = 0; i < nElements(); i++) {
-    if (elementPtr(i)->chunkParam()<min_chunkiness_parameter) min_chunkiness_parameter = elementPtr(i)->chunkParam();
+  avg_chunkiness_parameter = max_chunkiness_parameter;
+  for (int i = 1; i < nElements(); i++) {
+    double ecp = element(i).chunkinessParam();
+    if (max_chunkiness_parameter < ecp) max_chunkiness_parameter = ecp;
+    if (min_chunkiness_parameter > ecp) min_chunkiness_parameter = ecp;
+    avg_chunkiness_parameter += ecp;
   }
-
-
-  //Average chunkiness parameter of mesh
-  average_chunkiness_parameter = 0;
-  for (int i = 0; i < nElements(); i++) {
-    average_chunkiness_parameter += elementPtr(i)->chunkParam();
-  }
-  average_chunkiness_parameter /= nElements();
-
+  avg_chunkiness_parameter /= nElements();
 
   // Final settings
 
@@ -730,8 +709,8 @@ PolyMesh::PolyMesh(PolyElement* single_element) {
   for(int i=0; i<nGon; i++) {
     int k_local = elementByVertexIndex_local[0][i];
     int k_global = elementByVertexIndex_global[i];
-    pts[2*k_local] = mesh->vertexPtr(k_global)->val(0);
-    pts[2*k_local+1] = mesh->vertexPtr(k_global)->val(1);
+    pts[2*k_local] = mesh->vertex(k_global).val(0);
+    pts[2*k_local+1] = mesh->vertex(k_global).val(1);
   }
 
   // Set local mesh
@@ -752,20 +731,27 @@ PolyMesh::~PolyMesh() {
   if(num_vertices_of_element) delete[] num_vertices_of_element;
 
   if(element_by_vertex_index)  {
-    for(int i=0; i<num_elements; i++) { if(element_by_vertex_index[i]) delete[] element_by_vertex_index[i]; }
+    for(int i=0; i<num_elements; i++) {
+      if(element_by_vertex_index[i]) delete[] element_by_vertex_index[i];
+    }
     delete[] element_by_vertex_index;
   }
   
   if(nbr_edges_of_vertex)    delete[] nbr_edges_of_vertex;
   if(nbr_elements_of_vertex) delete[] nbr_elements_of_vertex;
   if(nbr_elements_of_edge)   delete[] nbr_elements_of_edge;
+
+  if(vertex_periodic_equiv)   delete[] vertex_periodic_equiv;
+  if(vertex_periodic_corners) delete[] vertex_periodic_corners;
+  if(edge_periodic_equiv)     delete[] edge_periodic_equiv;
 };
 
 // Create a rectangularr mesh, and possibly distort
 // meshTypeC: q=random quadrilateral, d=shape regular deviated, t=random cross-hatched triangular
 // Error return 1=bad meshTypeC, 2=bad mesh
 int PolyMesh::createMesh(char meshTypeC, int nx, int ny, double xMin, double xMax,
-			 double yMin, double yMax, double distortionFactor) {
+			 double yMin, double yMax, double distortionFactor,
+			 bool allowPeriodic) {
   int nVertices = (nx+1)*(ny+1);
   int nElements = ( meshTypeC == 't' ) ? 2*nx*ny : nx*ny;
   
@@ -789,7 +775,7 @@ int PolyMesh::createMesh(char meshTypeC, int nx, int ny, double xMin, double xMa
       vertices[2*iVertex+1] = yMin + row*h_y; // y
 
       // distort (except boundary)
-      if(0 < col && col < nx) {
+      if(0 < col && col < nx && ( !allowPeriodic || (0 < row && row < ny) ) ) {
 	if(meshTypeC != 'd') {
 	  double rand_x = distribution(generator);
 	  vertices[2*iVertex]   += distortionFactor*rand_x*h_x;
@@ -798,7 +784,8 @@ int PolyMesh::createMesh(char meshTypeC, int nx, int ny, double xMin, double xMa
 	  vertices[2*iVertex]   += parity*distortionFactor*h_x;
 	}
       }
-      if(meshTypeC != 'd' && 0 < row && row < ny) {
+      if(meshTypeC != 'd' && 0 < row && row < ny
+	 && ( !allowPeriodic || (0 < col && col < nx) ) ) {
 	double rand_y = distribution(generator);
 	vertices[2*iVertex+1] += distortionFactor*rand_y*h_y;
       }
@@ -862,28 +849,28 @@ int PolyMesh::createMesh(char meshTypeC, int nx, int ny, double xMin, double xMa
   default: return 1;
   }
 
-  set(nVertices,vertices,nElements,nVerticesPerElement,elements);
+  set_polymesh(nVertices,vertices,nElements,nVerticesPerElement,elements);
   if(!isGood()) return 2;
   
   for(int i=0; i<nElements; i++) delete[] elements[i];
   return 0;
 }
 
-
-
 int PolyMesh::removeShortEdges(double ratio) {
+  std::vector<int> indexToBeRemoved;
+  return removeShortEdges(ratio, indexToBeRemoved);
+}
+
+int PolyMesh::removeShortEdges(double ratio, std::vector<int> indexToBeRemoved) {
   if (!nVertices()) return -1;
   if (ratio <= 0) return 0;
 
-//int numVertices, double* pts, int numElements, 
-//int* numEdgesOfElement, int** elementByVertexIndex, 
-
   // We first sort out global indices that are going to be removed
   // And they will first be considered as another index that we are going to keep 
-  //(For example, if vertex 0 and vertex 1 form an short edge, 
+  // (For example, if vertex 0 and vertex 1 form a short edge, 
   // we would first mark vertex 1 as vertex 0, and delete it later)
 
-  std::vector<int> indexToBeRemoved;
+  //std::vector<int> indexToBeRemoved;
   indexToBeRemoved.clear();
   std::vector<int> indexToBeRemoved_mapping;
   indexToBeRemoved_mapping.clear();
@@ -891,26 +878,28 @@ int PolyMesh::removeShortEdges(double ratio) {
   // We loop through all the elements to find small edges
   // and look for indices to be removed, as well as the indices they would be mapped to
   for (int iElement = 0; iElement < nElements(); iElement++) { 
-    PolyElement* thisElement = elementPtr(iElement);
+    const PolyElement* thisElement = elementPtr(iElement);
     
     // Decide the criteria for short edges
-    int iLongEdge = thisElement -> iLongestEdge();
-    double shortEdgeLength = thisElement -> edgePtr(iLongEdge) -> length() * ratio;
+    int iLongEdge = thisElement -> longestEdgeIndex();
+    double shortEdgeLength = thisElement -> edge(iLongEdge).length() * ratio;
 
     // Loop through all the edges of this element
     for (int iEdge = 0; iEdge < thisElement->nVertices(); iEdge++) {
       // If iEdge is an short edge in this element
-      if ( thisElement -> edgePtr(iEdge) -> length() <= shortEdgeLength ) {
+      if ( thisElement -> edge(iEdge).length() <= shortEdgeLength ) {
         // We consider the two ends of this edge,
         // If they are not on the list of indexToBeRemoved,
         // we mark both of them as that with smaller global index
         int v0_local = (iEdge+thisElement->nVertices()-1)%thisElement->nVertices();
         int v1_local = iEdge;
 
-        int smaller_global_index = std::min(thisElement -> vertexPtr(v0_local) -> meshIndex(), thisElement -> vertexPtr(v1_local) -> meshIndex());
-        int larger_global_index = std::max(thisElement -> vertexPtr(v0_local) -> meshIndex(), thisElement -> vertexPtr(v1_local) -> meshIndex());
+        int smaller_global_index = std::min(thisElement -> vertex(v0_local).meshIndex(),
+					    thisElement -> vertex(v1_local).meshIndex());
+        int larger_global_index = std::max(thisElement -> vertex(v0_local).meshIndex(),
+					   thisElement -> vertex(v1_local).meshIndex());
 
-        bool larger_edge_on_the_boundary = vertexPtr(larger_global_index)->isOnBoundary();
+        bool larger_edge_on_the_boundary = vertex(larger_global_index).isOnBoundary();
 
         // 
         // If they are not on the list, we add them to the list
@@ -927,10 +916,12 @@ int PolyMesh::removeShortEdges(double ratio) {
     }
   }
 
-  for (unsigned int i = 0; i < indexToBeRemoved.size(); i++) {
-    std::cout << "Index to be removed: " << indexToBeRemoved[i] << std::endl;
-    std::cout << "Coordinate of this index: " << vertexPtr(indexToBeRemoved[i]) -> val(0) << "," << vertexPtr(indexToBeRemoved[i]) -> val(1) << std::endl;
-  } 
+  //for (unsigned int i = 0; i < indexToBeRemoved.size(); i++) {
+  //  std::cout << "Index to be removed: " << indexToBeRemoved[i] << std::endl;
+  //  std::cout << "Coordinate of this index: " << vertex(indexToBeRemoved[i]).val(0)
+  //	      << "," << vertex(indexToBeRemoved[i]).val(1) << std::endl;
+  //}
+  
   // We loop through all the elements to do the mapping
   // And store them in the double array vector elementByVertexIndexBeforeReordering
   // We set up numEdgesOfElement at the same time by counting #unique indices in each element
@@ -942,19 +933,20 @@ int PolyMesh::removeShortEdges(double ratio) {
 
 
   for (int iElement = 0; iElement < nElements(); iElement++) {
-    PolyElement* thisElement = elementPtr(iElement);
+    const PolyElement* thisElement = elementPtr(iElement);
     //std::vector<int> vertexIndexBeforeReordering(thisElement -> nVertices());
 
     for (int iVertex = 0; iVertex < thisElement -> nVertices(); iVertex++) {
       //int vertex_index = element_by_vertex_index[iElement][iVertex];
-      int vertex_index = thisElement -> vertexPtr(iVertex) -> meshIndex();
+      int vertex_index = thisElement -> vertex(iVertex).meshIndex();
       int locate_vertex_index_on_the_list = getIndex(indexToBeRemoved, vertex_index);
       if ( locate_vertex_index_on_the_list == -1 ) {
         //vertexIndexBeforeReordering[iVertex] = vertex_index;
         elementByVertexIndexBeforeReordering[iElement].push_back(vertex_index);
       } else {
         //vertexIndexBeforeReordering[iVertex] = indexToBeRemoved_mapping[locate_vertex_index_on_the_list];
-        elementByVertexIndexBeforeReordering[iElement].push_back(indexToBeRemoved_mapping[locate_vertex_index_on_the_list]);
+        elementByVertexIndexBeforeReordering[iElement]
+	  .push_back(indexToBeRemoved_mapping[locate_vertex_index_on_the_list]);
       }
     }
     //elementByVertexIndexBeforeReordering[iElement] = vertexIndexBeforeReordering;
@@ -966,7 +958,8 @@ int PolyMesh::removeShortEdges(double ratio) {
     for (int iVertex = 0; iVertex < thisElement->nVertices(); iVertex++) { 
       int repeat = 0;
       for (int i = 0; i < iVertex; i++) {
-        if (elementByVertexIndexBeforeReordering[iElement][i] == elementByVertexIndexBeforeReordering[iElement][iVertex]) repeat++;
+        if (elementByVertexIndexBeforeReordering[iElement][i]
+	    == elementByVertexIndexBeforeReordering[iElement][iVertex]) repeat++;
       }
       if (repeat == 0) newNumVertices++;
     }
@@ -976,7 +969,6 @@ int PolyMesh::removeShortEdges(double ratio) {
   }
 
   numOfEdgesToBeRemoved /= 2; //Each edge was counted twice in two elements sharing it
-
 
   // To set up elementByVertexIndex,
   // we first loop through elementByVertexIndexBeforeReordering
@@ -997,8 +989,8 @@ int PolyMesh::removeShortEdges(double ratio) {
     if (count > 0) {
       newIndex[i] = index;
       // We add its x and y value to pts array
-      pts.push_back(vertexPtr(i)->val(0));
-      pts.push_back(vertexPtr(i)->val(1));   
+      pts.push_back(vertex(i).val(0));
+      pts.push_back(vertex(i).val(1));   
       index++;   
     } else { newIndex[i] = -1; }
   }
@@ -1023,12 +1015,14 @@ int PolyMesh::removeShortEdges(double ratio) {
       // Test if it repeats
       int repeat = 0;
       for (int i = 0; i < iVertex; i++) {
-        if (elementByVertexIndexBeforeReordering[iElement][i] == elementByVertexIndexBeforeReordering[iElement][iVertex]) repeat++;
+        if (elementByVertexIndexBeforeReordering[iElement][i]
+	    == elementByVertexIndexBeforeReordering[iElement][iVertex]) repeat++;
       }
 
       // We only log it if it is not a repeated index
       if (repeat == 0) {
-        elementByVertexIndex[iElement][local_index] = newIndex[elementByVertexIndexBeforeReordering[iElement][iVertex]];
+        elementByVertexIndex[iElement][local_index]
+	  = newIndex[elementByVertexIndexBeforeReordering[iElement][iVertex]];
         local_index++;
       }
     }
@@ -1041,11 +1035,191 @@ int PolyMesh::removeShortEdges(double ratio) {
     delete[] elementByVertexIndex[i];
   }
   delete[] elementByVertexIndex;
-
   delete[] elementByVertexIndexBeforeReordering;
-  std::cout << "Number of short edges removed: " << numOfEdgesToBeRemoved << std::endl;
+  
+  //std::cout << "Number of short edges removed: " << numOfEdgesToBeRemoved << std::endl;
   return numOfEdgesToBeRemoved;
+}
 
+void PolyMesh::pointOnBoundingBox(const Point& p, bool& onL, bool& onR,
+				  bool& onB, bool& onT) {
+  onL = (p[0]<=min_x);
+  onR = (p[0]>=max_x);
+  onB = (p[1]<=min_y);
+  onT = (p[1]>=max_y);
+}
+
+void PolyMesh::edgeOnBoundingBox(const Edge& e, bool& onL, bool& onR,
+				 bool& onB, bool& onT) {
+  bool onL0,onR0,onB0,onT0;
+  bool onL1,onR1,onB1,onT1;
+  pointOnBoundingBox(e.vertex(0),onL0,onR0,onB0,onT0);
+  pointOnBoundingBox(e.vertex(1),onL1,onR1,onB1,onT1);
+  onL = onL0 && onL1;
+  onR = onR0 && onR1;
+  onB = onB0 && onB1;
+  onT = onT0 && onT1;
+}
+
+// Make the mesh periodic, if possible.
+// Error return 1=not square, 2=points disagree, 3=edges disagree
+int PolyMesh::makePeriodic() {
+  if(vertex_periodic_equiv) delete[] vertex_periodic_equiv;
+  vertex_periodic_equiv = new int[num_vertices];
+  if(vertex_periodic_corners) delete[] vertex_periodic_corners;
+  vertex_periodic_corners = new int[4];
+
+  // Identify corners and interior boundary vertices
+
+  int cornerCount = 0;
+  for(int i=0; i<num_vertices; i++) {
+    bool onL,onR,onB,onT;
+    pointOnBoundingBox(vertex(i),onL,onR,onB,onT);
+
+    // Corners (index -1)
+    if( (onL && (onB || onT)) || (onR && (onB || onT)) ) {
+      vertex_periodic_equiv[i] = -1;
+      cornerCount++;
+      if( onL && onB ) {
+	vertex_periodic_corners[0] = i;
+      } else if( onR && onB ) {
+	vertex_periodic_corners[1] = i;
+      } else if( onL && onT ) {
+	vertex_periodic_corners[2] = i;
+      } else { // onR && onT 
+	vertex_periodic_corners[3] = i;
+      }
+      continue;
+    }
+
+    // Interior edges (index will be set later to its match)
+    if(onL || onR) { vertex_periodic_equiv[i] = -3; continue; }
+    if(onB || onT) { vertex_periodic_equiv[i] = -4; continue; }
+
+    // Interior to domain (index -2)
+    vertex_periodic_equiv[i] = -2;
+  }
+
+  if( cornerCount != 4 ) {
+    removePeriodicity();
+    return 1;
+  }
+
+  // Match up equivalent interior edge boundary vertices
+
+  for(int i=0; i<num_vertices; i++) {
+    if(vertex_periodic_equiv[i] >= -2) continue;
+    
+    bool match = false;
+    for(int j=0; j<num_vertices; j++) {
+      if(i == j) continue;
+
+      if(vertex_periodic_equiv[i] == vertex_periodic_equiv[j]) {
+	int checkIndex = (vertex_periodic_equiv[i] == -3) ? 1 : 0;
+	if(vertex(i)[checkIndex] == vertex(j)[checkIndex]) {
+	  vertex_periodic_equiv[i] = j;
+	  vertex_periodic_equiv[j] = i;
+	  match = true;
+	  break;
+	}
+      }
+    }
+    if(!match) {
+      removePeriodicity();
+      return 2;
+    }
+  }
+
+  // Match up equivalent boundary edges
+
+  if(edge_periodic_equiv) delete[] edge_periodic_equiv;
+  edge_periodic_equiv = new int[num_edges];
+
+  for(int i=0; i<num_edges; i++) {
+    
+    if(!isEdgeOnBoundary(i)) {
+      edge_periodic_equiv[i] = -1;
+      continue;
+    }
+
+    bool match = false;
+
+    int iv0 = the_edges[i].vertex(0).meshIndex();
+    int jv0 = vertex_periodic_equiv[iv0];
+    
+    int iv1 = the_edges[i].vertex(1).meshIndex();
+    int jv1 = vertex_periodic_equiv[iv1];
+
+    if(jv0 == -1 || jv1 == -1) {
+      bool onL0,onR0,onB0,onT0;
+      bool onL1,onR1,onB1,onT1;
+      pointOnBoundingBox(the_edges[i].vertex(0),onL0,onR0,onB0,onT0);
+      pointOnBoundingBox(the_edges[i].vertex(1),onL1,onR1,onB1,onT1);
+
+      if(jv0 == -1) {
+	if(onL0 && onB0) {
+	  jv0 = vertex_periodic_corners[ onL1 ? 1 : 2 ];
+	} else if(onL0 && onT0) {
+	  jv0 = vertex_periodic_corners[ onL1 ? 3 : 0 ];
+	} else if(onR0 && onB0) {
+	  jv0 = vertex_periodic_corners[ onR1 ? 0 : 3 ];
+	} else { // onR0 && onT0
+	  jv0 = vertex_periodic_corners[ onR1 ? 2 : 1 ];
+	}
+      }
+
+      if(jv1 == -1) {
+	if(onL1 && onB1) {
+	  jv1 = vertex_periodic_corners[ onL0 ? 1 : 2 ];
+	} else if(onL1 && onT1) {
+	  jv1 = vertex_periodic_corners[ onL0 ? 3 : 0 ];
+	} else if(onR1 && onB1) {
+	  jv1 = vertex_periodic_corners[ onR0 ? 0 : 3 ];
+	} else { // onR1 && onT1
+	  jv1 = vertex_periodic_corners[ onR0 ? 2 : 1 ];
+	}
+      }
+    }
+
+    for(unsigned int k=0; k<nbr_edges_of_vertex[jv0].size(); k++) {
+      Edge& nbr_e = the_edges[nbr_edges_of_vertex[jv0][k]];
+
+      int kv0 = nbr_e.vertex(0).meshIndex();
+      int kv1 = nbr_e.vertex(1).meshIndex();
+
+      if( (kv0 == jv0 && kv1 == jv1) || (kv0 == jv1 && kv1 == jv0) ) {
+	edge_periodic_equiv[i] = nbr_e.meshIndex();
+	match = true;
+	continue;
+      }
+    }
+
+    if(!match) {
+      removePeriodicity();
+      return 3;
+    }
+  }
+      
+  mesh_is_periodic = true;
+
+  return 0;
+}
+
+void PolyMesh::removePeriodicity() {
+  mesh_is_periodic = false;
+
+  if(vertex_periodic_equiv) {
+    delete[] vertex_periodic_equiv;
+    vertex_periodic_equiv = nullptr;
+  }
+  if(vertex_periodic_corners) {
+    delete[] vertex_periodic_corners;
+    vertex_periodic_corners = nullptr;
+  }
+  if(edge_periodic_equiv) {
+    delete[] edge_periodic_equiv;
+    edge_periodic_equiv = nullptr;
+  }
 }
 
 bool PolyMesh::isVertexOnBoundary(int i) const {
@@ -1075,10 +1249,10 @@ int PolyMesh::elementIndex(const Point& pt) const {
 }
 
 // The input parameter ratio is the criteria of defining small edges
-int PolyMesh::countShortEdges(double ratio) {
+int PolyMesh::nShortEdges(double ratio) {
   int nShortEdges = 0;
   for (int iElement = 0; iElement < nElements(); iElement++) {
-    nShortEdges += elementPtr(iElement) -> countShortEdges(ratio);
+    nShortEdges += element(iElement).nShortEdges(ratio);
   }
   return nShortEdges;
 }
@@ -1091,9 +1265,16 @@ void PolyMesh::write_raw(std::ofstream& fout) const {
   fout << "mesh_is_good = " <<  mesh_is_good << "\n";
   fout << "num_boundary_vertices = " << num_boundary_vertices << "\n";
   fout << "num_boundary_edges    = " << num_boundary_edges << "\n";
-  fout << "max_edges_of_element  = " << max_edges_of_element << "\n";
+  fout << "max_num_edges_of_elements = " << max_num_edges_of_elements << "\n";
   fout << "[min_x, max_x]x[min_y, max_y] = [" << min_x << "," << max_x
        << "]x[" << min_y <<"," << max_y << "]\n";
+  fout << "mesh_is_periodic = " << mesh_is_periodic << "\n";
+
+  fout << "\n";
+  fout << "max_element_diameter     = " << max_element_diameter << "\n";
+  fout << "max_chunkiness_parameter = " << max_chunkiness_parameter << "\n";
+  fout << "min_chunkiness_parameter = " << min_chunkiness_parameter << "\n";
+  fout << "avg_chunkiness_parameter = " << avg_chunkiness_parameter << "\n";
   
   fout << "\npolymesh vertices:\n";
   for(int i=0; i<num_vertices; i++) {
@@ -1101,13 +1282,13 @@ void PolyMesh::write_raw(std::ofstream& fout) const {
   }
 
   for(int i=0; i<num_edges; i++) {
-    fout << "\npolymesh edges "<<i<<":\n";
+    fout << "\npolymesh edge "<<i<<":\n";
     the_edges[i].write_raw(fout);
     fout << "\n";
   }
 
   for(int i=0; i<num_elements; i++) {
-    fout << "\npolymesh elements "<<i<<":\n";
+    fout << "\npolymesh element "<<i<<":\n";
     the_elements[i].write_raw(fout);
     fout << "\n";
   }
@@ -1149,6 +1330,30 @@ void PolyMesh::write_raw(std::ofstream& fout) const {
     fout << " edge " << i << ": " << nbr_elements_of_edge[i][0]
 	 << "  " << nbr_elements_of_edge[i][1] << "\n";
   }
+
+  if(mesh_is_periodic) {
+
+    fout << "\nvertex_periodic_equiv:\n";
+    for(int i=0; i<num_vertices; i++) {
+      if(vertex_periodic_equiv[i] >= 0) {
+	fout << " equivalent vertices " << i << "  " << vertex_periodic_equiv[i] << "\n";
+      } else if(vertex_periodic_equiv[i] == -1) {
+	fout << " equivalent vertices " << i << " is a corner\n";
+      }
+    }
+
+    fout << "\nvertex_periodic_corners:\n";
+    fout << " corner vertices: "
+	 << vertex_periodic_corners[0] << "  " << vertex_periodic_corners[1] << "  "
+	 << vertex_periodic_corners[2] << "  " << vertex_periodic_corners[3] << "\n";
+
+    fout << "\nedge_periodic_equiv:\n";
+    for(int i=0; i<num_edges; i++) {
+      if(edge_periodic_equiv[i] >= 0) {
+	fout << " equivalent edges: " << i << "  " << edge_periodic_equiv[i] << "\n";
+      }
+    }
+  }
 }
 
 int PolyMesh::write_raw(std::string& filename) const {
@@ -1169,13 +1374,13 @@ int PolyMesh::write_matlab(std::string& filename) const {
 
     fout << "patch([";
     for(int j=0; j<nGon-1; j++) {
-      fout << the_elements[i].edgePtr(j)->vertexPtr(1)->val(0) <<",";
+      fout << the_elements[i].edge(j).vertex(1).val(0) <<",";
     }
-    fout << the_elements[i].edgePtr(nGon-1)->vertexPtr(1)->val(0) <<"],[";
+    fout << the_elements[i].edge(nGon-1).vertex(1).val(0) <<"],[";
     for(int j=0; j<nGon-1; j++) {
-      fout << the_elements[i].edgePtr(j)->vertexPtr(1)->val(1) <<",";
+      fout << the_elements[i].edge(j).vertex(1).val(1) <<",";
     }
-    fout << the_elements[i].edgePtr(nGon-1)->vertexPtr(1)->val(1) <<"],'w')\n";
+    fout << the_elements[i].edge(nGon-1).vertex(1).val(1) <<"],'w')\n";
   }
   
   return 0;

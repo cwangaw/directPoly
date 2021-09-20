@@ -1,26 +1,28 @@
 #include "baseObjects.h"
 #include "debug.h"
 
+using namespace base_object;
+
 ////////////////////////////////////////////////////////////////////////////////
 // Class Point
 
-Point operator+(const Point& p0, const Point& p1) {
+Point base_object::operator+(const Point& p0, const Point& p1) {
   Point p(p0); p += p1; return p;
 };
 
-Point operator-(const Point& p0, const Point& p1) {
+Point base_object::operator-(const Point& p0, const Point& p1) {
   Point p(p0); p -= p1; return p;
 };
 
-Point operator*(double scalar, const Point& p0) {
+Point base_object::operator*(double scalar, const Point& p0) {
   Point p(p0); p *= scalar; return p;
 };
 
-Point operator*(const Point& p0, double scalar) {
+Point base_object::operator*(const Point& p0, double scalar) {
   Point p(p0); p *= scalar; return p;
 };
 
-Point operator/(const Point& p0, double scalar) {
+Point base_object::operator/(const Point& p0, double scalar) {
   Point p(p0); p /= scalar; return p;
 };
 

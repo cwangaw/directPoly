@@ -13,7 +13,7 @@
 #include <cmath>
 #include "Mesh/baseObjects.h"
 #include "Mesh/polyMesh.h"
-
+using namespace base_object;
 namespace polyquadrature {
 
   ////////////////////////////////////////////////////////////////////////////////

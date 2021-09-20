@@ -14,6 +14,8 @@
 #include "Mesh/polyMesh.h"
 #include "fcns.h"
 
+using namespace base_object;
+
 namespace directserendipity {
 
   enum class NodeType { vertex, edge, cell };

@@ -18,6 +18,7 @@
 using namespace directserendipity;
 using namespace polymesh;
 using namespace polyquadrature;
+using namespace base_object;
 
 lapack_int mat_inv(double *A, int n)
 {
@@ -847,8 +848,8 @@ int MixedPDE::solve_hybrid(Monitor& monitor) {
     monitor(0,"\nError estimate\n"); ///////////////////////////////////////////////
   
     double h = param.dsSpace.mesh()->maxElementDiameter();
-    double maxChunk = param.dsSpace.mesh()->maxChunkParam();
-    double averageChunk = param.dsSpace.mesh()->averageChunkParam();
+    double maxChunk = param.dsSpace.mesh()->maxChunkinessParam();
+    double averageChunk = param.dsSpace.mesh()->avgChunkinessParam();
     
     
     double l2Error_f = 0, l2UError_f = 0, l2DivUError_f = 0, l2Norm_f = 0, l2UNorm_f = 0, l2DivUNorm_f = 0;

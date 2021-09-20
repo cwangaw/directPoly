@@ -5,7 +5,7 @@
 #include "Reader/reader.h"
 
 using namespace std;
-
+using namespace base_object;
 static const double max_mesh_small_edge_ratio = 0.5;
 
 ////////////////////////////////////////////////////////////////////////////////

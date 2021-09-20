@@ -2,6 +2,7 @@
 #define __fcns_h_included__
 
 #include "Mesh/baseObjects.h"
+using namespace base_object;
 
 ////////////////////////////////////////////////////////////////////////////////
 // SPATIALLY DEPENDENT PDE FUNCTIONS

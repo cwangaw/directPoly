@@ -15,6 +15,7 @@ using namespace polymesh;
 using namespace directserendipity;
 #include "polyQuadrature.h"
 using namespace polyquadrature;
+
 ////////////////////////////////////////////////////////////////////////////////
 // class Node
 
@@ -237,7 +238,7 @@ void DirectSerendipityArray::eval_chunk(const Point* pts, double* result, int nu
   
     // Place results in global array
     for(unsigned long int i=0; i<elementPts.size(); i++) {
-      result[elementPtsIndex[i]] = element->chunkParam();;
+      result[elementPtsIndex[i]] = element->chunkinessParam();;
     }
   }
 
@@ -257,7 +258,7 @@ void DirectSerendipityArray::eval_chunk(const Point& pt, double& result) const {
   }
   DirectSerendipityFE* elem = &(my_ds_space->the_ds_elements[iElement]);
   // Evaluate
-  result = elem->elementPtr()->chunkParam();
+  result = elem->elementPtr()->chunkinessParam();
 };
 
 double DirectSerendipityArray::eval_chunk(const Point& pt) const {
@@ -267,7 +268,7 @@ double DirectSerendipityArray::eval_chunk(const Point& pt) const {
   }
   DirectSerendipityFE* elem = &(my_ds_space->the_ds_elements[iElement]);
   // Evaluate
-  return elem->elementPtr()->chunkParam();
+  return elem->elementPtr()->chunkinessParam();
 };
 
 void DirectSerendipityArray::eval_error_on_element(const Point* pts, int num_pts, double* l2Error, double* l2GradError, int refinement_level,
