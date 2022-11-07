@@ -1,0 +1,538 @@
+make all --print-data-base --no-builtin-variables --no-builtin-rules --question
+Makefile:3: Config/Make.cf.: No such file or directory
+
+make: *** No rule to make target 'Config/Make.cf.'.  Stop.
+
+# GNU Make 4.1
+# Built for x86_64-pc-linux-gnu
+# Copyright (C) 1988-2014 Free Software Foundation, Inc.
+# License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+# This is free software: you are free to change and redistribute it.
+# There is NO WARRANTY, to the extent permitted by law.
+
+# Make data base, printed on Fri Nov  4 19:27:24 2022
+
+# Variables
+
+# automatic
+<D = $(patsubst %/,%,$(dir $<))
+# automatic
+?F = $(notdir $?)
+# default
+.SHELLFLAGS := -c
+# makefile (from 'Makefile', line 15)
+OBJ = $(patsubst %.cpp, %.o, $(SRC))
+# environment
+VSCODE_AGENT_FOLDER = /oden/cwang/.vscode-server
+# makefile (from 'Makefile', line 9)
+SRC = main.cpp parameterData.cpp fcns.cpp directSerendipity.cpp directSerendipityFE.cpp ellipticPDE.cpp polyQuadrature.cpp directMixedFE.cpp directMixed.cpp mixedPDEHybrid.cpp mixedPDEConf.cpp
+# environment
+ENVQUOTA = 1
+# environment
+MODULEPATH = /opt/apps/sysnet/modulefiles:/opt/apps/ossw/modulefiles
+# automatic
+?D = $(patsubst %/,%,$(dir $?))
+# automatic
+@D = $(patsubst %/,%,$(dir $@))
+# automatic
+@F = $(notdir $@)
+# default
+MAKE_VERSION := 4.1
+# makefile
+CURDIR := /workspace/directPoly_final
+# makefile
+SHELL = /bin/sh
+# environment
+LMOD_DIR = /opt/apps/lmod/7.8/libexec
+# environment
+VSCODE_NLS_CONFIG = {"locale":"en","availableLanguages":{}}
+# environment
+_ = /oden/cwang/.vscode-server/bin/8fa188b2b301d36553cbc9ce1b0a146ccb93351f/node
+# makefile (from 'Makefile', line 1)
+MAKEFILE_LIST :=  Makefile
+# 'override' directive
+GNUMAKEFLAGS := 
+# environment
+XDG_DATA_DIRS = /usr/local/share:/usr/share:/var/lib/snapd/desktop
+# environment
+DBUS_SESSION_BUS_ADDRESS = unix:path=/run/user/63105/bus
+# environment
+VSCODE_CWD = /oden/cwang
+# environment
+ 
+SSH_CONNECTION = 128.83.68.10 53536 10.157.14.110 22
+# environment
+PATH = /oden/cwang/.vscode-server/bin/8fa188b2b301d36553cbc9ce1b0a146ccb93351f/bin/remote-cli:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/oden/cwang/.local/bin:/oden/cwang/bin
+# environment
+LMOD_CMD = /opt/apps/lmod/7.8/libexec/lmod
+# makefile (from 'Makefile', line 7)
+PROG = directpoly
+# environment
+XDG_RUNTIME_DIR = /run/user/63105
+# environment
+ELECTRON_RUN_AS_NODE = 1
+# environment
+LMOD_VERSION = 7.8
+# default
+.FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell archives jobserver output-sync check-symlink load
+# makefile (from 'Makefile', line 18)
+MODULES = $(MAIN_MODULE) $(HOME)/Utilities/utilities_$(TARG).a $(HOME)/Mesh/mesh_$(TARG).a $(HOME)/Reader/reader_$(TARG).a
+# automatic
+%F = $(notdir $%)
+# makefile (from 'Makefile', line 20)
+C++C = g++
+# environment
+PWD = /workspace/directPoly_final
+# environment
+VSCODE_IPC_HOOK_CLI = /run/user/63105/vscode-ipc-48117fe0-c1f3-4155-92c2-f227908558a0.sock
+# automatic
+*D = $(patsubst %/,%,$(dir $*))
+# makefile (from 'Makefile', line 14)
+MAIN_MODULE = $(PROG)_$(TARG).a
+# environment
+MANPATH = /opt/apps/lmod/lmod/share/man:
+# environment
+VSCODE_AMD_ENTRYPOINT = vs/workbench/api/node/extensionHostProcess
+# makefile (from 'Makefile', line 1)
+HOME = .
+# environment
+MODULESHOME = /opt/apps/lmod/lmod
+# environment
+LOGNAME = cwang
+# environment
+APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = 1
+# automatic
++F = $(notdir $+)
+# environment
+VSCODE_HANDLES_UNCAUGHT_ERRORS = true
+# automatic
+^D = $(patsubst %/,%,$(dir $^))
+# environment
+MAKELEVEL := 0
+# default
+MAKE = $(MAKE_COMMAND)
+# default
+MAKECMDGOALS := all
+# environment
+SHLVL = 3
+# makefile (from 'Makefile', line 16)
+MAIN_OBJECTS = $(foreach src_obj, $(OBJ), $(MAIN_MODULE)($(src_obj)))
+# environment
+XDG_SESSION_ID = 670
+# environment
+USER = cwang
+# makefile
+.DEFAULT_GOAL := directpoly.
+# automatic
+%D = $(patsubst %/,%,$(dir $%))
+# environment
+MODULEPATH_ROOT = /usr/share/modulefiles
+# default
+MAKE_COMMAND := make
+# makefile (from 'Makefile', line 12)
+INC = parameterData.h fcns.h directSerendipity.h directMixed.h ellipticPDE.h mixedPDE.h polyQuadrature.h
+# environment
+OLDPWD = /oden/cwang/.vscode-server/bin/8fa188b2b301d36553cbc9ce1b0a146ccb93351f
+# default
+.VARIABLES := 
+# automatic
+*F = $(notdir $*)
+# environment
+LANGUAGE = en_US:
+# makefile
+MAKEFLAGS = prR
+# environment
+MFLAGS = -prR
+# environment
+SSH_CLIENT = 128.83.68.10 53536 22
+# environment
+MAIL = /var/mail/cwang
+# automatic
++D = $(patsubst %/,%,$(dir $+))
+# environment
+BROWSER = /oden/cwang/.vscode-server/bin/8fa188b2b301d36553cbc9ce1b0a146ccb93351f/bin/helpers/browser.sh
+# environment
+LMOD_PKG = /opt/apps/lmod/7.8
+# environment
+VSCODE_HANDLES_SIGPIPE = true
+# default
+MAKEFILES := 
+# environment
+LMOD_PACKAGE_PATH = /opt/apps/lmod/lmod/libexec/SitePackage.lua
+# automatic
+<F = $(notdir $<)
+# environment
+LC_ALL = C
+# automatic
+^F = $(notdir $^)
+# default
+SUFFIXES := 
+# environment
+LMOD_SETTARG_FULL_SUPPORT = no
+# default
+.INCLUDE_DIRS = /usr/include /usr/local/include /usr/include
+# default
+.RECIPEPREFIX := 
+# default
+MAKE_HOST := x86_64-pc-linux-gnu
+# environment
+LANG = C
+# variable set hash-table stats:
+ 
+# Load=81/1024=8%, Rehash=0, Collisions=11/206=5%
+
+# Pattern-specific Variable Values
+
+# No pattern-specific variable values.
+
+# Directories
+
+# . (device 64771, inode 6553601): 32 files, no impossibilities.
+
+# 32 files, no impossibilities in 1 directories.
+
+# Implicit Rules
+
+directpoly_.a(%.o): %.cpp parameterData.h fcns.h directSerendipity.h directMixed.h ellipticPDE.h mixedPDE.h polyQuadrature.h
+#  recipe to execute (from 'Makefile', line 45):
+	$(C++C) -c $(C++FLAGS) $<
+	$(AR) $(ARFLAGS) $@  $%
+	$(RM) $*.o
+
+%.o:
+
+%.cpp:
+
+%.o: %.cpp
+#  recipe to execute (from 'Makefile', line 28):
+	$(C++C) $(C++FLAGS) -c $<
+
+# 4 implicit rules, 0 (0.0%) terminal.
+
+# Files
+
+# Not a target:
+directpoly_.a(main.o):
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+directMixed.cpp:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+Mesh/mesh_.a:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 53):
+	cd $(HOME)/Mesh; make
+
+# Not a target:
+parameterData.h:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+Config/Make.cf.:
+#  Implicit rule search has been done.
+#  File does not exist.
+#  File has not been updated.
+
+all:
+#  Command line target.
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 36):
+	make $(MAIN_MODULE)
+ 
+	cd $(HOME)/Utilities; make
+	cd $(HOME)/Mesh; make
+	cd $(HOME)/Reader; make
+	make
+
+# Not a target:
+.o:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+mixedPDE.h:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+directpoly_.a(directSerendipity.o):
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+parameterData.cpp:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+Utilities/utilities_.a:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 50):
+	cd $(HOME)/Utilities; make
+
+# Not a target:
+fcns.h:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+.SUFFIXES: .o .cpp
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+directpoly_.a(mixedPDEConf.o):
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+Makefile:
+#  Implicit rule search has not been done.
+ 
+#  Last modified 2022-05-25 13:08:32.307716118
+#  File has not been updated.
+
+# Not a target:
+directpoly_.a(directMixed.o):
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+fcns.cpp:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+main.cpp:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+.force:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+directpoly_.a(fcns.o):
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+directpoly.: directpoly_.a(main.o) directpoly_.a(parameterData.o) directpoly_.a(fcns.o) directpoly_.a(directSerendipity.o) directpoly_.a(directSerendipityFE.o) directpoly_.a(ellipticPDE.o) directpoly_.a(polyQuadrature.o) directpoly_.a(directMixedFE.o) directpoly_.a(directMixed.o) directpoly_.a(mixedPDEHybrid.o) directpoly_.a(mixedPDEConf.o) directpoly_.a Utilities/utilities_.a Mesh/mesh_.a Reader/reader_.a
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 31):
+	$(C++C) -o $@ $(LDFLAGS) $(MODULES) $(LIBS)
+
+# Not a target:
+directMixedFE.cpp:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+allclean: clean
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 67):
+	cd $(HOME)/Utilities; make allclean
+	cd $(HOME)/Mesh; make allclean
+	cd $(HOME)/Reader; make allclean
+	cd $(HOME)/Config; rm -f *~
+
+# Not a target:
+.DEFAULT:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+directpoly_.a(mixedPDEHybrid.o):
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+directpoly_.a: directpoly_.a(main.o) directpoly_.a(parameterData.o) directpoly_.a(fcns.o) directpoly_.a(directSerendipity.o) directpoly_.a(directSerendipityFE.o) directpoly_.a(ellipticPDE.o) directpoly_.a(polyQuadrature.o) directpoly_.a(directMixedFE.o) directpoly_.a(directMixed.o) directpoly_.a(mixedPDEHybrid.o) directpoly_.a(mixedPDEConf.o)
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+directpoly_.a(polyQuadrature.o):
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+mixedPDEConf.cpp:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+directSerendipityFE.cpp:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+.cpp.o:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 28):
+	$(C++C) $(C++FLAGS) -c $<
+
+# Not a target:
+.cpp:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+clean:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 73):
+ 
+	rm -f *~ echo logfile *.o *.a $(PROG).$(TARG) $(PROG).tar debugfile
+
+# Not a target:
+directpoly_.a(ellipticPDE.o):
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+tar: main.cpp parameterData.cpp fcns.cpp directSerendipity.cpp directSerendipityFE.cpp ellipticPDE.cpp polyQuadrature.cpp directMixedFE.cpp directMixed.cpp mixedPDEHybrid.cpp mixedPDEConf.cpp parameterData.h fcns.h directSerendipity.h directMixed.h ellipticPDE.h mixedPDE.h polyQuadrature.h
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 61):
+	tar cvf $(PROG).tar Makefile infile_template \
+          $(SRC) $(INC) \
+          $(HOME)/Utilities $(HOME)/Mesh $(HOME)/Reader $(HOME)/Config \
+          infile $(HOME)/Polymesher $(HOME)/test
+
+# Not a target:
+ellipticPDE.h:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+directpoly_.a(directMixedFE.o):
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+init:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 36):
+	make $(MAIN_MODULE)
+	cd $(HOME)/Utilities; make
+	cd $(HOME)/Mesh; make
+	cd $(HOME)/Reader; make
+	make
+
+# Not a target:
+ellipticPDE.cpp:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+directpoly_.a(parameterData.o):
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+directSerendipity.h:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+polyQuadrature.h:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+directSerendipity.cpp:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+ 
+directpoly_.a(directSerendipityFE.o):
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+Reader/reader_.a:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 56):
+	cd $(HOME)/Reader; make
+
+# Not a target:
+polyQuadrature.cpp:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+mixedPDEHybrid.cpp:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+directMixed.h:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# files hash-table stats:
+# Load=47/1024=5%, Rehash=0, Collisions=1/115=1%
+# VPATH Search Paths
+
+# No 'vpath' search paths.
+
+# No general ('VPATH' variable) search path.
+
+# strcache buffers: 1 (0) / strings = 65 / storage = 952 B / avg = 14 B
+# current buf: size = 8162 B / used = 952 B / count = 65 / avg = 14 B
+
+# strcache performance: lookups = 131 / hit rate = 50%
+# hash-table stats:
+# Load=65/8192=1%, Rehash=0, Collisions=6/131=5%
+# Finished Make data base on Fri Nov  4 19:27:24 2022
+
+ 

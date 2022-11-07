@@ -1,0 +1,47 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory '/workspace/directPoly_final'
+ 
+Makefile:3: Config/Make.cf.: No such file or directory
+make: *** No rule to make target 'Config/Make.cf.'.
+make: Failed to remake makefile 'Config/Make.cf.'.
+
+g++ -c  main.cpp
+ar rv directpoly_.a  main.o
+rm -f main.o
+g++ -c  parameterData.cpp
+ar rv directpoly_.a  parameterData.o
+rm -f parameterData.o
+g++ -c  fcns.cpp
+ar rv directpoly_.a  fcns.o
+rm -f fcns.o
+g++ -c  directSerendipity.cpp
+ar rv directpoly_.a  directSerendipity.o
+rm -f directSerendipity.o
+g++ -c  directSerendipityFE.cpp
+ar rv directpoly_.a  directSerendipityFE.o
+rm -f directSerendipityFE.o
+g++ -c  ellipticPDE.cpp
+ar rv directpoly_.a  ellipticPDE.o
+rm -f ellipticPDE.o
+g++ -c  polyQuadrature.cpp
+ar rv directpoly_.a  polyQuadrature.o
+rm -f polyQuadrature.o
+g++ -c  directMixedFE.cpp
+ar rv directpoly_.a  directMixedFE.o
+rm -f directMixedFE.o
+g++ -c  directMixed.cpp
+ar rv directpoly_.a  directMixed.o
+rm -f directMixed.o
+g++ -c  mixedPDEHybrid.cpp
+ar rv directpoly_.a  mixedPDEHybrid.o
+rm -f mixedPDEHybrid.o
+g++ -c  mixedPDEConf.cpp
+ar rv directpoly_.a  mixedPDEConf.o
+rm -f mixedPDEConf.o
+ 
+cd ./Utilities; make
+cd ./Mesh; make
+cd ./Reader; make
+g++ -o directpoly.  directpoly_.a ./Utilities/utilities_.a ./Mesh/mesh_.a ./Reader/reader_.a 
+make: Leaving directory '/workspace/directPoly_final'
+ 
