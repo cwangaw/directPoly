@@ -885,11 +885,11 @@ int MixedPDE::solve_hybrid(Monitor& monitor) {
 
     std::cout << "  === Conforming Errors ===  " << std::endl;
     std::cout << "  L_2 Error full:      " << conf_l2Error_f << std::endl;
-    std::cout << "  L_2 Error reduced:      " << conf_l2Error_f << std::endl;
+     if (param.polynomial_degree > 0) { std::cout << "  L_2 Error reduced:      " << conf_l2Error_f << std::endl; }
     std::cout << "  L_1 Error full:      " << conf_l1Error_f << std::endl;
-    std::cout << "  L_1 Error reduced:      " << conf_l1Error_r << std::endl;
+     if (param.polynomial_degree > 0) { std::cout << "  L_1 Error reduced:      " << conf_l1Error_r << std::endl; }
     std::cout << "  L_inf Error full:      " << conf_linfError_f << std::endl;
-    std::cout << "  L_inf Error reduced:      " << conf_linfError_r << std::endl;
+     if (param.polynomial_degree > 0) { std::cout << "  L_inf Error reduced:      " << conf_linfError_r << std::endl; }
     std::cout << std::endl;
 
     std::ofstream fout23("test/conf_vec_full.txt");
@@ -925,29 +925,27 @@ int MixedPDE::solve_hybrid(Monitor& monitor) {
     solution_u_f.l2normError_div(l2DivUError_f, l2DivUNorm_f, param.refinement_level*0, trueDivUSoln);
     solution_u_r.l2normError_div(l2DivUError_r, l2DivUNorm_r, param.refinement_level*0, trueDivUSoln);
     
-    std::cout << "  Max Element Diameter h:  " << h << std::endl;
+ std::cout << "  Max Element Diameter h:  " << h << std::endl;
     std::cout << "  Max Chunkiness Parameter:  " << maxChunk << std::endl;
     std::cout << "  Average Chunkiness Parameter:  " << averageChunk << std::endl;
     std::cout << "  === p ===  " << std::endl;
     std::cout << "  L_2 Error full:      " << l2Error_f << std::endl;
-    std::cout << "  L_2 Error reduced:      " << l2Error_r << std::endl;
+     if (param.polynomial_degree > 0) { std::cout << "  L_2 Error reduced:      " << l2Error_r << std::endl; }
     std::cout << "  Relative L_2 Error full:      " << l2Error_f/l2Norm_f << std::endl;
-    std::cout << "  Relative L_2 Error reduced:      " << l2Error_r/l2Norm_r << std::endl;
+    if (param.polynomial_degree > 0) {   std::cout << "  Relative L_2 Error reduced:      " << l2Error_r/l2Norm_r << std::endl; }
     std::cout << std::endl;
     std::cout << "  === u ===  " << std::endl;
     std::cout << "  L_2 Error full:      " << l2UError_f << std::endl;
-    std::cout << "  L_2 Error reduced:      " << l2UError_r << std::endl;
+     if (param.polynomial_degree > 0) { std::cout << "  L_2 Error reduced:      " << l2UError_r << std::endl; }
     std::cout << "  Relative L_2 Error full:      " << l2UError_f/l2UNorm_f << std::endl;
-    std::cout << "  Relative L_2 Error reduced:      " << l2UError_r/l2UNorm_r << std::endl;
+    if (param.polynomial_degree > 0) { std::cout << "  Relative L_2 Error reduced:      " << l2UError_r/l2UNorm_r << std::endl; }
     std::cout << std::endl;
     std::cout << "  === div u ===  " << std::endl;
     std::cout << "  L_2 Error full:      " << l2DivUError_f << std::endl;
-    std::cout << "  L_2 Error reduced:      " << l2DivUError_r << std::endl;
+     if (param.polynomial_degree > 0) { std::cout << "  L_2 Error reduced:      " << l2DivUError_r << std::endl; }
     std::cout << "  Relative L_2 Error full:      " << l2DivUError_f/l2DivUNorm_f << std::endl;
-    std::cout << "  Relative L_2 Error reduced:      " << l2DivUError_r/l2DivUNorm_r << std::endl;
+    if (param.polynomial_degree > 0) { std::cout << "  Relative L_2 Error reduced:      " << l2DivUError_r/l2DivUNorm_r << std::endl; }
     std::cout << std::endl;
-
-
   }
 
   if(param.output_soln_Mixed_format > 0) {

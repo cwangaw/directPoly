@@ -1,4 +1,5 @@
 #include <fstream>
+#include <algorithm>
 
 #include "debug.h"
 #include "parameterData.h"
@@ -333,12 +334,12 @@ int ParameterData::read() {
   // FINITE ELEMENTS
 
   ERRCHK(readScalar(polynomial_degree));
-  if(polynomial_degree < 1) polynomial_degree = 1;
+  if(polynomial_degree < 0) polynomial_degree = 0;
 
   ERRCHK(readScalar(conforming));
   if(conforming < 0) conforming = 1;
 
-  dsSpace.set(polynomial_degree,&mesh);
+  dsSpace.set(std::max(1,polynomial_degree),&mesh);
   dmSpace.set(polynomial_degree,&mesh,(bool)conforming);
   
   // ALGORITHM PARAMETERS
