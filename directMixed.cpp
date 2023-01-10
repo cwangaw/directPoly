@@ -338,8 +338,12 @@ void DirectMixedConf::set_directmixedconf(int polyDeg, polymesh::PolyMesh* mesh)
   int num_cell_dofs = 0;
   
   for (int iElement = 0; iElement < my_mesh->nElements(); iElement++) {
-    num_cell_dofs += max( 0, (polynomial_degree - my_mesh->elementPtr(iElement)->nVertices() + 3)
-                            * (polynomial_degree - my_mesh->elementPtr(iElement)->nVertices() + 2) / 2);
+  if (polynomial_degree >= my_mesh->elementPtr(iElement)->nVertices() - 1) {
+    num_cell_dofs += (polynomial_degree - my_mesh->elementPtr(iElement)->nVertices() + 3)
+                          * (polynomial_degree - my_mesh->elementPtr(iElement)->nVertices() + 2) / 2;
+    } else {
+      num_cell_dofs += 0;
+    }
   }
 
 
@@ -427,8 +431,11 @@ void DirectMixedConf::set_directmixedconf(int polyDeg, polymesh::PolyMesh* mesh)
 
   for(int iElement = 0; iElement < my_mesh->nElements(); iElement++) {
     int nGon = my_mesh->elementPtr(iElement)->nVertices();
-    int local_num_cell_dofs = max( 0, (polynomial_degree - nGon + 3)
-                            * (polynomial_degree - nGon + 2) / 2);
+    int local_num_cell_dofs = 0;
+    if (polynomial_degree >= nGon - 1) {
+        local_num_cell_dofs = (polynomial_degree - nGon + 3)
+                              * (polynomial_degree - nGon + 2) / 2;
+    }
     vertex_loc_to_glob_full[iElement] = new int[nGon];
     vertex_loc_to_glob_coeff_full[iElement] = new int[nGon];
     edge_loc_to_glob_full[iElement] = new int[nGon*polynomial_degree];
@@ -491,8 +498,11 @@ void DirectMixedConf::set_directmixedconf(int polyDeg, polymesh::PolyMesh* mesh)
   if (num_cell_dofs > 0) {
     for(int iElement = 0; iElement < my_mesh->nElements(); iElement++) {
       int nGon = my_mesh->elementPtr(iElement)->nVertices();
-      int local_num_cell_dofs = max( 0, (polynomial_degree - nGon + 3)
-                            * (polynomial_degree - nGon + 2) / 2);
+      int local_num_cell_dofs = 0;
+      if (polynomial_degree >= nGon - 1) {
+        local_num_cell_dofs = (polynomial_degree - nGon + 3)
+                              * (polynomial_degree - nGon + 2) / 2;
+      }
       cell_loc_to_glob_full[iElement] = new int[local_num_cell_dofs];
     
       for (int i = 0; i < local_num_cell_dofs; i++) {
@@ -517,9 +527,11 @@ void DirectMixedConf::set_directmixedconf(int polyDeg, polymesh::PolyMesh* mesh)
     poly_loc_to_glob_full[iElement] = new int[local_poly_dofs_full];
     poly_loc_to_glob_reduced[iElement] = new int[local_poly_dofs_reduced];
 
-    int num_of_previous_dofs = my_mesh->elementPtr(iElement)->nVertices()*(polynomial_degree+1)
-                              +max( 0, (polynomial_degree - my_mesh->elementPtr(iElement)->nVertices() + 3)
-                              * (polynomial_degree - my_mesh->elementPtr(iElement)->nVertices() + 2) / 2);
+    int num_of_previous_dofs = my_mesh->elementPtr(iElement)->nVertices()*(polynomial_degree+1);
+    if (polynomial_degree >= my_mesh->elementPtr(iElement)->nVertices() - 1) {
+        num_of_previous_dofs += (polynomial_degree - my_mesh->elementPtr(iElement)->nVertices() + 3)
+                              * (polynomial_degree - my_mesh->elementPtr(iElement)->nVertices() + 2) / 2;
+    }
 
     for (int i = 0; i < local_poly_dofs_reduced; i++) {
       dof_num_full++;
@@ -1208,7 +1220,6 @@ void DirectMixedConfArray::eval(const Point* pts, Tensor1* result, int num_pts) 
     int iCellDoF = my_dm_space -> cell_loc_to_glob(iElement,i);
     dofs[local_index] = the_array[iCellDoF];
     local_index++;
-    
   }
 
   
@@ -1219,6 +1230,8 @@ void DirectMixedConfArray::eval(const Point* pts, Tensor1* result, int num_pts) 
       local_index++;
     }
   }
+
+
   for(int i=0; i<nGon; i++) {
     int iVertexOrientation = my_dm_space -> vertex_loc_to_glob_coeff(iElement,i);
     int iVertexDof =  my_dm_space -> vertex_loc_to_glob(iElement,i);
@@ -1226,12 +1239,15 @@ void DirectMixedConfArray::eval(const Point* pts, Tensor1* result, int num_pts) 
     local_index++;
   }
 
+
   int polyDoFs = mixedElement -> dimPolyBasis(space_type);
   for (int i=0; i<polyDoFs; i++) {
     int iPolyDoF = my_dm_space -> poly_loc_to_glob(iElement, i, space_type);
     dofs[local_index] = the_array[iPolyDoF];
     local_index++;
   }
+
+
     assert(local_index == nDoFs);
 
     // Evaluate array at points on element

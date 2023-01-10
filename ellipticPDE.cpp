@@ -284,8 +284,8 @@ int EllipticPDE::solve(Monitor& monitor) {
       double y = parameterDataPtr()->dsSpace.nodePtr(i)->val(1);
 
       // Change the coefficient of the basis function corresponding
-      // to the node (1/3,0) to 1
-      if (abs(x-(double)1/3)<1e-6 && abs(y-0)<1e-6) u[i]=1;
+      // to the node (1,1/2) to 1
+      if (abs(x-(double)1)<1e-6 && abs(y-(double)1/2)<1e-6) u[i]=1;
     }
     
     monitor(1,"Write Array");
