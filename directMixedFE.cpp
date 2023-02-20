@@ -455,6 +455,7 @@ void DirectMixedConfFE::initBasis(const Point* pt, int num_pts) {
                       -high_order_ds_space->finiteElementPtr(0)->gradVertexBasis(n,pt_index).val(0));
           // Use linear combination with curl(edge nodal basis functions)
           // to make psi_star_v[n] linear on each edge 
+          /*
           for (int m = 0; m < polynomial_degree; m++) {
             psi_star_v[n] += ((double)(m+1)/(double)(polynomial_degree+1)) * 
                             Tensor1(high_order_ds_space->finiteElementPtr(0)->orientedGradEdgeBasis(n,m,pt_index).val(1), 
@@ -462,7 +463,10 @@ void DirectMixedConfFE::initBasis(const Point* pt, int num_pts) {
             psi_star_v[n] += (1-((double)(m+1)/(double)(polynomial_degree+1))) *
                             Tensor1(high_order_ds_space->finiteElementPtr(0)->orientedGradEdgeBasis((n+1)%num_vertices,m,pt_index).val(1), 
                               -high_order_ds_space->finiteElementPtr(0)->orientedGradEdgeBasis((n+1)%num_vertices,m,pt_index).val(0));
-          }
+          }       
+          
+          */
+
         }
 
       // Evaluate \psi^{**}_{v,i} at pt, store in result

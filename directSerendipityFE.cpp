@@ -557,9 +557,10 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
     
         double phi_pt = high_order_ds_space->finiteElementPtr(0)->vertexBasis(i,pt_index);
         Tensor1 gradresult = high_order_ds_space->finiteElementPtr(0)->gradVertexBasis(i,pt_index);
+        
         // If the higher order vertex basis functions are zero at each edge node,
         // we need to uncomment the following block to make the code work
-        
+        /*
         for (int nEdge = i; nEdge<=(i+1); nEdge++) {
           for (int sNode=0; sNode<higher_order-1; sNode++) {
               if (pt_index == 0) {
@@ -573,6 +574,8 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
               gradresult += coef_v[(nEdge-i)*(higher_order-1)+sNode] * grad_high_order;
             }
           }
+        */
+
           
         value_n[pt_index*num_nodes+i] = phi_pt;
         gradvalue_n[pt_index*num_nodes+i] = gradresult;
@@ -909,16 +912,15 @@ void DirectSerendipityFE::initBasis(const Point* pt, int num_pts) {
 
           // If you want vertex basis functions zero on each edge node,
           // just comment the following block
-          /*
-                if (k == i) {
+          // /*
+          if (k == i) {
             linear_correction = lambda((i+num_vertices-1)%num_vertices,*edgeNodePtr(k % num_vertices,l))
                                   /lambda((i+num_vertices-1)%num_vertices,*vertexNodePtr(i % num_vertices));
           } else {
             linear_correction = lambda((i+2)%num_vertices,*edgeNodePtr(k % num_vertices,l))
                                   /lambda((i+2)%num_vertices,*vertexNodePtr(i % num_vertices));
           }      
-          
-          */
+          // */
 
           
           phi_pt += linear_correction * phi *  value_n[global_index];
