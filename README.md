@@ -15,7 +15,7 @@ make
 ```
 
 ## Direct Serendipity Space
-Nodal basis functions as defined in the paper on each elements are constructed in `directSerendipityFE.cpp` and assembled in `ellipticPDE.cpp` to serve as global basis functions. However, in `directSerendipityFE.cpp`, if you do not want to remove cell degrees of freedom, find the following lines at three places and comment them out.
+Nodal basis functions as defined in the paper on each elements, except for that we choose vertex basis functions to be linear on each edge, are constructed in `directSerendipityFE.cpp` and assembled in `ellipticPDE.cpp` to serve as global basis functions. However, in `directSerendipityFE.cpp`, if you do not want to remove cell degrees of freedom, find the following lines at three places and comment them out.
 
 ```cpp
 //Deduct value at interior nodes if needed
